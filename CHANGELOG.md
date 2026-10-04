@@ -63,12 +63,15 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
   - Skrip instalasi otomatis Debian/Ubuntu (`deploy/install-debian.sh`) dengan dukungan penuh Ubuntu 20.04/22.04/24.04 dan Debian 11/12/13: otomatisasi dedicated PHP-FPM pool `[pda]` (`pm = ondemand`, `pm.max_children = 16`, `pm.max_requests = 500`, `memory_limit = 256M`), paket ekstensi sistem lengkap (`php-gmp`, `php-bcmath`, `php-zip`, `ca-certificates`), pengamanan MariaDB dengan hak akses ganda (`'user'@'localhost'` dan `'user'@'127.0.0.1'`), auto-impor skema SQL metadata, dan penghapusan situs default Nginx.
   - Refaktor modernisasi sintaksis Bash pada `deploy/install-debian.sh` guna memenuhi standar Trunk Linter, ShellCheck, dan shfmt: migrasi menyeluruh ke operator pengujian `[[ ]]`, kurung kurawal variabel ketat `${...}`, pemisahan eksekusi `id -u` ke variabel `CURRENT_UID` mandiri guna mencegah tertutupnya nilai keluar (_unmasked return value_), serta standarisasi format I/O redirection.
   - Penambahan dokumentasi pendelegasian recursor PowerDNS 4.8+ pada `deploy/pdns.snippet.conf`: mitigasi deprecation `recursor=` dengan pendelegasian kueri rekursif ke local Unbound port 5353, pembersihan konfigurasi BIND redundan, serta metode pembuatan API key kriptografis via `openssl` dan `uuidgen`.
+- **Penanganan Fallback Tipe Aman Profil Pengguna (`views/layout.php`):**
+  - Memperbaiki potensi `PHP Warning: Undefined array key "display_name"` pada bilah samping profil pengguna dengan evaluasi null-safe `!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna')`.
 - **Verifikasi Kualitas Kode Menyeluruh (13 Pillars):**
   - Lolos 100% PHPCS (PSR-12) dengan 0 error dan 0 warning.
   - Lolos 100% PHPStan (Level 5) dengan 0 error.
   - Lolos 100% Psalm (Level 7) dengan 0 error dan tingkat inferensi tipe 96.4%.
   - Lolos 100% PHP-CS-Fixer tanpa ada berkas yang perlu diformat ulang.
   - Lolos 100% ESLint, Stylelint, Prettier, ShellCheck, shfmt, Trunk, dan Markdownlint.
+  - Lolos 100% Audit Headless Playwright (37/37 assertions PASS) menguji interaksi antarmuka tema OLED dark/light, FOUT-free reload, drawer Xiaomi/Redmi 393x852, kalkulasi bitwise IPCalc, dan zero browser console error.
   - Seluruh unit test di folder `tests/` berjalan sukses (`PASS`).
 
 ---

@@ -524,6 +524,7 @@ QUALITY GATE VERIFICATION RESULTS
 ✔ Stylelint (public/assets/app.css)            : 0 Style Errors
 ✔ Prettier Format Check                        : 100% Code Formatting Match
 ✔ ShellCheck & Trunk (deploy/install-debian.sh): 0 Shell Script Warnings / POSIX
+✔ Playwright Headless E2E (37 Assertions)      : 100% PASS (Zero Console & Runtime Errors)
 ✔ SonarLint Cognitive Complexity               : All Handlers <= 15 Complexity
 ✔ Max Line Length Invariant                    : 100% Non-Vendor Lines <= 120 Chars
 ✔ Git Whitespace Check (git diff --check)      : Clean (0 Trailing Spaces / EOF Issues)

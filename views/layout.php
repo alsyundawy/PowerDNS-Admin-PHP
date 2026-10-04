@@ -124,7 +124,7 @@ declare(strict_types=1);
         <span class="badge bg-secondary-subtle text-secondary small">2026</span>
       </button>
 
-      <div class="who"><?= e($user['display_name'] ?: $user['username']) ?></div>
+      <div class="who"><?= e((string) (!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna'))) ?></div>
       <div class="role"><?= e((string) ($user['role'] ?? 'user')) ?></div>
       <form method="post" action="/logout">
         <?= csrfField() ?>

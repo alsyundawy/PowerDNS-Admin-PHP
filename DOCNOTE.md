@@ -93,6 +93,13 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - Nilai kembalian eksekusi perintah tidak termasking di dalam ekspansi parameter (`CURRENT_UID="$(id -u)"`).
    - Format kode lolos 100% pada verifikasi `shfmt`, `shellcheck`, dan Trunk.
 
+6. **Validasi End-to-End Headless Playwright (37 Assertions Zero-Error):**
+   - Mengaudit runtime DOM, interaksi JavaScript, dan render CSS antarmuka secara headless:
+     - Siklus hidup tema: verifikasi switch dark/light, persistensi `localStorage`, evaluasi script inline pada `<head>` untuk mitigasi FOUT.
+     - Responsivitas mobile: pengujian laci navigasi Xiaomi/Redmi 393x852, penutupan via tombol ESC dan klik backdrop overlay, serta penguncian scroll body.
+     - Tool jaringan: validasi kalkulasi bitwise IPCalc IPv4/IPv6, pembangkitan subnet pada IPv6 Splitter, pemilih tipe record DNS Lookup, serta formulir login dan install.
+     - Penangkapan error browser: menjamin 0 uncaught exception dan 0 console error.
+
 ---
 
 ## 3. Catatan Arsitektur & Operasional Versi 0.2.0 (Advanced Features & Innovations)
