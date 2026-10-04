@@ -33,11 +33,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
           VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          LINTER_RULES_PATH: .github/linters
+          LINTER_RULES_PATH: .
 
           # Exclude vendor and cache directories
           FILTER_REGEX_EXCLUDE: ".*(vendor|node_modules|public/assets/vendor|\\.cache|\\.kilo|megalinter-reports).*"
           IGNORE_GITIGNORED_FILES: true
+
+          # Explicit config filenames
+          CSS_FILE_NAME: stylelint.config.mjs
+          MARKDOWN_CONFIG_FILE: .markdownlint.json
+          PHP_PHPCS_FILE_NAME: phpcs.xml
+          PHP_PHPSTAN_FILE_NAME: phpstan.neon
+          PHP_PSALM_FILE_NAME: psalm.xml
 
           # Language Linters Supported for PowerDNS-Admin-PHP:
           # PHP

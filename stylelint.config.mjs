@@ -1,5 +1,5 @@
-{
-  "ignoreFiles": [
+export default {
+  ignoreFiles: [
     "**/*.js",
     "**/*.mjs",
     "**/*.cjs",
@@ -15,22 +15,22 @@
     "LICENSE",
     "public/assets/vendor/**",
     "**/*.min.css",
-    "**/vendor/**"
+    "**/vendor/**",
   ],
-  "rules": {
+  rules: {
     "block-no-empty": true,
     "color-no-invalid-hex": true,
     "comment-no-empty": true,
     "declaration-block-no-duplicate-properties": [
       true,
       {
-        "ignore": ["consecutive-duplicates-with-different-values"]
-      }
+        ignore: ["consecutive-duplicates-with-different-values"],
+      },
     ],
     "declaration-block-no-shorthand-property-overrides": true,
     "selector-pseudo-class-no-unknown": true,
     "selector-pseudo-element-no-unknown": true,
     "selector-type-no-unknown": true,
-    "unit-no-unknown": true
-  }
-}
+    "unit-no-unknown": true,
+  },
+};

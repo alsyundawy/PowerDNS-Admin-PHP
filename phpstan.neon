@@ -4,10 +4,10 @@ parameters:
         - app
         - public/index.php
     excludePaths:
-        - vendor/*
-        - views/*
-        - tests/*
-        - .php-cs-fixer.php
+        - */vendor/*
+        - */views/*
+        - */tests/*
+        - *.php-cs-fixer.php
     treatPhpDocTypesAsCertain: false
     bootstrapFiles:
         - app/bootstrap.php
