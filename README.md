@@ -1,6 +1,6 @@
 # PowerDNS-Admin-PHP — Enterprise Authoritative PowerDNS Control Plane
 
-[![Release](https://img.shields.io/badge/Release-v0.1.0-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
+[![Release](https://img.shields.io/badge/Release-v0.2.0-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![PowerDNS API v1](https://img.shields.io/badge/PowerDNS-Authoritative%20API%20v1-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white)](https://www.powerdns.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
