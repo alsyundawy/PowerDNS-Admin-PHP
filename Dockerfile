@@ -8,7 +8,7 @@ FROM php:8.3-fpm-alpine
 # Metadata labels
 LABEL maintainer="Harry Dertin Sutisna Alsyundawy <https://github.com/alsyundawy>"
 LABEL org.opencontainers.image.title="PowerDNS-Admin-PHP"
-LABEL org.opencontainers.image.description="Enterprise Authoritative PowerDNS Web Control Plane (Native PHP)"
+LABEL org.opencontainers.image.description="Enterprise Authoritative PowerDNS Web Control Plane in Native PHP (Zero-Framework, Air-Gapped Zero-CDN, 2FA TOTP & Clustering)"
 LABEL org.opencontainers.image.version="0.3.0"
 LABEL org.opencontainers.image.licenses="MIT"
 

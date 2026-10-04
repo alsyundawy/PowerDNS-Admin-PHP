@@ -1,6 +1,17 @@
 {
   "name": "alsyundawy/powerdns-admin-php",
-  "description": "Lightweight PowerDNS Web Administration in Native PHP PDO",
+  "description": "Enterprise Authoritative PowerDNS Web Control Plane in Native PHP & PDO. Zero-Framework, Air-Gapped Zero-CDN, 2FA TOTP, Multi-Server Clustering, In-Memory Caching & RFC-Compliant Engine.",
+  "keywords": [
+    "powerdns",
+    "dns",
+    "dnssec",
+    "control-plane",
+    "authoritative-dns",
+    "clustering",
+    "totp-2fa",
+    "webhooks",
+    "zero-cdn"
+  ],
   "version": "0.3.0",
   "type": "project",
   "license": "MIT",

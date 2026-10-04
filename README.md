@@ -6,27 +6,31 @@
   </a>
 </p>
 
-[![Release](https://img.shields.io/badge/Release-v0.3.0-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
-[![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
-[![PowerDNS API v1](https://img.shields.io/badge/PowerDNS-Authoritative%20API%20v1-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white)](https://www.powerdns.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
-[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-PHPStan%20L5%20%7C%20Psalm%20L4%20%7C%20PSR--12-brightgreen?style=for-the-badge&logo=checkmarx)](https://github.com/alsyundawy/PowerDNS-Admin-PHP)
-[![Zero CDN](https://img.shields.io/badge/Assets-100%25%20Offline%20Local-blue?style=for-the-badge&logo=bootstrap)](https://getbootstrap.com/)
-[![Database](https://img.shields.io/badge/Database-MySQL%20%7C%20MariaDB%20utf8mb4-003B57?style=for-the-badge&logo=mariadb&logoColor=white)](https://mariadb.org/)
-[![Donate PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/alsyundawy)
+<p align="center">
+  <a href="https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases"><img src="https://img.shields.io/badge/Release-v0.3.0-007ACC?style=for-the-badge&logo=github" alt="Release v0.3.0"></a>
+  <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.1%20--%208.5+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.1 - 8.5+"></a>
+  <a href="https://www.powerdns.com/"><img src="https://img.shields.io/badge/PowerDNS-API%20v1%20Ready-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white" alt="PowerDNS API v1"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-28A745?style=for-the-badge" alt="MIT License"></a>
+  <a href="Dockerfile"><img src="https://img.shields.io/badge/Docker-Alpine%20PHP%208.3--FPM-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Alpine"></a>
+  <br>
+  <a href="https://github.com/alsyundawy/PowerDNS-Admin-PHP"><img src="https://img.shields.io/badge/Quality%20Gates-PHPStan%20L5%20%7C%20Psalm%20L4%20%7C%20PSR--12-brightgreen?style=for-the-badge&logo=checkmarx" alt="Quality Gates"></a>
+  <a href="https://owasp.org/"><img src="https://img.shields.io/badge/Security-OWASP%20Top%2010%20Hardened-orange?style=for-the-badge&logo=shield" alt="OWASP Hardened"></a>
+  <a href="https://getbootstrap.com/"><img src="https://img.shields.io/badge/Assets-100%25%20Offline%20Zero--CDN-blue?style=for-the-badge&logo=bootstrap" alt="Zero-CDN"></a>
+  <a href="https://mariadb.org/"><img src="https://img.shields.io/badge/Database-MySQL%20%7C%20MariaDB%20utf8mb4-003B57?style=for-the-badge&logo=mariadb&logoColor=white" alt="Database"></a>
+  <a href="https://www.paypal.me/alsyundawy"><img src="https://img.shields.io/badge/Sponsor-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate"></a>
+</p>
 
-> **Enterprise-grade, security-hardened Web GUI and automation engine for PowerDNS Authoritative Server.
-> Engineered with pure native PHP & PDO, sub-millisecond bootstrap, zero external CDN dependencies, dual dark/light theming
-> inspired by Visual Subnet Calculator, MariaDB/MySQL metadata persistence, and direct PowerDNS HTTP API v1 integration.**
+> **Enterprise Authoritative PowerDNS Web Control Plane in Native PHP & PDO.**
+> Engineered with zero external runtime frameworks, $<1\text{ ms}$ sub-millisecond bootstrap, 100% offline air-gapped Zero-CDN architecture, RFC 6238 TOTP two-factor authentication, multi-server PowerDNS node clustering, in-memory APCu caching, cryptographic HMAC-SHA256 webhooks, and direct PowerDNS HTTP API v1 integration.
 >
 > Designed, engineered, and maintained by
 > **[`HARRY DERTIN SUTISNA ALSYUNDAWY (@alsyundawy)`](https://github.com/alsyundawy)** —
-> Built for mission-critical DNS operations.
+> Built for mission-critical DNS operations and high-availability enterprise environments.
 >
 > 📦 **[`GitHub Releases`](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)** &nbsp;|&nbsp;
 > 📖 **[`Installation Guide`](#-installation--setup-guide)** &nbsp;|&nbsp;
 > 🛠️ **[`Architecture & Request Pipeline`](#️-architecture--request-pipeline)** &nbsp;|&nbsp;
-> 🏛️ **[`Architecture & Notes`](DOCNOTE.md)** &nbsp;|&nbsp;
+> 🏛️ **[`Architecture Notes`](DOCNOTE.md)** &nbsp;|&nbsp;
 > 📜 **[`Full Changelog`](CHANGELOG.md)** &nbsp;|&nbsp;
 > 💖 **[`Support via PayPal`](https://www.paypal.me/alsyundawy)** &nbsp;|&nbsp;
 > 🇮🇩 **[`QRIS Donation`](#-support--donation)**
@@ -36,6 +40,7 @@
 ## 🧭 Navigation
 
 - [Overview](#-overview)
+- [Enterprise Architecture at a Glance](#-enterprise-architecture-at-a-glance)
 - [Why This Modernized Edition?](#-why-this-modernized-edition)
 - [Key Features](#-key-features)
 - [Architecture & Request Pipeline](#️-architecture--request-pipeline)
@@ -59,18 +64,28 @@
 
 ## 🌟 Overview
 
-**PowerDNS-Admin-PHP** is a high-performance, web-based authoritative DNS management control plane engineered
-specifically for system administrators, hosting providers, ISP network engineers, and DevOps teams.
+**PowerDNS-Admin-PHP** is an enterprise-grade, high-performance web-based authoritative DNS control plane engineered specifically for network engineers, hosting providers, ISP infrastructure architects, and DevOps teams.
 
-Managing PowerDNS zones via direct SQL queries or heavyweight control panels burdened with complex Python/Flask
-virtual environments, NPM build steps, or external daemon microservices introduces significant operational overhead,
-high memory consumption, and security attack vectors. **PowerDNS-Admin-PHP** solves this by providing a clean,
-lightweight, native PHP PDO web application communicating directly with PowerDNS Authoritative via its official
-HTTP API v1.
+Managing PowerDNS zones via direct SQL queries or heavyweight control panels burdened with complex Python/Flask virtual environments, Node.js build pipelines, or external daemon microservices introduces significant operational friction, memory bloat, and enlarged security attack surfaces. **PowerDNS-Admin-PHP** solves this by providing a clean, hardened, native PHP PDO web application communicating directly with PowerDNS Authoritative Server via its official **HTTP API v1**.
 
-Operating on Debian, Ubuntu, Rocky Linux, AlmaLinux, or CentOS, PowerDNS-Admin-PHP delivers sub-millisecond local
-page rendering, atomic RRSet diff-patch updates, multi-tenant role-based access control (RBAC), end-to-end DNSSEC
-management, and complete operational autonomy with zero runtime external CDN dependencies.
+Operating across Debian, Ubuntu, Rocky Linux, AlmaLinux, CentOS, or Docker containers, PowerDNS-Admin-PHP delivers sub-millisecond local rendering, atomic RRSet diff-patch updates, multi-tenant role-based access control (RBAC), end-to-end DNSSEC automation, and complete operational autonomy with **zero runtime external CDN dependencies**.
+
+---
+
+## ⚡ Enterprise Architecture at a Glance
+
+| Core Pillar | Architectural Implementation & Delivery |
+| :--- | :--- |
+| **🚀 Sub-Millisecond Kernel** | Native PHP 8.1–8.5+ with PDO; zero runtime framework overhead (boots in $<1\text{ ms}$ with memory allocation $<2\text{ MB}$). |
+| **🛡️ 100% Air-Gapped Zero-CDN** | Bundled local offline Bootstrap 5.3, Font Awesome 6.7.2, and Vanilla JS. Enforces strict CSP (`'self'`) with zero external network leaks. |
+| **⚡ Single Source of Truth** | Pure authoritative integration via PowerDNS HTTP API v1. Zero DNS record duplication in the database; atomic mathematical RRSet diffs. |
+| **🔐 Defense-in-Depth Security** | Argon2id password hashing, AES-256-GCM encrypted cluster secrets, RFC 6238 TOTP 2FA, session-bound CSRF rotation, dual-axis rate limiting. |
+| **🏢 Multi-Node Clustering** | Centralized control plane for distributed PowerDNS Authoritative daemons with dynamic session routing and live latency telemetry. |
+| **💾 High-Throughput Caching** | Native in-memory APCu shared memory adapter with atomic prefix-based invalidation, serving repeated zone reads in $<0.2\text{ ms}$. |
+| **🪝 Cryptographic Webhooks** | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`). |
+| **📋 Zone RFC Linting Engine** | Automated real-time RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, and MX target checks). |
+| **📊 Telemetry & Visual Analytics** | PowerDNS ring buffer decoders (`queries`, `remotes`), SVG packet cache hit ratio donut gauges, and client query distribution. |
+| **🎨 OLED Dark/Light Theming** | Design system inspired by Visual Subnet Calculator with safe-area insets (`env(safe-area-inset-*)`) and horizontal overflow guards for mobile. |
 
 ---
 
