@@ -28,16 +28,48 @@ jobs:
           fetch-depth: 0
 
       - name: Super-Linter
-        uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918 # v8.7.0
+        uses: super-linter/super-linter@2da136927bd4a73596db63044b504547c62cb854 # v9.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
-          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          LINTER_RULES_PATH: .
+
+          # Exclude vendor and cache directories
+          FILTER_REGEX_EXCLUDE: "(vendor/|node_modules/|public/assets/vendor/|\\.cache/|\\.kilo/|megalinter-reports/)"
+          IGNORE_GITIGNORED_FILES: true
+
+          # Language Linters Supported for PowerDNS-Admin-PHP:
+          # PHP
           VALIDATE_PHP_BUILTIN: true
           VALIDATE_PHP_PHPCS: true
+          VALIDATE_PHP_PHPSTAN: true
+          VALIDATE_PHP_PSALM: true
+
+          # JavaScript & CSS & HTML
           VALIDATE_JAVASCRIPT_ES: true
           VALIDATE_CSS: true
+          VALIDATE_HTML: true
+
+          # Markdown, YAML, JSON, XML
           VALIDATE_MARKDOWN: true
           VALIDATE_YAML: true
           VALIDATE_JSON: true
+          VALIDATE_XML: true
+
+          # Shell / Bash
           VALIDATE_BASH: true
+          VALIDATE_BASH_EXEC: true
+          VALIDATE_SHELL_SHFMT: true
+
+          # SQL
+          VALIDATE_SQLFLUFF: true
+
+          # GitHub Actions & Security
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_GITHUB_ACTIONS_ZIZMOR: true
+          VALIDATE_GITLEAKS: true
+          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
+          VALIDATE_EDITORCONFIG: true
+          VALIDATE_ENV: true
+          VALIDATE_JSCPD: true

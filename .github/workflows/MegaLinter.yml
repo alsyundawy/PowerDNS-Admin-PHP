@@ -1,7 +1,7 @@
 # =============================================================================
-# MegaLinter GitHub Actions Workflow — PHP-BindManager
+# MegaLinter GitHub Actions Workflow — PowerDNS-Admin-PHP
 # https://megalinter.io  |  Version: v10.1.0 (latest)
-# Focus: PHP · HTML · CSS · JavaScript · Markdown
+# Focus: PHP · HTML · CSS · JS · MD · BASH · JSON · YAML · XML · SQL · ACTION
 # =============================================================================
 ---
 name: MegaLinter
@@ -30,7 +30,7 @@ permissions: {}
 
 jobs:
   megalinter:
-    name: MegaLinter v10 (PHP·HTML·CSS·JS·MD)
+    name: MegaLinter v10 (Full Stack Linter Suite)
     runs-on: ubuntu-latest
 
     permissions:
@@ -79,34 +79,49 @@ jobs:
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # --------------- Scope: only these 5 families ---------------------
-          ENABLE: PHP,HTML,CSS,JAVASCRIPT,MARKDOWN
+          # --------------- Scope: All Supported Families for PowerDNS-Admin-PHP ----
+          ENABLE: PHP,HTML,CSS,JAVASCRIPT,MARKDOWN,BASH,JSON,YAML,XML,SQL,ACTION,REPOSITORY,COPYPASTE,EDITORCONFIG
 
-          # --------------- PHP linters ---------------------------------------
+          # --------------- Supported Linters for Repository Stack -----------------
           ENABLE_LINTERS: >-
-            PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPMD,PHP_PHPCSFIXER,
+            PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPCSFIXER,
             HTML_DJLINT,HTML_HTMLHINT,
             CSS_STYLELINT,
             JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
-            MARKDOWN_MARKDOWNLINT
+            MARKDOWN_MARKDOWNLINT,
+            BASH_SHELLCHECK,BASH_EXEC,BASH_SHFMT,
+            JSON_PRETTIER,JSON_V8R,
+            YAML_YAMLLINT,YAML_PRETTIER,YAML_V8R,
+            XML_XMLLINT,
+            SQL_SQLFLUFF,
+            ACTION_ACTIONLINT,ACTION_ZIZMOR,
+            REPOSITORY_GITLEAKS,REPOSITORY_TRIVY,REPOSITORY_DEVSKIM,REPOSITORY_SECRETLINT,
+            COPYPASTE_JSCPD,
+            EDITORCONFIG_EDITORCONFIG_CHECKER
 
           # --------------- Auto-fix -----------------------------------------
-          APPLY_FIXES: PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,MARKDOWN_MARKDOWNLINT
+          APPLY_FIXES: >-
+            PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
+            MARKDOWN_MARKDOWNLINT,BASH_SHFMT,JSON_PRETTIER,YAML_PRETTIER
 
           # --------------- Config files -------------------------------------
           PHP_PHPCS_CONFIG_FILE: phpcs.xml
+          PHP_PHPCS_ARGUMENTS: --standard=phpcs.xml
           PHP_PHPSTAN_CONFIG_FILE: phpstan.neon
+          PHP_PHPSTAN_ARGUMENTS: --configuration=phpstan.neon --no-progress
           PHP_PSALM_CONFIG_FILE: psalm.xml
+          PHP_PSALM_ARGUMENTS: --config=psalm.xml --no-progress
           PHP_PHPCSFIXER_CONFIG_FILE: .php-cs-fixer.php
           PHP_PHPCSFIXER_ARGUMENTS: --config=.php-cs-fixer.php
-          PHP_PHPSTAN_ARGUMENTS: --level=8 --no-progress
-          PHP_PHPCS_ARGUMENTS: --standard=PSR12 --extensions=php
-          PHP_PHPMD_ARGUMENTS: --rulesets cleancode,codesize,controversial,design,naming,unusedcode
           MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+          CSS_STYLELINT_CONFIG_FILE: .stylelintrc.json
+          JAVASCRIPT_ES_CONFIG_FILE: eslint.config.js
+          SQL_SQLFLUFF_CONFIG_FILE: .sqlfluff
+          EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: .editorconfig
 
           # --------------- Exclusions ---------------------------------------
           FILTER_REGEX_EXCLUDE: >-
-            (vendor/|\.git/|node_modules/|\.cache/|\.phpunit\.cache/|\.php-cs-fixer\.cache|megalinter-reports/)
+            (vendor/|\.git/|node_modules/|\.cache/|\.phpunit\.cache/|\.php-cs-fixer\.cache|megalinter-reports/|public/assets/vendor/|\.kilo/)
 
           # --------------- Reporting ----------------------------------------
           REPORT_OUTPUT_FOLDER: megalinter-reports
@@ -137,7 +152,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload SARIF to GitHub Security
         if: success() || failure()
-        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: megalinter-reports/megalinter-report.sarif
         continue-on-error: true

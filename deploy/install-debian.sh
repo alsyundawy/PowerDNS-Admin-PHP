@@ -2,23 +2,23 @@
 set -euo pipefail
 APP=/var/www/PowerDNS-Admin-PHP
 if [[ ${EUID} -ne 0 ]]; then
-	echo "Jalankan sebagai root."
-	exit 1
+    echo "Jalankan sebagai root."
+    exit 1
 fi
 apt-get update
 apt-get install -y nginx mariadb-server php-fpm php-mysql php-curl php-mbstring php-xml php-intl
 PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
 install -d -o www-data -g www-data "${APP}"
 if [[ ! -f "${APP}/public/index.php" ]]; then
-	echo "Salin isi repo ke ${APP} dulu."
-	exit 1
+    echo "Salin isi repo ke ${APP} dulu."
+    exit 1
 fi
 chown -R www-data:www-data "${APP}"
 find "${APP}" -type d -exec chmod 750 {} \;
 find "${APP}" -type f -exec chmod 640 {} \;
 install -d -o www-data -g www-data /etc/pda
 if [[ ! -f "/etc/php/${PHP_VER}/fpm/pool.d/pda.conf" ]]; then
-	cat >"/etc/php/${PHP_VER}/fpm/pool.d/pda.conf" <<EOF
+    cat >"/etc/php/${PHP_VER}/fpm/pool.d/pda.conf" <<EOF
 [pda]
 user = www-data
 group = www-data
