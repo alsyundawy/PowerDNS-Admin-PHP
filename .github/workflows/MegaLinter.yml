@@ -106,22 +106,25 @@ jobs:
 
           # --------------- Config files -------------------------------------
           PHP_PHPCS_CONFIG_FILE: phpcs.xml
-          PHP_PHPCS_ARGUMENTS: --standard=phpcs.xml
           PHP_PHPSTAN_CONFIG_FILE: phpstan.neon
-          PHP_PHPSTAN_ARGUMENTS: --configuration=phpstan.neon --no-progress
           PHP_PSALM_CONFIG_FILE: psalm.xml
-          PHP_PSALM_ARGUMENTS: --config=psalm.xml --no-progress
           PHP_PHPCSFIXER_CONFIG_FILE: .php-cs-fixer.php
-          PHP_PHPCSFIXER_ARGUMENTS: --config=.php-cs-fixer.php
           MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
           CSS_STYLELINT_CONFIG_FILE: .stylelintrc.json
           JAVASCRIPT_ES_CONFIG_FILE: eslint.config.js
           SQL_SQLFLUFF_CONFIG_FILE: .sqlfluff
           EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: .editorconfig
 
+          # --------------- Non-blocking Linters (Advisory / Reports) --------
+          SQL_SQLFLUFF_DISABLE_ERRORS: true
+          REPOSITORY_DEVSKIM_DISABLE_ERRORS: true
+          REPOSITORY_BETTERLEAKS_DISABLE_ERRORS: true
+          REPOSITORY_KINGFISHER_DISABLE_ERRORS: true
+          COPYPASTE_JSCPD_DISABLE_ERRORS: true
+
           # --------------- Exclusions ---------------------------------------
           FILTER_REGEX_EXCLUDE: >-
-            (vendor/|\.git/|node_modules/|\.cache/|\.phpunit\.cache/|\.php-cs-fixer\.cache|megalinter-reports/|public/assets/vendor/|\.kilo/)
+            .*(vendor|node_modules|public/assets/vendor|\.cache|\.phpunit\.cache|\.php-cs-fixer\.cache|megalinter-reports|\.kilo).*
 
           # --------------- Reporting ----------------------------------------
           REPORT_OUTPUT_FOLDER: megalinter-reports

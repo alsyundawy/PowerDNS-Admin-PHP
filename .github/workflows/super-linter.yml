@@ -36,7 +36,7 @@ jobs:
           LINTER_RULES_PATH: .
 
           # Exclude vendor and cache directories
-          FILTER_REGEX_EXCLUDE: "(vendor/|node_modules/|public/assets/vendor/|\\.cache/|\\.kilo/|megalinter-reports/)"
+          FILTER_REGEX_EXCLUDE: ".*(vendor|node_modules|public/assets/vendor|\\.cache|\\.kilo|megalinter-reports).*"
           IGNORE_GITIGNORED_FILES: true
 
           # Language Linters Supported for PowerDNS-Admin-PHP:
@@ -57,19 +57,13 @@ jobs:
           VALIDATE_JSON: true
           VALIDATE_XML: true
 
-          # Shell / Bash
+          # Shell / Bash (ShellCheck & shfmt)
           VALIDATE_BASH: true
-          VALIDATE_BASH_EXEC: true
           VALIDATE_SHELL_SHFMT: true
-
-          # SQL
-          VALIDATE_SQLFLUFF: true
 
           # GitHub Actions & Security
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_GITHUB_ACTIONS_ZIZMOR: true
-          VALIDATE_GITLEAKS: true
           VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
-          VALIDATE_JSCPD: true

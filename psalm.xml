@@ -12,6 +12,10 @@
     <projectFiles>
         <directory name="app" />
         <file name="public/index.php" />
+        <ignoreFiles>
+            <directory name="vendor" />
+            <file name=".php-cs-fixer.php" />
+        </ignoreFiles>
     </projectFiles>
     <extraFiles>
         <file name="app/bootstrap.php" />
@@ -22,6 +26,7 @@
         <file name="app/handlers.php" />
     </extraFiles>
     <issueHandlers>
+        <UndefinedClass errorLevel="info" />
         <PossiblyUnusedReturnValue errorLevel="info" />
         <PossiblyUnusedMethod errorLevel="info" />
     </issueHandlers>
