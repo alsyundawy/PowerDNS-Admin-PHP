@@ -34,7 +34,7 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
      - **Dark Canvas:** `#0b0f19` (OLED obsidian space), kartu `#111827`, border `#1e293b`, aksen elektrik cyan `#0ea5e9`, ungu neon `#8b5cf6`, dan status emerald `#10b981`.
      - **Light Canvas:** `#f8fafc` (Daylight Slate), kartu `#ffffff`, border `#e2e8f0`, teks kontras `#0f172a`.
 2. **Zero-Blur & Zero-Haze Rendering:**
-   - Menghindari filter _backdrop-blur_ berlebih yang membebani GPU perangkat seluler.
+   - Menghindari filter *backdrop-blur* berlebih yang membebani GPU perangkat seluler.
    - Menggunakan garis tepi tegas 1px (`var(--line)`), bayangan multi-layer tajam, serta antialiasing font `-webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility`.
 3. **Pencegahan Bug Font Inflation & Layar Terpotong (Xiaomi/Redmi/Poco/MIUI/HyperOS):**
    - Aturan proteksi `-webkit-text-size-adjust: 100%` dan `text-size-adjust: 100%` mencegah browser Android/MIUI membesarkan font secara sepihak pada wadah lebar.
@@ -88,7 +88,7 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - Menghapus direktif redundan `bind-config=` saat backend `gmysql` aktif.
 
 5. **Standarisasi Scripting Shell POSIX & Trunk Linter Compliance:**
-   - Seluruh blok kondisional pada `deploy/install-debian.sh` menggunakan operator modern `[[ ... ]]` yang aman dari _word splitting_.
+   - Seluruh blok kondisional pada `deploy/install-debian.sh` menggunakan operator modern `[[ ... ]]` yang aman dari *word splitting*.
    - Semua variabel dibungkus kurung kurawal ketat `${...}`.
    - Nilai kembalian eksekusi perintah tidak termasking di dalam ekspansi parameter (`CURRENT_UID="$(id -u)"`).
    - Format kode lolos 100% pada verifikasi `shfmt`, `shellcheck`, dan Trunk.
@@ -293,7 +293,7 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
      - Bootstrap 5.3.8 (`bootstrap.min.css` & `bootstrap.bundle.min.js`)
      - Font Awesome 6.7.2 (`fontawesome/css/all.min.css` beserta font web `webfonts/`)
      - jQuery 3.7.1 (`jquery.min.js`)
-   - Menghilangkan latensi jaringan ke CDN pihak ketiga (jsDelivr), mencegah kegagalan pemuatan pada lingkungan terisolasi (_air-gapped_ / intranet / jaringan internal), meniadakan trik rapuh `document.write` / `onerror` fallback, serta menjaga privasi pengguna (tidak ada kebocoran IP / referer ke pihak ketiga).
+   - Menghilangkan latensi jaringan ke CDN pihak ketiga (jsDelivr), mencegah kegagalan pemuatan pada lingkungan terisolasi (*air-gapped* / intranet / jaringan internal), meniadakan trik rapuh `document.write` / `onerror` fallback, serta menjaga privasi pengguna (tidak ada kebocoran IP / referer ke pihak ketiga).
 
 2. **Header Keamanan Lengkap & CSP Ketat:**
 
@@ -360,7 +360,7 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - Penambahan paket dependensi PHP: `php-gmp` dan `php-bcmath` (untuk kalkulasi 128-bit IPv6 bitwise mutakhir) serta `php-zip`.
 
 3. **Otomasi & Hardening MariaDB Database (`deploy/install-debian.sh`):**
-   - **Hak Akses Ganda (Dual-Host Privileges):** Otomasi pembuatan user dengan izin untuk `'user'@'localhost'` DAN `'user'@'127.0.0.1'`, mencegah galat _Access Denied_ saat koneksi PDO beralih antara UNIX socket dan jaringan TCP loopback.
+   - **Hak Akses Ganda (Dual-Host Privileges):** Otomasi pembuatan user dengan izin untuk `'user'@'localhost'` DAN `'user'@'127.0.0.1'`, mencegah galat *Access Denied* saat koneksi PDO beralih antara UNIX socket dan jaringan TCP loopback.
    - **Keamanan Database:** Pembersihan user kosong/anonim, penghapusan akses root remote, dan penghapusan database `test`.
    - **Inisialisasi Otomatis:** Deteksi keberadaan tabel metadata dan impor otomatis `sql/schema.sql` saat instalasi awal.
 
@@ -393,6 +393,74 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - Penamaan berkas acak kriptografis (`avatar_{uid}_{hex}.ext` dan `logo_{hex}.ext`) serta penghapusan otomatis berkas lama saat diperbarui.
 3. **Kustomisasi Identitas Branding:**
    - Dukungan konfigurasi Nama Aplikasi kustom, Logo gambar lokal atau URL eksternal (didukung header CSP `img-src 'self' data: https:`), serta teks footer kustom yang dirender konsisten pada layout utama, dasbor, dan halaman masuk (`/login`).
+
+---
+
+### K. Dukungan 31 Tipe DNS Record (RFC & PowerDNS Engine Compliant)
+
+1. **Cakupan 31 Tipe Record Otoritatif Modern:**
+   - Mendukung penuh tipe record: `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `SRV`, `PTR`, `CAA`, `TLSA`, `SSHFP`, `NAPTR`, `SPF`, `SOA`, `HTTPS`, `SVCB`, `DS`, `ALIAS`, `DNAME`, `DNSKEY`, `CDS`, `CDNSKEY`, `CSYNC`, `URI`, `OPENPGPKEY`, `SMIMEA`, `CERT`, `LOC`, `HINFO`, `RP`, `DHCID`.
+   - Mengintegrasikan pseudorecord PowerDNS Authoritative asli: `ALIAS` untuk flattening CNAME pada apex zona tanpa melanggar RFC 1034 section 3.6.2.
+2. **Validasi Sintaksis Berlapis (`validateRecord` & Sub-Validators):**
+   - Validasi alamat host IPv4 dan IPv6 terstandarisasi.
+   - Pengecekan ketat format parameter kriptografis DNSSEC: Key Tag, Algoritma, Digest Type, dan Digest heksadesimal/base64 (`DS`, `CDS`, `DNSKEY`, `CDNSKEY`).
+   - Validasi DANE TLSA & SMIMEA: Certificate Usage, Selector, Matching Type, dan data asosiasi hex.
+   - Validasi SSHFP: Algorithm, Fingerprint Type, dan fingerprint heksadesimal.
+   - Validasi CAA: Flags byte (0-255), Tag (`issue`, `issuewild`, `iodef`), dan Value domain berkuotasi.
+   - Validasi Service Binding HTTPS & SVCB: Priority, Target Name, dan pasangan kunci-nilai parameter layanan (RFC 9460).
+3. **Normalisasi FQDN & Format BIND Zone:**
+   - `normalizeContent()` secara otomatis memastikan penambahan titik akhir (trailing dot) FQDN kanonikal untuk record penunjuk (`CNAME`, `NS`, `PTR`, `ALIAS`, `DNAME`, `MX`, `SRV`).
+   - `formatBindRecordContent()` secara otomatis menangani escaping kuotasi ganda untuk record TXT, SPF, dan CAA saat diekspor ke berkas zona BIND RFC 1035.
+
+---
+
+### L. Multi-Tier Dynamic Reverse DNS (rDNS) Engine & Template Naming Macros
+
+1. **Algoritma Longest-Suffix Matching:**
+   - Fungsi `findMatchingReverseZone()` mengeliminasi keterbatasan /24 atau /64 statis dengan melakukan kueri pencocokan akhiran terpanjang (longest-suffix match) terhadap seluruh zona `.in-addr.arpa.` dan `.ip6.arpa.` yang terdaftar di database PowerDNS.
+   - Mendukung hierarki subnet arbitrary: IPv4 (/8, /16, /24, /28, /29, /30) dan IPv6 (/32, /48, /56, /64).
+2. **Batch Generator Subnetting & Template Token Fleksibel:**
+   - Generator massal record PTR (`generateIpv4SubnetPtrBatch` dan `generateIpv6SubnetPtrBatch`) mendukung macro penamaan ekspresif:
+     - `[ID]`: Nomor indeks urut (1, 2, 3...)
+     - `[HEX]`: Format heksadesimal nibble host
+     - `[HEX16]`: Format 4-digit heksadesimal
+     - `[IP]`: Alamat IP asli host
+     - `[IP_DASH]`: Alamat IP dengan pemisah tanda hubung (contoh: `192-168-1-10`)
+     - `[OCTET4]`: Oktet ke-4 IPv4
+     - `[DOMAIN]`: Nama domain tujuan
+3. **Sinkronisasi Otomatis Forward-to-Reverse:**
+   - Fungsi `syncForwardIpToReversePtr()` menghubungkan pembuatan record `A` / `AAAA` forward secara otomatis ke pembuatan record `PTR` pada zona reverse yang sesuai, lengkap dengan perhitungan nama record relatif berbasis `dnsRelative()`.
+
+---
+
+### M. Enterprise System Settings Center & Dynamic SOA Policies (`/settings`)
+
+1. **Pusat Pengaturan Terpusat 6 Kluster:**
+   - Halaman `/settings` (`views/settings.php` dan `app/handlers.php`) mengelola konfigurasi dinamis yang disimpan pada tabel database metadata `settings`:
+     - **Kluster 1: PowerDNS Authoritative API Connection:** Endpoint URL, Server ID, kunci API terenkripsi AES-256-GCM, dan toggle verifikasi sertifikat TLS/SSL.
+     - **Kluster 2: Parameter & Kebijakan Default DNS:** Default TTL zona, Default NS records bawaan wizard, SOA Hostmaster Email (RNAME), Timers siklus hidup SOA (Refresh, Retry, Expire, Min TTL), dan default auto-PTR toggle.
+     - **Kluster 3: Identitas, Tema & Kustomisasi Branding:** Nama aplikasi, kustomisasi logo via berkas/URL, teks footer kustom, dan tema bawaan.
+     - **Kluster 4: Keamanan, Sesi & Kebijakan Login:** Session lifetime (menit), batas kesalahan autentikasi (max attempts & lockout duration), serta enforce HSTS header toggle.
+     - **Kluster 5: Retensi Riwayat Zona & Jejak Audit:** Batas kuota rollback snapshot per zona dan durasi retensi audit log (hari).
+     - **Kluster 6: Alat Diagnostik Jaringan & rDNS:** Template default penamaan PTR dan daftar IP recursive DNS resolvers publik.
+2. **Integrasi Dinamis ke Wizard Pembuatan Zona:**
+   - Halaman `/zones/create` secara otomatis mempra-isi field name server bawaan (`dns_default_ns`) dan TTL (`dns_default_ttl`) dari pengaturan sistem.
+
+---
+
+### N. Nginx & PHP-FPM Auto-Detection Helper + Paritas Apache `.htaccess`
+
+1. **Skrip Deteksi Otomatis PHP-FPM (`deploy/detect-php-fpm.sh`):**
+   - Memindai versi PHP CLI dan direktori pool PHP-FPM yang terpasang di `/etc/php/*/fpm` (mendukung PHP 8.1, 8.2, 8.3, 8.4).
+   - Menghubungkan symlink universal socket `/run/php/php-fpm-pda.sock` ke socket pool aktif versi target (`/run/php/php<ver>-fpm-pda.sock`).
+   - Menghilangkan friksi konfigurasi Nginx manual saat versi PHP pada server Debian/Ubuntu diperbarui.
+2. **Skrip Instalasi Debian Terpadu (`deploy/install-debian.sh`):**
+   - Deteksi versi PHP otomatis dengan fallback cerdas dan pembuatan socket universal secara otomatis saat instalasi sistem.
+3. **Paritas Penuh Konfigurasi Nginx (`deploy/nginx.conf`) & Apache (`public/.htaccess`):**
+   - **Upload Sandboxing:** Memblokir eksekusi skrip PHP di folder unggahan `public/uploads/` (`deny all; return 404;`).
+   - **Front-Controller Rewrite:** Mengarahkan seluruh kueri URI bersih ke `index.php?$query_string`.
+   - **Proteksi Berkas Sensitif:** Penolakan akses ke file dotfiles (`.env`, `.git`) dan berkas metadata/konfigurasi.
+   - **Caching Aset Statis Lokal:** Caching browser 1 tahun dengan header `immutable` untuk CSS, JS, dan font lokal.
 
 ---
 

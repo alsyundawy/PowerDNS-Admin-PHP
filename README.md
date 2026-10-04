@@ -474,12 +474,14 @@ Disimpan pada berkas konfigurasi lokal terlindungi (dengan izin `640` milik `www
 Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel metadata `settings`:
 
 #### A. Koneksi PowerDNS Authoritative API
+
 - **`pdns_api_url`**: Endpoint webserver API PowerDNS Authoritative (contoh: `http://127.0.0.1:8081`).
 - **`pdns_server_id`**: Server ID PowerDNS (standar: `localhost`).
 - **`pdns_api_key`**: Kunci rahasia API daemon PowerDNS (dienkripsi simetris menggunakan `AES-256-GCM`).
 - **`pdns_verify_tls`**: Verifikasi sertifikat TLS/SSL untuk endpoint HTTPS jarak jauh.
 
 #### B. Parameter & Kebijakan Default DNS
+
 - **`dns_default_ttl`**: TTL bawaan untuk record baru atau impor zona tanpa TTL eksplisit (30 – 604800 detik, standar: `3600`).
 - **`dns_default_ns`**: Daftar nameserver otoritatif default yang otomatis dipra-isi saat pembuatan zona baru (contoh: `ns1.example.com, ns2.example.com`).
 - **`dns_default_soa_email`**: Format email penanggung jawab zona RNAME (standar: `hostmaster.example.com`).
@@ -487,22 +489,26 @@ Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel met
 - **`dns_auto_ptr_default`**: Status default checkbox sinkronisasi otomatis record A/AAAA ke zona reverse PTR (`1` aktif / `0` nonaktif).
 
 #### C. Identitas, Tema & Kustomisasi Branding
+
 - **`app_name`**: Nama instansi atau aplikasi yang tampil di navbar, sidebar, dan judul tab browser.
 - **`app_logo_url`**: URL logo kustom atau jalur berkas logo hasil unggah (`PNG`, `SVG`, `WEBP` maks 2MB).
 - **`app_footer_text`**: Teks copyright atau informasi kepatuhan pada bagian bawah panel dan form login.
 - **`app_default_theme`**: Tema bawaan antarmuka untuk pengunjung baru (`dark` OLED Dark atau `light` Daylight Light).
 
 #### D. Keamanan, Sesi & Kebijakan Login
+
 - **`session_lifetime_minutes`**: Waktu kedaluwarsa sesi idle pengguna (5 – 10080 menit, standar: `120`).
 - **`login_max_attempts`**: Batas kesalahan autentikasi berturut-turut sebelum pemicuan lockout brute-force (standar: `5`).
 - **`login_lockout_seconds`**: Durasi penalti lockout brute-force IP dan akun (standar: `900` detik / 15 menit).
 - **`security_force_hsts`**: Pengiriman header keamanan `Strict-Transport-Security (HSTS)` (`max-age=31536000`).
 
 #### E. Retensi Riwayat Zona & Jejak Audit
+
 - **`history_max_snapshots`**: Batas kuota rollback snapshot per zona DNS (standar: `25`).
 - **`audit_retention_days`**: Durasi penyimpanan log aktivitas pada tabel audit log (standar: `90` hari).
 
 #### F. Alat Diagnostik Jaringan & rDNS
+
 - **`rdns_default_naming_pattern`**: Pola naming template generator record PTR massal (standar: `host-[ID].[DOMAIN]`).
   - *Makro yang didukung:* `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), `[DOMAIN]`.
 - **`dns_public_resolvers`**: Daftar recursive resolver pembanding untuk alat DNS Lookup & Propagation Inspector (`1.1.1.1, 8.8.8.8, 9.9.9.9`).
@@ -513,25 +519,26 @@ Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel met
 
 PowerDNS-Admin-PHP menyediakan konfigurasi siap produksi untuk **Nginx** (`deploy/nginx.conf`) dan **Apache** (`public/.htaccess`) dengan paritas fungsional 100%:
 
-| Aspek Keamanan & Performa           | Arahan Apache (`public/.htaccess`)                                  | Padanan Nginx (`deploy/nginx.conf`)                                              |
-| :---------------------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------- |
-| **Front Controller Routing**        | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`   | `location / { try_files $uri $uri/ /index.php?$query_string; }`                   |
-| **Sandboxing Upload Berkas**        | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }` |
-| **Proteksi Berkas Sensitif**        | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`    | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }` |
-| **Blokir Direktori Tersembunyi**    | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                        | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                   |
-| **Proteksi Clickjacking & Sniffing**| `Header always set X-Frame-Options "DENY"`                          | `add_header X-Frame-Options "DENY" always;`                                      |
-| **Kebijakan Keamanan Konten (CSP)** | `Header always set Content-Security-Policy "default-src 'self'..."` | `add_header Content-Security-Policy "default-src 'self'..." always;`             |
-| **Caching Aset Statis Lokal**       | `ExpiresByType text/css "access plus 7 days"`                       | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }` |
-| **PHP-FPM Auto-Detection**          | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"` | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`) |
+| Aspek Keamanan & Performa            | Arahan Apache (`public/.htaccess`)                                          | Padanan Nginx (`deploy/nginx.conf`)                                                   |
+| :----------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| **Front Controller Routing**         | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`           | `location / { try_files $uri $uri/ /index.php?$query_string; }`                       |
+| **Sandboxing Upload Berkas**         | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }`    |
+| **Proteksi Berkas Sensitif**         | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`           | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }`   |
+| **Blokir Direktori Tersembunyi**     | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                                | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                        |
+| **Proteksi Clickjacking & Sniffing** | `Header always set X-Frame-Options "DENY"`                                  | `add_header X-Frame-Options "DENY" always;`                                           |
+| **Kebijakan Keamanan Konten (CSP)**  | `Header always set Content-Security-Policy "default-src 'self'..."`         | `add_header Content-Security-Policy "default-src 'self'..." always;`                  |
+| **Caching Aset Statis Lokal**        | `ExpiresByType text/css "access plus 7 days"`                               | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }`|
+| **PHP-FPM Auto-Detection**           | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"`       | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`)  |
 
 #### Deteksi Otomatis Versi PHP-FPM
+
 Skrip `deploy/detect-php-fpm.sh` dapat dijalankan kapan saja untuk memindai versi PHP yang terpasang dan memperbarui symlink universal:
+
 ```bash
 sudo ./deploy/detect-php-fpm.sh
 ```
-Skrip instalasi `deploy/install-debian.sh` juga secara otomatis mendeteksi apakah sistem menggunakan PHP 8.1, 8.2, 8.3, atau 8.4 dan menghubungkan socket secara dinamis.
 
----
+Skrip instalasi `deploy/install-debian.sh` juga secara otomatis mendeteksi apakah sistem menggunakan PHP 8.1, 8.2, 8.3, atau 8.4 dan menghubungkan socket secara dinamis.
 
 ---
 

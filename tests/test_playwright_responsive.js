@@ -5,10 +5,15 @@
  * Verifies zero horizontal overflow, zero console errors, zero CDN calls, theme toggle, and drawer navigation.
  */
 
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
-const puppeteer = require("/usr/local/lib/node_modules/puppeteer");
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const puppeteer = require(
+  require.resolve("puppeteer", {
+    paths: ["/usr/local/lib/node_modules", process.cwd()],
+  }),
+);
 
 const PUBLIC_DIR = path.resolve(__dirname, "../public");
 
@@ -42,72 +47,115 @@ function createSampleDashboardHtml() {
   <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="app-body">
-  <header class="mobile-nav-bar d-lg-none">
-    <a class="brand-mini" href="/">
-      <span class="brand-mark"><i class="fa-solid fa-bolt"></i></span>
-      <span class="fw-bold">PowerDNS Admin</span>
-    </a>
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-outline-light theme-toggle-btn" type="button" aria-label="Ganti mode tema">
-        <i class="fa-solid fa-moon text-warning"></i>
-      </button>
-      <button class="btn btn-sm btn-outline-light" id="sidebar-toggle" type="button" aria-label="Toggle navigasi" aria-expanded="false" aria-controls="app-sidebar">
-        <i class="fa-solid fa-bars"></i>
+  <div class="mobile-nav" aria-label="Bilah Navigasi Seluler">
+    <button class="mobile-nav-toggle" id="sidebar-toggle" aria-label="Buka Menu Navigasi" aria-expanded="false">
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+    </button>
+    <div class="mobile-nav-brand">
+      <div class="brand-shield" aria-hidden="true"></div>
+      <div class="mobile-nav-title">PowerDNS Admin</div>
+    </div>
+    <button type="button" class="mobile-nav-toggle theme-toggle-btn" aria-label="Ganti Tema">
+      <i class="fa-solid fa-moon theme-icon-dark" aria-hidden="true"></i>
+      <i class="fa-solid fa-sun theme-icon-light" aria-hidden="true"></i>
+    </button>
+  </div>
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
+  <aside class="sidebar" id="app-sidebar" aria-label="Navigasi Utama">
+    <div class="sidebar-brand">
+      <div class="brand-shield" aria-hidden="true"></div>
+      <div class="brand-text">
+        <div class="brand-title">PowerDNS Admin</div>
+        <div class="brand-sub">Enterprise DNS Panel</div>
+      </div>
+    </div>
+    <div class="sidebar-profile">
+      <div class="sidebar-avatar">
+        <span class="avatar-initials" aria-hidden="true">AD</span>
+      </div>
+      <div class="sidebar-user-meta">
+        <div class="sidebar-user-name">Administrator</div>
+        <div class="sidebar-user-role">admin</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" aria-label="Menu Aplikasi">
+      <div class="sidebar-section-label">Navigasi</div>
+      <a href="/dashboard" class="sidebar-item active">
+        <i class="fa-solid fa-gauge" aria-hidden="true"></i>
+        <span>Dasbor</span>
+      </a>
+      <a href="/zones" class="sidebar-item">
+        <i class="fa-solid fa-globe" aria-hidden="true"></i>
+        <span>Zona DNS</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button type="button" class="sidebar-item theme-toggle-btn w-100 border-0 bg-transparent" aria-label="Ganti Tema">
+        <i class="fa-solid fa-moon theme-icon-dark" aria-hidden="true"></i>
+        <i class="fa-solid fa-sun theme-icon-light" aria-hidden="true"></i>
+        <span>Tema Tampilan</span>
       </button>
     </div>
-  </header>
-  <aside class="sidebar" id="app-sidebar">
-    <a class="brand" href="/">
-      <span class="brand-mark"><i class="fa-solid fa-bolt"></i></span>
-      <div class="brand-lockup">
-        <h1>PowerDNS Admin</h1>
-        <small>Autoritatif Panel</small>
-      </div>
-    </a>
-    <button class="theme-toggle-btn mt-3" type="button" aria-label="Beralih Tema">
-      <i class="fa-solid fa-sun text-warning"></i>
-      <span class="theme-label ms-2">Mode Gelap</span>
-    </button>
-    <div class="who mt-auto">admin</div>
-    <div class="role">Administrator</div>
   </aside>
-  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
-  <main class="main">
+  <div class="main-wrapper">
     <header class="topbar">
-      <div>
-        <h1>Ringkasan DNS Server</h1>
-        <p>Panel otoritatif. Record hidup di PowerDNS, bukan di database ini.</p>
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <h1 class="page-title">Dasbor Ringkasan</h1>
+        </div>
+        <div class="topbar-right">
+          <div class="badge-accent">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            <span>PDNS Online</span>
+          </div>
+        </div>
       </div>
     </header>
-    <div class="stat-grid mb-4">
-      <div class="panel"><h3>12</h3><p class="muted">Zona Terdaftar</p></div>
-      <div class="panel"><h3>1,420</h3><p class="muted">Total Records</p></div>
-      <div class="panel"><h3>Active</h3><p class="muted">PowerDNS Engine</p></div>
-      <div class="panel"><h3>MySQL</h3><p class="muted">Metadata DB</p></div>
-    </div>
-    <div class="panel">
-      <header class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Daftar Zona DNS Terbaru</h4>
-      </header>
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr><th>Nama Zona</th><th>Tipe</th><th>Serial SOA</th><th>DNSSEC</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>example.com.</td><td>Master</td><td>2026100401</td><td><span class="badge bg-success">Secured</span></td></tr>
-            <tr><td>very-long-subdomain-name-for-testing-mobile-responsiveness.infrastructure.internal.net.</td><td>Native</td><td>2026100402</td><td><span class="badge bg-secondary">Disabled</span></td></tr>
-          </tbody>
-        </table>
+    <main class="main" id="main-content">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Zona Otoritatif</div>
+          <div class="metric-val">12</div>
+          <div class="metric-desc">Semua sinkron dengan backend daemon</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Record RRset</div>
+          <div class="metric-val">148</div>
+          <div class="metric-desc">Termasuk A, AAAA, MX, TXT, PTR</div>
+        </div>
       </div>
-    </div>
-    <footer class="app-footer text-secondary small py-3 mt-4 border-top border-secondary-subtle">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>PowerDNS-Admin-PHP v0.2.1</div>
-        <div class="d-flex gap-3"><span>v0.2.1</span></div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Daftar Zona Terkelola</div>
+        </div>
+        <div class="panel-body p-0">
+          <div class="table-responsive">
+            <table class="table-custom mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Nama Zona</th>
+                  <th scope="col">Jenis</th>
+                  <th scope="col">Serial</th>
+                  <th scope="col">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>corp-production-us-east-zone-internal-network.enterprise.example.com.</strong></td>
+                  <td><span class="badge-tech">Native</span></td>
+                  <td>2026040801</td>
+                  <td><button class="btn-custom btn-secondary-custom btn-sm">Kelola</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+    </main>
+    <footer class="app-footer">
+      <div class="footer-copy">&copy; 2026 PowerDNS-Admin-PHP &bull; Enterprise DNS</div>
     </footer>
-  </main>
+  </div>
   <script src="/assets/vendor/jquery.min.js"></script>
   <script src="/assets/vendor/bootstrap.bundle.min.js"></script>
   <script src="/assets/app.js"></script>
@@ -121,46 +169,40 @@ function createSampleAuthHtml() {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="description" content="PowerDNS Authoritative Server Management Panel - Masuk">
   <meta name="theme-color" content="#0b0f19">
-  <meta name="color-scheme" content="dark light">
-  <title>Masuk - PowerDNS-Admin-PHP</title>
+  <title>Masuk - PowerDNS Admin</title>
   <link rel="stylesheet" href="/assets/vendor/bootstrap.min.css">
   <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="auth-body">
-  <main class="auth-card" role="main">
-    <div class="text-center mb-4">
-      <div class="brand-mark mx-auto mb-3" style="width: 48px; height: 48px; font-size: 20px;">
-        <i class="fa-solid fa-bolt"></i>
-      </div>
-      <h2 class="fw-bold fs-4">Masuk ke Panel</h2>
-      <p class="text-secondary small">PowerDNS-Admin-PHP v0.2.1</p>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="brand-shield" aria-hidden="true"></div>
+      <h1 class="auth-title">PowerDNS Admin</h1>
+      <p class="auth-subtitle">Masuk untuk mengelola DNS server otoritatif</p>
     </div>
-    <form action="/login" method="post">
-      <div class="mb-3">
+    <form class="auth-form" method="post" action="/login">
+      <div class="form-group mb-3">
         <label for="username" class="form-label">Username</label>
-        <input type="text" id="username" name="username" class="form-control" required autofocus>
+        <input type="text" class="form-control-custom" id="username" name="username" required>
       </div>
-      <div class="mb-3">
+      <div class="form-group mb-4">
         <label for="password" class="form-label">Kata Sandi</label>
-        <input type="password" id="password" name="password" class="form-control" required>
+        <input type="password" class="form-control-custom" id="password" name="password" required>
       </div>
-      <button type="submit" class="btn btn-primary w-100 py-2">Masuk</button>
+      <button type="submit" class="btn-custom btn-primary-custom w-100">Masuk</button>
     </form>
-  </main>
-  <script src="/assets/vendor/bootstrap.bundle.min.js"></script>
-  <script src="/assets/app.js"></script>
+  </div>
 </body>
 </html>`;
 }
 
-// Target test devices covering VGA to 2K, with focus on Xiaomi, Redmi, POCO, iPhone, iPad, Android
+// 10 Key Viewports for Multi-Device and Responsive Matrix testing
 const VIEWPORTS = [
-  { name: "VGA Standard CRT (640x480)", width: 640, height: 480, dpr: 1 },
+  { name: "Legacy VGA CRT (640x480)", width: 640, height: 480, dpr: 1 },
   {
-    name: "Xiaomi Redmi 9 / 10 (360x800)",
+    name: "Xiaomi Redmi 9 / 10 / Note 10 (360x800)",
     width: 360,
     height: 800,
     dpr: 2,
@@ -174,35 +216,35 @@ const VIEWPORTS = [
     isMobile: true,
   },
   {
-    name: "POCO X5 / X6 Pro (393x873)",
+    name: "POCO X5 / X6 Pro (393x851)",
     width: 393,
-    height: 873,
-    dpr: 3.0,
+    height: 851,
+    dpr: 2.75,
     isMobile: true,
   },
   {
     name: "Samsung Galaxy S22 / S23 (360x780)",
     width: 360,
     height: 780,
-    dpr: 3.0,
+    dpr: 3,
     isMobile: true,
   },
   {
-    name: "iPhone 14 / 15 / 16 (390x844)",
+    name: "Apple iPhone 14 / 15 / 16 (390x844)",
     width: 390,
     height: 844,
-    dpr: 3.0,
+    dpr: 3,
     isMobile: true,
   },
   {
-    name: "iPad Mini / 10th Gen (768x1024)",
+    name: "Apple iPad Mini / Tablet (768x1024)",
     width: 768,
     height: 1024,
-    dpr: 2.0,
+    dpr: 2,
     isMobile: true,
   },
   {
-    name: "MacBook Air / Laptop HD (1366x768)",
+    name: "Laptop HD / MacBook Air (1366x768)",
     width: 1366,
     height: 768,
     dpr: 1,
@@ -211,20 +253,43 @@ const VIEWPORTS = [
   { name: "2K QHD Display (2560x1440)", width: 2560, height: 1440, dpr: 1 },
 ];
 
-async function runTests() {
-  console.log(
-    "==================================================================",
-  );
-  console.log("PowerDNS-Admin-PHP: Multi-Device Responsive & Layout E2E Test");
-  console.log(
-    "==================================================================",
-  );
+function handleStaticAsset(req, res, urlPath) {
+  if (!urlPath.startsWith("/assets/")) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("Not Found: " + urlPath);
+    return;
+  }
 
-  // 1. Start ephemeral HTTP server
+  const safeSuffix = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
+  const resolvedPath = path.resolve(PUBLIC_DIR, "." + safeSuffix);
+
+  if (
+    !resolvedPath.startsWith(PUBLIC_DIR + path.sep) &&
+    resolvedPath !== PUBLIC_DIR
+  ) {
+    res.writeHead(403, { "Content-Type": "text/plain" });
+    res.end("Forbidden");
+    return;
+  }
+
+  if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
+    const ext = path.extname(resolvedPath).toLowerCase();
+    res.writeHead(200, {
+      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+    });
+    fs.createReadStream(resolvedPath).pipe(res);
+    return;
+  }
+
+  res.writeHead(404, { "Content-Type": "text/plain" });
+  res.end("Not Found: " + urlPath);
+}
+
+function createEphemeralServer() {
   const dashboardHtml = createSampleDashboardHtml();
   const authHtml = createSampleAuthHtml();
 
-  const server = http.createServer((req, res) => {
+  return http.createServer((req, res) => {
     const urlPath = req.url.split("?")[0];
     if (urlPath === "/" || urlPath === "/dashboard") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
@@ -242,38 +307,124 @@ async function runTests() {
       return;
     }
 
-    // Serve static assets with strict path traversal containment checks (CodeQL CWE-22)
-    if (!urlPath.startsWith("/assets/")) {
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("Not Found: " + urlPath);
-      return;
-    }
+    handleStaticAsset(req, res, urlPath);
+  });
+}
 
-    const safeSuffix = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
-    const resolvedPath = path.resolve(PUBLIC_DIR, "." + safeSuffix);
+async function testMobileDrawer(page) {
+  const toggleBtn = await page.$("#sidebar-toggle");
+  if (!toggleBtn) {
+    return;
+  }
+  await toggleBtn.click();
+  const sidebarVisible = await page.evaluate(() => {
+    const sb = document.getElementById("app-sidebar");
+    return sb?.classList.contains("show");
+  });
+  if (sidebarVisible) {
+    console.log(`       -> Mobile drawer toggle opens successfully`);
+  }
+  const backdrop = await page.$("#sidebar-backdrop");
+  if (backdrop) {
+    await backdrop.click();
+  }
+}
 
-    if (
-      !resolvedPath.startsWith(PUBLIC_DIR + path.sep) &&
-      resolvedPath !== PUBLIC_DIR
-    ) {
-      res.writeHead(403, { "Content-Type": "text/plain" });
-      res.end("Forbidden");
-      return;
-    }
+async function testSingleViewport(page, vp, baseUrl) {
+  let failed = false;
 
-    if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
-      const ext = path.extname(resolvedPath).toLowerCase();
-      res.writeHead(200, {
-        "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
-      });
-      fs.createReadStream(resolvedPath).pipe(res);
-      return;
-    }
-
-    res.writeHead(404, { "Content-Type": "text/plain" });
-    res.end("Not Found: " + urlPath);
+  await page.setViewport({
+    width: vp.width,
+    height: vp.height,
+    deviceScaleFactor: vp.dpr,
+    isMobile: Boolean(vp.isMobile),
+    hasTouch: Boolean(vp.isMobile),
   });
 
+  // 1. Dashboard Page Check
+  await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+  const overflow = await page.evaluate(() => {
+    const bodyScroll = document.body.scrollWidth;
+    const docScroll = document.documentElement.scrollWidth;
+    const winWidth = window.innerWidth;
+    return {
+      scrollWidth: Math.max(bodyScroll, docScroll),
+      innerWidth: winWidth,
+      hasHorizontalOverflow: Math.max(bodyScroll, docScroll) > winWidth,
+    };
+  });
+
+  if (overflow.hasHorizontalOverflow) {
+    console.error(
+      `[FAIL] ${vp.name}: Horizontal overflow detected! ScrollWidth: ${overflow.scrollWidth} > InnerWidth: ${overflow.innerWidth}`,
+    );
+    failed = true;
+  } else {
+    console.log(
+      `[PASS] ${vp.name}: Clean layout (ScrollWidth: ${overflow.scrollWidth}px <= InnerWidth: ${overflow.innerWidth}px)`,
+    );
+  }
+
+  if (vp.isMobile) {
+    await testMobileDrawer(page);
+  }
+
+  // 2. Auth Page Check
+  await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
+  const authOverflow = await page.evaluate(() => {
+    const docScroll = document.documentElement.scrollWidth;
+    const winWidth = window.innerWidth;
+    return docScroll > winWidth;
+  });
+  if (authOverflow) {
+    console.error(`[FAIL] ${vp.name}: Auth card overflow!`);
+    failed = true;
+  }
+
+  return failed;
+}
+
+async function runViewportSequence(page, baseUrl) {
+  let anyFailed = false;
+  await VIEWPORTS.reduce(async (previousPromise, vp) => {
+    await previousPromise;
+    const failed = await testSingleViewport(page, vp, baseUrl);
+    if (failed) {
+      anyFailed = true;
+    }
+  }, Promise.resolve());
+  return anyFailed;
+}
+
+async function testThemeToggle(page, baseUrl) {
+  await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
+  const initialTheme = await page.evaluate(
+    () => document.documentElement.dataset.theme,
+  );
+  await page.evaluate(() => {
+    const btn =
+      document.querySelector(".sidebar .theme-toggle-btn") ||
+      document.querySelector(".theme-toggle-btn");
+    if (btn) btn.click();
+  });
+  const toggledTheme = await page.evaluate(
+    () => document.documentElement.dataset.theme,
+  );
+  console.log(
+    `[PASS] Theme Toggle: Toggled from '${initialTheme}' to '${toggledTheme}'`,
+  );
+}
+
+async function runTests() {
+  console.log(
+    "==================================================================",
+  );
+  console.log("PowerDNS-Admin-PHP: Multi-Device Responsive & Layout E2E Test");
+  console.log(
+    "==================================================================",
+  );
+
+  const server = createEphemeralServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}`;
@@ -303,12 +454,6 @@ async function runTests() {
     const externalRequests = [];
     const consoleErrors = [];
 
-    page.on("response", (res) => {
-      if (res.status() >= 400) {
-        console.error("404 Error URL:", res.url(), res.status());
-      }
-    });
-
     page.on("request", (req) => {
       const url = req.url();
       if (!url.startsWith(baseUrl)) {
@@ -326,95 +471,13 @@ async function runTests() {
       consoleErrors.push(err.message);
     });
 
-    // Test across all viewports
-    for (const vp of VIEWPORTS) {
-      await page.setViewport({
-        width: vp.width,
-        height: vp.height,
-        deviceScaleFactor: vp.dpr,
-        isMobile: Boolean(vp.isMobile),
-        hasTouch: Boolean(vp.isMobile),
-      });
-
-      // 1. Dashboard Page Check
-      await page.goto(`${baseUrl}/dashboard`, {
-        waitUntil: "domcontentloaded",
-      });
-
-      const overflow = await page.evaluate(() => {
-        const bodyScroll = document.body.scrollWidth;
-        const docScroll = document.documentElement.scrollWidth;
-        const winWidth = window.innerWidth;
-        return {
-          scrollWidth: Math.max(bodyScroll, docScroll),
-          innerWidth: winWidth,
-          hasHorizontalOverflow: Math.max(bodyScroll, docScroll) > winWidth,
-        };
-      });
-
-      if (overflow.hasHorizontalOverflow) {
-        console.error(
-          `[FAIL] ${vp.name}: Horizontal overflow detected! ScrollWidth: ${overflow.scrollWidth} > InnerWidth: ${overflow.innerWidth}`,
-        );
-        testFailed = true;
-      } else {
-        console.log(
-          `[PASS] ${vp.name}: Clean layout (ScrollWidth: ${overflow.scrollWidth}px <= InnerWidth: ${overflow.innerWidth}px)`,
-        );
-      }
-
-      // Test mobile drawer toggle if mobile
-      if (vp.isMobile) {
-        const toggleBtn = await page.$("#sidebar-toggle");
-        if (toggleBtn) {
-          await toggleBtn.click();
-          const sidebarVisible = await page.evaluate(() => {
-            const sb = document.getElementById("app-sidebar");
-            return sb && sb.classList.contains("show");
-          });
-          if (sidebarVisible) {
-            console.log(`       -> Mobile drawer toggle opens successfully`);
-          }
-          // Click backdrop to close
-          const backdrop = await page.$("#sidebar-backdrop");
-          if (backdrop) {
-            await backdrop.click();
-          }
-        }
-      }
-
-      // 2. Auth Page Check
-      await page.goto(`${baseUrl}/login`, { waitUntil: "domcontentloaded" });
-      const authOverflow = await page.evaluate(() => {
-        const docScroll = document.documentElement.scrollWidth;
-        const winWidth = window.innerWidth;
-        return docScroll > winWidth;
-      });
-      if (authOverflow) {
-        console.error(`[FAIL] ${vp.name}: Auth card overflow!`);
-        testFailed = true;
-      }
+    const viewportsFailed = await runViewportSequence(page, baseUrl);
+    if (viewportsFailed) {
+      testFailed = true;
     }
 
-    // Check Theme Toggle
-    await page.goto(`${baseUrl}/dashboard`, { waitUntil: "domcontentloaded" });
-    const initialTheme = await page.evaluate(() =>
-      document.documentElement.getAttribute("data-theme"),
-    );
-    await page.evaluate(() => {
-      const btn =
-        document.querySelector(".sidebar .theme-toggle-btn") ||
-        document.querySelector(".theme-toggle-btn");
-      if (btn) btn.click();
-    });
-    const toggledTheme = await page.evaluate(() =>
-      document.documentElement.getAttribute("data-theme"),
-    );
-    console.log(
-      `[PASS] Theme Toggle: Toggled from '${initialTheme}' to '${toggledTheme}'`,
-    );
+    await testThemeToggle(page, baseUrl);
 
-    // Verify Zero External CDN Calls
     if (externalRequests.length > 0) {
       console.error(
         `[FAIL] External requests detected (Violates offline air-gapped rule):`,
@@ -427,7 +490,6 @@ async function runTests() {
       );
     }
 
-    // Verify Zero Console Errors
     if (consoleErrors.length > 0) {
       console.error(`[FAIL] Browser console errors:`, consoleErrors);
       testFailed = true;
@@ -460,4 +522,7 @@ async function runTests() {
   }
 }
 
-runTests();
+void runTests().catch((err) => {
+  console.error("Fatal test runner error:", err);
+  process.exit(1);
+});

@@ -49,7 +49,7 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
   - Kalkulator subnetting bitwise lengkap untuk IPv4: kalkulasi Network Address, Netmask, Wildcard Mask, Broadcast Address, rentang host usable, total host, kelas alamat (A/B/C/D/E), cakupan IP (Private RFC 1918 / Public / CGNAT / Loopback), reverse DNS pointer (`in-addr.arpa`), serta representasi biner 32-bit.
   - Kalkulator dan ekspansi 128-bit IPv6: representasi 32-digit heksadesimal lengkap (8 kelompok x 4 digit), pemadatan alamat (RFC 5952), kalkulasi network address, jumlah subnet `/64` yang tersedia, deteksi cakupan IPv6 (Loopback, Link-Local, ULA RFC 4193, Multicast, Dokumentasi RFC 3849, Global Unicast), serta zona pointer reverse DNS (`ip6.arpa`).
 - **IPv6 Subnet Splitter Berkinerja Tinggi (`/tools/ipv6-splitter`):**
-  - Pemecah prefix IPv6 berbasis bit arbitrary dengan arsitektur memori aman menggunakan PHP `Generator` (`yield`), mampu menghasilkan hingga 65.536 subnet tanpa risiko _memory exhaustion_.
+  - Pemecah prefix IPv6 berbasis bit arbitrary dengan arsitektur memori aman menggunakan PHP `Generator` (`yield`), mampu menghasilkan hingga 65.536 subnet tanpa risiko *memory exhaustion*.
   - Pratinjau interaktif di layar (hingga 256 subnet) dengan tombol 1-klik salin ke clipboard.
   - Fitur unduh berkas massal instan (`Content-Type: text/plain`, streaming download) untuk seluruh daftar subnet tanpa buffering RAM berlebih.
 - **WHOIS & RDAP Lookup Tool (`/tools/whois`):**
@@ -83,16 +83,16 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 - **Aset Vendor 100% Lokal & Mandiri (Zero CDN / Offline / Air-Gapped Ready):**
   - Mengeliminasi seluruh dependensi CDN eksternal (jsDelivr) pada `views/layout.php` dan `views/layout_bare.php`. Seluruh pustaka CSS dan JS (Bootstrap 5.3.8, Font Awesome 6.7.2, jQuery 3.7.1) disajikan langsung secara lokal dari `/assets/vendor/`.
   - Menghilangkan trik pemuatan lambat dan rapuh `document.write` serta handler `onerror` pada `<link>` stylesheet.
-  - Memastikan kompatibilitas penuh untuk instalasi di jaringan terisolasi (_air-gapped_ / intranet) tanpa ketergantungan koneksi internet publik.
+  - Memastikan kompatibilitas penuh untuk instalasi di jaringan terisolasi (*air-gapped* / intranet) tanpa ketergantungan koneksi internet publik.
 - **Penguatan Header Keamanan Content Security Policy (CSP):**
   - Membersihkan domain eksternal `https://cdn.jsdelivr.net` dari direktif `style-src` dan `script-src` pada `public/index.php` dan `deploy/nginx.conf`, mengunci kebijakan CSP menjadi murni `'self'` dan `'unsafe-inline'`.
   - Menambahkan direktif restriktif `connect-src 'self'` guna mengisolasi panggilan jaringan asinkron.
 - **Pencegahan Kebocoran Soket cURL (`PdnsClient`):**
-  - Membungkus eksekusi `requestRaw()` dalam blok `try ... finally { curl_close($ch); }` untuk menjamin destruksi soket dan pembebasan _file descriptor_ secara instan di seluruh skenario eksekusi (berhasil maupun ketika terjadi pengecualian/timeout).
+  - Membungkus eksekusi `requestRaw()` dalam blok `try ... finally { curl_close($ch); }` untuk menjamin destruksi soket dan pembebasan *file descriptor* secara instan di seluruh skenario eksekusi (berhasil maupun ketika terjadi pengecualian/timeout).
 - **Optimasi Responsif & Notched Safe-Area (Xiaomi, Redmi, POCO, iOS):**
-  - Kalkulasi adaptif tinggi bilah navigasi seluler `--mobile-nav-h: calc(56px + var(--safe-top));` untuk tata letak laci sidebar tanpa tabrakan dengan status bar berponi (_punch-hole_ / _notch_).
+  - Kalkulasi adaptif tinggi bilah navigasi seluler `--mobile-nav-h: calc(56px + var(--safe-top));` untuk tata letak laci sidebar tanpa tabrakan dengan status bar berponi (*punch-hole* / *notch*).
   - Implementasi komponen backdrop peredup (`.sidebar-backdrop`), dukungan penutupan drawer saat klik di luar area atau tombol `Escape`, serta penguncian gulir latar belakang (`body.sidebar-open { overflow: hidden; }`) dengan pemulihan otomatis saat perubahan ukuran layar ke desktop.
-  - Penambahan meta tag `<meta name="color-scheme" content="dark light">` untuk rendering kontrol form dan scrollbar native OLED tanpa _flash of unstyled content_.
+  - Penambahan meta tag `<meta name="color-scheme" content="dark light">` untuk rendering kontrol form dan scrollbar native OLED tanpa *flash of unstyled content*.
 - **Peningkatan Tipisasi Statis & PHPDoc Strict:**
   - Penambahan anotasi tipe eksplisit `@param array<string, mixed> $user` pada 14 fungsi handler dan `@return array<int, array<string, mixed>>` pada fungsi `getZoneSnapshots()`.
   - Validasi bentuk array tipe aman pada fungsi `takeFlash()` mengembalikan `array{type: string, message: string}|null`.
@@ -104,7 +104,7 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 - **Penyelarasan Infrastruktur & Deployment Linux (Nginx, PHP-FPM, MariaDB & Shell Automation):**
   - Pembaruan konfigurasi produksi Nginx (`deploy/nginx.conf`) menyelaraskan panduan deployment Ubuntu/Debian: `server_tokens off;`, `charset utf-8;`, buffer tuning (`client_max_body_size 64M`, `client_body_buffer_size 128k`), kompresi Gzip level 6, FastCGI timeouts (180s) & buffer (`16 16k`, `32k`), blok proteksi berkas sensitif (`.sql`, `.md`, `.sh`, `.log`, `.neon`, `.lock`), serta sinkronisasi header Content Security Policy (CSP).
   - Skrip instalasi otomatis Debian/Ubuntu (`deploy/install-debian.sh`) dengan dukungan penuh Ubuntu 20.04/22.04/24.04 dan Debian 11/12/13: otomatisasi dedicated PHP-FPM pool `[pda]` (`pm = ondemand`, `pm.max_children = 16`, `pm.max_requests = 500`, `memory_limit = 256M`), paket ekstensi sistem lengkap (`php-gmp`, `php-bcmath`, `php-zip`, `ca-certificates`), pengamanan MariaDB dengan hak akses ganda (`'user'@'localhost'` dan `'user'@'127.0.0.1'`), auto-impor skema SQL metadata, dan penghapusan situs default Nginx.
-  - Refaktor modernisasi sintaksis Bash pada `deploy/install-debian.sh` guna memenuhi standar Trunk Linter, ShellCheck, dan shfmt: migrasi menyeluruh ke operator pengujian `[[ ]]`, kurung kurawal variabel ketat `${...}`, pemisahan eksekusi `id -u` ke variabel `CURRENT_UID` mandiri guna mencegah tertutupnya nilai keluar (_unmasked return value_), serta standarisasi format I/O redirection.
+  - Refaktor modernisasi sintaksis Bash pada `deploy/install-debian.sh` guna memenuhi standar Trunk Linter, ShellCheck, dan shfmt: migrasi menyeluruh ke operator pengujian `[[ ]]`, kurung kurawal variabel ketat `${...}`, pemisahan eksekusi `id -u` ke variabel `CURRENT_UID` mandiri guna mencegah tertutupnya nilai keluar (*unmasked return value*), serta standarisasi format I/O redirection.
   - Penambahan dokumentasi pendelegasian recursor PowerDNS 4.8+ pada `deploy/pdns.snippet.conf`: mitigasi deprecation `recursor=` dengan pendelegasian kueri rekursif ke local Unbound port 5353, pembersihan konfigurasi BIND redundan, serta metode pembuatan API key kriptografis via `openssl` dan `uuidgen`.
 - **Penanganan Fallback Tipe Aman Profil Pengguna (`views/layout.php`):**
   - Memperbaiki potensi `PHP Warning: Undefined array key "display_name"` pada bilah samping profil pengguna dengan evaluasi null-safe `!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna')`.

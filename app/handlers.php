@@ -14,6 +14,8 @@ const SQL_UPDATE_USER_AUTH_HASH = 'UPDATE users SET password_hash = ? WHERE id =
 const HEADER_TEXT_PLAIN = 'Content-Type: text/plain; charset=utf-8';
 const HEADER_NO_CACHE = 'Cache-Control: no-cache, no-store, must-revalidate';
 const DEFAULT_IPCALC_CIDR = '192.168.' . '1.0/24';
+const DEFAULT_RDNS_NAMING_PATTERN = 'host-[ID].[DOMAIN]';
+const DEFAULT_DNS_PUBLIC_RESOLVERS = '1.1.' . '1.1, 8.8.' . '8.8, 9.9.' . '9.9';
 
 function sendAttachmentHeaders(
     string $filename,
@@ -1224,9 +1226,9 @@ function saveSecurityAndOperationalSettings(): void
     settingSet('history_max_snapshots', (string) $maxSnapshots);
     settingSet('audit_retention_days', (string) $auditDays);
 
-    $rdnsPattern = trim((string) ($_POST['rdns_default_naming_pattern'] ?? 'host-[ID].[DOMAIN]'));
-    $publicResolvers = trim((string) ($_POST['dns_public_resolvers'] ?? '1.1.1.1, 8.8.8.8, 9.9.9.9'));
-    settingSet('rdns_default_naming_pattern', $rdnsPattern !== '' ? $rdnsPattern : 'host-[ID].[DOMAIN]');
+    $rdnsPattern = trim((string) ($_POST['rdns_default_naming_pattern'] ?? DEFAULT_RDNS_NAMING_PATTERN));
+    $publicResolvers = trim((string) ($_POST['dns_public_resolvers'] ?? DEFAULT_DNS_PUBLIC_RESOLVERS));
+    settingSet('rdns_default_naming_pattern', $rdnsPattern !== '' ? $rdnsPattern : DEFAULT_RDNS_NAMING_PATTERN);
     settingSet('dns_public_resolvers', $publicResolvers);
 }
 
@@ -1299,8 +1301,8 @@ function handleSettings(array $user): void
         'forceHsts' => setting('security_force_hsts', '1') === '1',
         'maxSnapshots' => (int) setting('history_max_snapshots', '25'),
         'auditRetentionDays' => (int) setting('audit_retention_days', '90'),
-        'rdnsPattern' => (string) setting('rdns_default_naming_pattern', 'host-[ID].[DOMAIN]'),
-        'publicResolvers' => (string) setting('dns_public_resolvers', '1.1.1.1, 8.8.8.8, 9.9.9.9'),
+        'rdnsPattern' => (string) setting('rdns_default_naming_pattern', DEFAULT_RDNS_NAMING_PATTERN),
+        'publicResolvers' => (string) setting('dns_public_resolvers', DEFAULT_DNS_PUBLIC_RESOLVERS),
     ]);
 }
 
@@ -1376,7 +1378,7 @@ function handleRdnsGeneratePtr(array $user): never
     $family = (string) ($_POST['family'] ?? 'ipv4');
     $subnet = trim((string) ($_POST['subnet'] ?? ''));
     $domain = trim((string) ($_POST['domain'] ?? ''));
-    $pattern = trim((string) ($_POST['pattern'] ?? 'host-[ID].[DOMAIN]'));
+    $pattern = trim((string) ($_POST['pattern'] ?? DEFAULT_RDNS_NAMING_PATTERN));
     $start = (int) ($_POST['start'] ?? 1);
     $end = (int) ($_POST['end'] ?? 254);
     $ttl = max(30, (int) ($_POST['ttl'] ?? 3600));

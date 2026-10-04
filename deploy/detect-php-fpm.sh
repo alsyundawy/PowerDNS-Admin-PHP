@@ -33,10 +33,16 @@ fi
 # 2. Detect Available PHP-FPM Versions in /etc/php
 INSTALLED_FPM_VERSIONS=()
 if [[ -d "/etc/php" ]]; then
-	while IFS= read -r fpm_dir; do
-		ver="$(basename "$(dirname "${fpm_dir}")")"
-		INSTALLED_FPM_VERSIONS+=("${ver}")
-	done < <(find /etc/php -maxdepth 2 -type d -name "fpm" 2>/dev/null | sort -V)
+	FPM_SEARCH_OUTPUT="$(find /etc/php -maxdepth 2 -type d -name "fpm" 2>/dev/null || true)"
+	if [[ -n "${FPM_SEARCH_OUTPUT}" ]]; then
+		SORTED_FPM_DIRS="$(echo "${FPM_SEARCH_OUTPUT}" | sort -V)"
+		while IFS= read -r fpm_dir; do
+			[[ -z "${fpm_dir}" ]] && continue
+			fpm_parent="$(dirname "${fpm_dir}")"
+			ver="$(basename "${fpm_parent}")"
+			INSTALLED_FPM_VERSIONS+=("${ver}")
+		done <<< "${SORTED_FPM_DIRS}"
+	fi
 fi
 
 if [[ ${#INSTALLED_FPM_VERSIONS[@]} -gt 0 ]]; then
@@ -62,7 +68,14 @@ POOL_SOCK="/run/php/php${TARGET_VER}-fpm-pda.sock"
 UNIVERSAL_SOCK="/run/php/php-fpm-pda.sock"
 
 # 4. Check & Link Socket if Running with Root Privileges
-if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+CURRENT_USER_ID=""
+if [[ -n "${EUID:-}" ]]; then
+	CURRENT_USER_ID="${EUID}"
+else
+	CURRENT_USER_ID="$(id -u 2>/dev/null || echo 1000)"
+fi
+
+if [[ "${CURRENT_USER_ID}" -eq 0 ]]; then
 	mkdir -p /run/php
 	if [[ -S "${POOL_SOCK}" || -f "/etc/php/${TARGET_VER}/fpm/pool.d/pda.conf" ]]; then
 		ln -sfn "${POOL_SOCK}" "${UNIVERSAL_SOCK}"

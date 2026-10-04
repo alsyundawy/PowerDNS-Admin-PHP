@@ -9,6 +9,8 @@ const RECORD_TYPES = [
     'OPENPGPKEY', 'SMIMEA', 'CERT', 'LOC', 'HINFO', 'RP', 'DHCID'
 ];
 
+const REGEX_NUM_NUM_NUM_STR = '/^\d+\s+\d+\s+\d+\s+\S+$/';
+
 /**
  * @param array<string, mixed> $user
  */
@@ -85,6 +87,40 @@ function syncZonesFromPdns(PdnsClient $pdns): int
     return $n;
 }
 
+function validateSecurityRecord(string $type, string $content): ?string
+{
+    return match ($type) {
+        'DS', 'CDS' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'Format harus: "keytag algo digesttype digest".',
+        'DNSKEY', 'CDNSKEY' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
+            ? null : 'Format harus: "flags protocol algorithm publickey".',
+        'TLSA', 'SMIMEA' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'Format harus: "usage selector matching cert_data".',
+        'SSHFP' => preg_match('/^\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'SSHFP harus format: "algorithm fptype fingerprint".',
+        'CERT' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
+            ? null : 'CERT harus format: "type keytag algorithm certificate".',
+        'CSYNC' => preg_match('/^\d+\s+\d+\s+.+$/', $content)
+            ? null : 'CSYNC harus format: "serial flags type1 type2 ...".',
+        default => null,
+    };
+}
+
+function validateExtendedRecord(string $type, string $content): ?string
+{
+    return match ($type) {
+        'HTTPS', 'SVCB' => preg_match('/^\d+\s+\S+/', $content)
+            ? null : 'Format harus: "prioritas target [params]" (contoh: 1 . alpn="h3,h2").',
+        'URI' => preg_match('/^\d+\s+\d+\s+\S+$/', $content)
+            ? null : 'URI harus format: "priority weight target".',
+        'HINFO' => (preg_match('/^".*"\s+".*"$/', $content) || preg_match('/^\S+\s+\S+$/', $content))
+            ? null : 'HINFO harus format: "hardware" "os".',
+        'RP' => preg_match('/^\S+\s+\S+$/', $content)
+            ? null : 'RP harus format: "mailbox-fqdn txt-fqdn".',
+        default => null,
+    };
+}
+
 function validateRecord(string $type, string $content): ?string
 {
     $type = strtoupper($type);
@@ -95,6 +131,13 @@ function validateRecord(string $type, string $content): ?string
     if (!in_array($type, RECORD_TYPES, true)) {
         return 'Tipe record tidak diizinkan.';
     }
+    if (in_array($type, ['DS', 'CDS', 'DNSKEY', 'CDNSKEY', 'TLSA', 'SMIMEA', 'SSHFP', 'CERT', 'CSYNC'], true)) {
+        return validateSecurityRecord($type, $content);
+    }
+    if (in_array($type, ['HTTPS', 'SVCB', 'URI', 'HINFO', 'RP'], true)) {
+        return validateExtendedRecord($type, $content);
+    }
+
     return match ($type) {
         'A' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? null : 'A harus alamat IPv4 valid.',
         'AAAA' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? null : 'AAAA harus alamat IPv6 valid.',
@@ -102,31 +145,10 @@ function validateRecord(string $type, string $content): ?string
             ? null : 'Nama host target tidak valid.',
         'MX' => preg_match('/^\d{1,5}\s+\S+$/', $content)
             ? null : 'MX harus format: "prioritas hostname" (contoh: 10 mail.example.com).',
-        'SRV' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
+        'SRV' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
             ? null : 'SRV harus format: "prio weight port target".',
         'CAA' => preg_match('/^\d+\s+\S+\s+/', $content) ? null : 'CAA harus format: "flags tag value".',
         'TXT', 'SPF' => strlen($content) > 4096 ? 'Teks terlalu panjang (maksimal 4096 karakter).' : null,
-        'HTTPS', 'SVCB' => preg_match('/^\d+\s+\S+/', $content)
-            ? null : 'Format harus: "prioritas target [params]" (contoh: 1 . alpn="h3,h2").',
-        'DS', 'CDS' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'Format harus: "keytag algo digesttype digest".',
-        'DNSKEY', 'CDNSKEY' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
-            ? null : 'Format harus: "flags protocol algorithm publickey".',
-        'TLSA', 'SMIMEA' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'Format harus: "usage selector matching cert_data".',
-        'SSHFP' => preg_match('/^\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'SSHFP harus format: "algorithm fptype fingerprint".',
-        'URI' => preg_match('/^\d+\s+\d+\s+\S+$/', $content)
-            ? null : 'URI harus format: "priority weight target".',
-        'CERT' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
-            ? null : 'CERT harus format: "type keytag algorithm certificate".',
-        'CSYNC' => preg_match('/^\d+\s+\d+\s+.+$/', $content)
-            ? null : 'CSYNC harus format: "serial flags type1 type2 ...".',
-        'HINFO' => (preg_match('/^".*"\s+".*"$/', $content) || preg_match('/^\S+\s+\S+$/', $content))
-            ? null : 'HINFO harus format: "hardware" "os".',
-        'RP' => preg_match('/^\S+\s+\S+$/', $content)
-            ? null : 'RP harus format: "mailbox-fqdn txt-fqdn".',
-        'OPENPGPKEY', 'DHCID', 'LOC', 'SOA' => null,
         default => null,
     };
 }
@@ -422,9 +444,12 @@ function syncForwardIpToReversePtr(
     bool $delete = false
 ): bool {
     $targetFqdn = dnsCanonical($targetFqdn);
-    $fullPtrFqdn = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
-        ? ipv4ToPtrFqdn($ip)
-        : (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? ipv6ToPtrFqdn($ip) : null);
+    $fullPtrFqdn = null;
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $fullPtrFqdn = ipv4ToPtrFqdn($ip);
+    } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $fullPtrFqdn = ipv6ToPtrFqdn($ip);
+    }
 
     if ($fullPtrFqdn === null) {
         return false;
