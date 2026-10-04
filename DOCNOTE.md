@@ -127,6 +127,61 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
+### G. Dukungan Penuh 31 Tipe Record DNS PowerDNS
+
+1. **Arsitektur Validasi & Normalisasi:**
+   - Konstanta `RECORD_TYPES` diperluas dari 17 tipe record menjadi 31 tipe record otoritatif yang didukung oleh PowerDNS API v1.
+   - Penambahan tipe record mencakup:
+     - `ALIAS` (PowerDNS apex flattening), `DNAME` (RFC 6672), `HTTPS` & `SVCB` (RFC 9460), `URI` (RFC 7553).
+     - `DS` (RFC 4034), `CDS` & `CDNSKEY` (RFC 7344 automated parent trust), `DNSKEY` (RFC 4034), `CSYNC` (RFC 7477).
+     - `TLSA` (RFC 6698 DANE), `SSHFP` (RFC 4255), `OPENPGPKEY` (RFC 7929), `SMIMEA` (RFC 8162), `CERT` (RFC 4398).
+     - `SPF` (RFC 4408), `LOC` (RFC 1876), `HINFO` (RFC 8482/1035), `RP` (RFC 1183), `DHCID` (RFC 4701).
+   - Fungsi `validateRecord()` memvalidasi format sintaksis masing-masing tipe record secara ketat menggunakan regex dan pemeriksaan semantik.
+   - Fungsi `normalizeContent()` dan `formatBindRecordContent()` otomatis mengenali `ALIAS` dan `DNAME` sebagai nama host target kanonikal (`dnsCanonical()`).
+
+---
+
+### H. Arsitektur Multi-Tier Reverse DNS (rDNS) & Template Macro PTR
+
+1. **Pencocokan Hierarki Zona Reverse Cerdas (`findMatchingReverseZone`):**
+   - Tidak lagi terbatas pada asumsi kaku `/24` (IPv4) dan `/64` (IPv6).
+   - Mengambil FQDN PTR kanonikal lengkap dari IP target (`ipv4ToPtrFqdn` atau `ipv6ToPtrFqdn`), kemudian mencocokkan sufiks zona reverse terdaftar di PowerDNS (`.in-addr.arpa.` atau `.ip6.arpa.`) dengan memilih zona terpanjang (paling spesifik).
+   - Mendukung penuh alokasi subnet besar/kecil: IPv4 `/8`, `/16`, `/24`, dan IPv6 `/32`, `/48`, `/56`, `/64`.
+2. **Perluasan Makro Batch PTR Generator:**
+   - Mendukung makro: `[ID]`, `[HEX]`, `[HEX16]`, `[IP]`, `[IP_DASH]`, `[OCTET4]`, `[DOMAIN]`.
+3. **Auto-PTR Bidirectional Sync:**
+   - Terintegrasi langsung pada penyimpanan record zona forward dengan opsi konfigurasi default pada dashboard.
+
+---
+
+### I. Pusat Pengaturan Komprehensif Sistem (`/settings` — `views/settings.php`)
+
+1. **Enam Klaster Pengaturan Terpadu:**
+   - Dikelompokkan ke dalam 6 panel berarsitektur kartu semantik dengan ikon tematik:
+     1. Koneksi PowerDNS Authoritative API (URL, Server ID, API Key terenkripsi AES-256-GCM, TLS verify).
+     2. Kebijakan & Parameter Default DNS (Default TTL, Default NS, SOA Hostmaster RNAME, SOA Timers, Auto-PTR sync toggle).
+     3. Identitas & Branding Panel (Nama aplikasi, Logo PNG/SVG/WEBP atau URL eksternal, Teks footer, Tema default dark/light).
+     4. Keamanan, Sesi & Kebijakan Login (Timeout sesi, Batas login gagal rate-limit, Durasi lockout penalti brute-force, Header HSTS).
+     5. Retensi Riwayat Zona & Jejak Audit (Batas kuota snapshot per zona, Masa retensi log audit dalam hari).
+     6. Alat Diagnostik Jaringan & rDNS (Template default batch PTR naming, Daftar public recursive resolvers).
+2. **Refaktorisasi Modular (`saveDnsPolicySettings` & `saveSecurityAndOperationalSettings`):**
+   - Memecah penyimpanan konfigurasi menjadi fungsi modular berfokus tunggal dengan batas sanitasi angka dan string aman.
+
+---
+
+### J. Deteksi Otomatis PHP-FPM & Paritas Penuh Nginx vs Apache
+
+1. **Skrip Otomasi Deteksi PHP-FPM (`deploy/detect-php-fpm.sh`):**
+   - Memindai runtime PHP CLI aktif dan direktori instalasi `/etc/php/*/fpm/`.
+   - Menghubungkan dan memelihara symlink universal `/run/php/php-fpm-pda.sock` yang mengarah ke pool dedicated `[pda]`.
+2. **Penyempurnaan Auto-Installer Debian/Ubuntu (`deploy/install-debian.sh`):**
+   - Secara dinamis mendeteksi versi PHP sistem (8.1, 8.2, 8.3, 8.4) dan menyetel socket pool secara otomatis.
+3. **Paritas Penuh Nginx (`deploy/nginx.conf`) & Apache (`public/.htaccess`):**
+   - Penerjemahan 100% aturan `.htaccess` ke arahan Nginx: sandboxing direktori `/uploads/` dari eksekusi skrip, front-controller rewriting ke `index.php`, proteksi berkas sensitif, penegakan header keamanan, dan caching aset.
+   - Berkas `public/.htaccess` siap pakai untuk server web Apache 2.4+.
+
+---
+
 ## 3. Catatan Arsitektur & Operasional Versi 0.2.0 (Advanced Features & Innovations)
 
 ### A. Visual Subnet Calculator & rDNS Wizard (`/tools/rdns`)

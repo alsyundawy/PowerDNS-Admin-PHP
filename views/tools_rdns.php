@@ -197,8 +197,8 @@ declare(strict_types=1);
             required
           >
           <div class="form-text small muted">
-            Gunakan makro: <code>[ID]</code> (nomor urut), <code>[HEX]</code> (heksadesimal),
-            <code>[IP_DASH]</code>, <code>[DOMAIN]</code>.
+            Gunakan makro: <code>[ID]</code> (nomor urut), <code>[HEX]</code>, <code>[HEX16]</code>,
+            <code>[IP]</code>, <code>[IP_DASH]</code>, <code>[OCTET4]</code>, <code>[DOMAIN]</code>.
           </div>
         </div>
         <div class="row g-2">

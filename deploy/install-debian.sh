@@ -64,7 +64,19 @@ apt-get install -y --no-install-recommends \
 	php-bcmath \
 	php-zip
 
-PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
+PHP_VER=""
+if command -v php &>/dev/null; then
+	PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
+fi
+if [[ -z "${PHP_VER:-}" && -d "/etc/php" ]]; then
+	LATEST_FPM="$(find /etc/php -maxdepth 2 -type d -name "fpm" 2>/dev/null | sort -V | tail -n1)"
+	if [[ -n "${LATEST_FPM}" ]]; then
+		PHP_VER="$(basename "$(dirname "${LATEST_FPM}")")"
+	fi
+fi
+if [[ -z "${PHP_VER:-}" ]]; then
+	PHP_VER="8.2"
+fi
 echo -e "${GREEN}PHP terdeteksi: versi ${PHP_VER}${NC}"
 
 # 2. Setup struktur direktori & hak akses berkas
@@ -118,9 +130,12 @@ php_admin_flag[display_errors] = Off
 php_admin_flag[log_errors] = On
 EOF
 
+mkdir -p /run/php
+ln -sfn "/run/php/php${PHP_VER}-fpm-pda.sock" /run/php/php-fpm-pda.sock
+
 # 4. Konfigurasi Nginx Web Server
 echo -e "\n${BLUE}[4/6] Mengonfigurasi Nginx Reverse Proxy...${NC}"
-# Sesuaikan versi socket PHP-FPM pada deploy/nginx.conf
+# Sesuaikan versi socket PHP-FPM pada deploy/nginx.conf jika ada
 sed -i -E "s#php[0-9.]+-fpm-pda\.sock#php${PHP_VER}-fpm-pda.sock#g" "${APP}/deploy/nginx.conf"
 
 cp "${APP}/deploy/nginx.conf" /etc/nginx/sites-available/pda.conf

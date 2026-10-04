@@ -92,7 +92,7 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
                 name="auto_ptr_sync"
                 id="auto_ptr_sync"
                 value="1"
-                checked
+                <?= setting('dns_auto_ptr_default', '1') !== '0' ? 'checked' : '' ?>
               >
               <label
                 class="form-check-label small"

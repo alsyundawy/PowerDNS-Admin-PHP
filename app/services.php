@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 const RECORD_TYPES = [
     'A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'PTR', 'CAA',
-    'TLSA', 'SSHFP', 'NAPTR', 'SPF', 'SOA', 'HTTPS', 'SVCB', 'DS'
+    'TLSA', 'SSHFP', 'NAPTR', 'SPF', 'SOA', 'HTTPS', 'SVCB', 'DS',
+    'ALIAS', 'DNAME', 'DNSKEY', 'CDS', 'CDNSKEY', 'CSYNC', 'URI',
+    'OPENPGPKEY', 'SMIMEA', 'CERT', 'LOC', 'HINFO', 'RP', 'DHCID'
 ];
 
 /**
@@ -96,8 +98,8 @@ function validateRecord(string $type, string $content): ?string
     return match ($type) {
         'A' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? null : 'A harus alamat IPv4 valid.',
         'AAAA' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? null : 'AAAA harus alamat IPv6 valid.',
-        'CNAME', 'NS', 'PTR' => preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.'))
-            ? null : 'Nama host tidak valid.',
+        'CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME' => preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.'))
+            ? null : 'Nama host target tidak valid.',
         'MX' => preg_match('/^\d{1,5}\s+\S+$/', $content)
             ? null : 'MX harus format: "prioritas hostname" (contoh: 10 mail.example.com).',
         'SRV' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
@@ -106,8 +108,25 @@ function validateRecord(string $type, string $content): ?string
         'TXT', 'SPF' => strlen($content) > 4096 ? 'Teks terlalu panjang (maksimal 4096 karakter).' : null,
         'HTTPS', 'SVCB' => preg_match('/^\d+\s+\S+/', $content)
             ? null : 'Format harus: "prioritas target [params]" (contoh: 1 . alpn="h3,h2").',
-        'DS' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'DS harus format: "keytag algo digesttype digest".',
+        'DS', 'CDS' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'Format harus: "keytag algo digesttype digest".',
+        'DNSKEY', 'CDNSKEY' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
+            ? null : 'Format harus: "flags protocol algorithm publickey".',
+        'TLSA', 'SMIMEA' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'Format harus: "usage selector matching cert_data".',
+        'SSHFP' => preg_match('/^\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
+            ? null : 'SSHFP harus format: "algorithm fptype fingerprint".',
+        'URI' => preg_match('/^\d+\s+\d+\s+\S+$/', $content)
+            ? null : 'URI harus format: "priority weight target".',
+        'CERT' => preg_match('/^\d+\s+\d+\s+\d+\s+\S+$/', $content)
+            ? null : 'CERT harus format: "type keytag algorithm certificate".',
+        'CSYNC' => preg_match('/^\d+\s+\d+\s+.+$/', $content)
+            ? null : 'CSYNC harus format: "serial flags type1 type2 ...".',
+        'HINFO' => (preg_match('/^".*"\s+".*"$/', $content) || preg_match('/^\S+\s+\S+$/', $content))
+            ? null : 'HINFO harus format: "hardware" "os".',
+        'RP' => preg_match('/^\S+\s+\S+$/', $content)
+            ? null : 'RP harus format: "mailbox-fqdn txt-fqdn".',
+        'OPENPGPKEY', 'DHCID', 'LOC', 'SOA' => null,
         default => null,
     };
 }
@@ -118,12 +137,12 @@ function normalizeContent(string $type, string $content): string
     $content = trim($content);
     $result = $content;
 
-    if (in_array($type, ['CNAME', 'NS', 'PTR', 'MX', 'SRV'], true)) {
+    if (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME', 'MX', 'SRV'], true)) {
         if ($type === 'MX' && preg_match('/^(\d+)\s+(\S+)$/', $content, $m)) {
             $result = $m[1] . ' ' . dnsCanonical($m[2]);
         } elseif ($type === 'SRV' && preg_match('/^(\d+)\s+(\d+)\s+(\d+)\s+(\S+)$/', $content, $m)) {
             $result = $m[1] . ' ' . $m[2] . ' ' . $m[3] . ' ' . dnsCanonical($m[4]);
-        } elseif (in_array($type, ['CNAME', 'NS', 'PTR'], true)) {
+        } elseif (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME'], true)) {
             $result = dnsCanonical($content);
         }
     } elseif ($type === 'TXT') {
@@ -283,8 +302,8 @@ function generateIpv4SubnetPtrBatch(
         $ipDash = str_replace('.', '-', $ip);
 
         $hostname = str_replace(
-            ['[ID]', '[IP_DASH]', '[DOMAIN]'],
-            [(string) $i, $ipDash, $targetDomain],
+            ['[ID]', '[IP]', '[IP_DASH]', '[OCTET4]', '[DOMAIN]'],
+            [(string) $i, $ip, $ipDash, (string) $i, $targetDomain],
             $namingPattern
         );
         $hostname = dnsCanonical($hostname);
@@ -332,8 +351,8 @@ function generateIpv6SubnetPtrBatch(
         $hostHex = str_pad(dechex($i), 16, '0', STR_PAD_LEFT);
         $relativeName = implode('.', array_reverse(str_split($hostHex)));
         $hostname = str_replace(
-            ['[ID]', '[HEX]', '[DOMAIN]'],
-            [(string) $i, dechex($i), $targetDomain],
+            ['[ID]', '[HEX]', '[HEX16]', '[DOMAIN]'],
+            [(string) $i, dechex($i), $hostHex, $targetDomain],
             $namingPattern
         );
         $hostname = dnsCanonical($hostname);
@@ -352,24 +371,41 @@ function generateIpv6SubnetPtrBatch(
 
 /**
  * Mencari apakah zona reverse untuk IP ini terdaftar di database panel.
+ * Mendukung pencocokan hierarkis fleksibel untuk IPv4 (/24, /16, /8) dan IPv6 (/64, /48, /32).
  */
 function findMatchingReverseZone(string $ip): ?string
 {
-    $revZone = null;
+    $fullPtrFqdn = null;
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        $revZone = ipv4ToReverseZone24($ip);
+        $fullPtrFqdn = ipv4ToPtrFqdn($ip);
     } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        $revZone = ipv6ToReverseZone64($ip);
+        $fullPtrFqdn = ipv6ToPtrFqdn($ip);
     }
 
-    if ($revZone === null) {
+    if ($fullPtrFqdn === null) {
         return null;
     }
 
-    $st = db()->prepare('SELECT name FROM zones WHERE name = ?');
-    $st->execute([$revZone]);
-    $row = $st->fetch();
-    return $row ? (string) $row['name'] : null;
+    $st = db()->query(
+        "SELECT name FROM zones WHERE name LIKE '%.in-addr.arpa.' OR name LIKE '%.ip6.arpa.'"
+    );
+    if (!$st) {
+        return null;
+    }
+
+    $bestMatch = null;
+    $bestLen = 0;
+    while ($row = $st->fetch()) {
+        $zoneName = dnsCanonical((string) $row['name']);
+        if ($fullPtrFqdn === $zoneName || str_ends_with($fullPtrFqdn, '.' . $zoneName)) {
+            $len = strlen($zoneName);
+            if ($len > $bestLen) {
+                $bestLen = $len;
+                $bestMatch = $zoneName;
+            }
+        }
+    }
+    return $bestMatch;
 }
 
 /**
@@ -386,20 +422,19 @@ function syncForwardIpToReversePtr(
     bool $delete = false
 ): bool {
     $targetFqdn = dnsCanonical($targetFqdn);
+    $fullPtrFqdn = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+        ? ipv4ToPtrFqdn($ip)
+        : (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? ipv6ToPtrFqdn($ip) : null);
+
+    if ($fullPtrFqdn === null) {
+        return false;
+    }
+
     $revZone = findMatchingReverseZone($ip);
     if ($revZone === null || !userCanZone($user, $revZone, true)) {
         return false;
     }
 
-    $relName = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
-        ? ipv4ToRelativePtr24($ip)
-        : ipv6ToRelativePtr64($ip);
-
-    if ($relName === null) {
-        return false;
-    }
-
-    $fullPtrFqdn = $relName . '.' . $revZone;
     $rrset = [
         'name' => $fullPtrFqdn,
         'type' => 'PTR',
@@ -748,7 +783,7 @@ function formatBindRecordContent(string $type, array $rdataTokens, string $curre
         return formatBindSoaContent($rdataTokens, $currentOrigin);
     }
 
-    if (in_array($type, ['CNAME', 'NS', 'PTR'], true)) {
+    if (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME'], true)) {
         $target = str_ends_with($rdataTokens[0], '.') ? $rdataTokens[0] : $rdataTokens[0] . '.' . $currentOrigin;
         return dnsCanonical($target);
     }

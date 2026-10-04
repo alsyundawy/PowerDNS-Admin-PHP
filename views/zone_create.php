@@ -61,7 +61,13 @@ declare(strict_types=1);
 
   <div>
     <label class="form-label" for="zone-ns">Nameserver Otoritatif (Pisahkan dengan koma)</label>
-    <input class="form-control" id="zone-ns" name="nameservers" placeholder="ns1.example.com, ns2.example.com">
+    <input
+      class="form-control"
+      id="zone-ns"
+      name="nameservers"
+      value="<?= e((string) setting('dns_default_ns', '')) ?>"
+      placeholder="ns1.example.com, ns2.example.com"
+    >
   </div>
 
   <div>

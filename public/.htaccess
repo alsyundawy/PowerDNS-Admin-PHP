@@ -1,0 +1,49 @@
+# PowerDNS-Admin-PHP - Production Apache Virtual Host & Directory Configuration (.htaccess)
+# ==============================================================================
+# Architecture: Apache 2.4+ with mod_rewrite, mod_headers, and PHP-FPM / mod_php
+# Provides 100% feature parity with deploy/nginx.conf.
+# ==============================================================================
+
+# 1. Primary Application Routing
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Block access to hidden files (.git, .env, etc.) except ACME challenge
+    RewriteRule "(^|/)\.(?!well-known)" - [F]
+
+    # Route all non-existent files and directories to the front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# 2. Hardening & Directory Indexing
+Options -Indexes -MultiViews
+
+# 3. Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+    Header always set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+</IfModule>
+
+# 4. Deny direct web access to sensitive file extensions
+<FilesMatch "(^\.|\.(sql|md|log|sh|json|lock|neon|xml|bak|conf)$)">
+    Require all denied
+</FilesMatch>
+
+# 5. Static Assets Caching & Performance
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>

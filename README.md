@@ -204,22 +204,39 @@ flowchart TB
 
 PowerDNS-Admin-PHP validates and formats all standard authoritative DNS Resource Record Sets:
 
-| Record Type | Description                           | RFC Standard       | Syntax Validation & Format Specs                                |
-| :---------- | :------------------------------------ | :----------------- | :-------------------------------------------------------------- |
-| **`A`**     | IPv4 Host Address                     | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`            |
-| **`AAAA`**  | IPv6 Host Address                     | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6               |
-| **`CNAME`** | Canonical Name (Alias)                | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot   |
-| **`MX`**    | Mail Exchange Server                  | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN    |
-| **`NS`**    | Authoritative Name Server             | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot        |
-| **`TXT`**   | Text Annotations (SPF, DKIM, DMARC)   | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape |
-| **`PTR`**   | Pointer Record (Reverse DNS)          | RFC 1035           | Target host FQDN ending with a trailing dot                     |
-| **`SRV`**   | Service Location Record               | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname         |
-| **`CAA`**   | Certification Authority Authorization | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain       |
-| **`SSHFP`** | SSH Public Key Fingerprint            | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data  |
-| **`TLSA`**  | DANE Transport Layer Security Auth    | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data       |
-| **`NAPTR`** | Naming Authority Pointer              | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN      |
-| **`SPF`**   | Sender Policy Framework (Legacy)      | RFC 4408           | Text string policy definition                                   |
-| **`SOA`**   | Start of Authority                    | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL  |
+| Record Type      | Description                           | RFC Standard       | Syntax Validation & Format Specs                                     |
+| :--------------- | :------------------------------------ | :----------------- | :------------------------------------------------------------------- |
+| **`A`**          | IPv4 Host Address                     | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`                 |
+| **`AAAA`**       | IPv6 Host Address                     | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6                    |
+| **`CNAME`**      | Canonical Name (Alias)                | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot        |
+| **`ALIAS`**      | Zone Apex CNAME Flattening (Pseudo-RR)| PowerDNS Native    | Target FQDN synthesized into A/AAAA by PowerDNS Authoritative engine |
+| **`DNAME`**      | Delegation Name (Subtree Redirection) | RFC 6672           | Target domain name FQDN redirecting all descendants                  |
+| **`MX`**         | Mail Exchange Server                  | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN         |
+| **`NS`**         | Authoritative Name Server             | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot             |
+| **`TXT`**        | Text Annotations (SPF, DKIM, DMARC)   | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape      |
+| **`PTR`**        | Pointer Record (Reverse DNS)          | RFC 1035           | Target host FQDN ending with a trailing dot                          |
+| **`SOA`**        | Start of Authority                    | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL       |
+| **`SRV`**        | Service Location Record               | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname              |
+| **`CAA`**        | Certification Authority Authorization | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain            |
+| **`HTTPS`**      | HTTPS Binding & Parameter Hints       | RFC 9460           | Priority, target name, and optional parameters (e.g. `alpn=h3,h2`)   |
+| **`SVCB`**       | Service Binding Generic Record        | RFC 9460           | Priority, target name, and optional service parameters               |
+| **`DS`**         | Delegation Signer (DNSSEC Parent)     | RFC 4034           | Key tag, algorithm, digest type, and cryptographic hex digest        |
+| **`CDS`**        | Child DS (Automated Parent Trust)     | RFC 7344           | Key tag, algorithm, digest type, and hex digest for auto parent sync |
+| **`DNSKEY`**     | DNSSEC Public Key Record              | RFC 4034           | Flags, protocol, algorithm, and base64 public key material           |
+| **`CDNSKEY`**    | Child DNSKEY (RFC 7344 Auto Trust)    | RFC 7344           | Flags, protocol, algorithm, and base64 public key material           |
+| **`CSYNC`**      | Child-to-Parent Synchronization       | RFC 7477           | Serial number, flags, and list of synchronized RR types              |
+| **`TLSA`**       | DANE Transport Layer Security Auth    | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data            |
+| **`SSHFP`**      | SSH Public Key Fingerprint            | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data       |
+| **`URI`**        | Uniform Resource Identifier           | RFC 7553           | Priority, weight, and target URI string                              |
+| **`CERT`**       | Certificate / CRL Record              | RFC 4398           | Type, key tag, algorithm, and certificate data                       |
+| **`OPENPGPKEY`** | OpenPGP Public Key                    | RFC 7929           | Base64-encoded OpenPGP public keyring data                           |
+| **`SMIMEA`**     | S/MIME Certificate Association        | RFC 8162           | Certificate usage, selector, matching type, and association hex      |
+| **`NAPTR`**      | Naming Authority Pointer              | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN           |
+| **`SPF`**        | Sender Policy Framework (Legacy)      | RFC 4408           | Text string policy definition                                        |
+| **`LOC`**        | Geospatial Location Information       | RFC 1876           | Latitude, longitude, altitude, size, and precision specs             |
+| **`HINFO`**      | Host CPU and Operating System Info    | RFC 8482, RFC 1035 | Enclosed CPU architecture and OS platform strings                    |
+| **`RP`**         | Responsible Person                    | RFC 1183           | Mailbox domain name and TXT domain name for human contacts           |
+| **`DHCID`**      | DHCP Client Identifier Data           | RFC 4701           | Base64-encoded DHCP client identifier association                    |
 
 ---
 
@@ -433,7 +450,11 @@ sudo systemctl status pdns
 
 ## ⚙️ Configuration Reference
 
-Konfigurasi aplikasi disimpan pada berkas terisolasi `/etc/pda/config.php` (dengan izin `640` milik `www-data`):
+Konfigurasi aplikasi dibagi menjadi dua lapisan: konfigurasi sistem pada berkas `config.php` dan pengaturan dinamis melalui Web Dashboard (`/settings`).
+
+### 1. Konfigurasi Berkas Sistem (`/etc/pda/config.php` atau `config.php`)
+
+Disimpan pada berkas konfigurasi lokal terlindungi (dengan izin `640` milik `www-data`):
 
 | Setting Key        | Tipe Data | Default / Contoh Nilai      | Keterangan                                                     |
 | :----------------- | :-------- | :-------------------------- | :------------------------------------------------------------- |
@@ -442,12 +463,75 @@ Konfigurasi aplikasi disimpan pada berkas terisolasi `/etc/pda/config.php` (deng
 | `db.name`          | `string`  | `"pda"`                     | Nama database panel.                                           |
 | `db.user`          | `string`  | `"pda_user"`                | Username database panel.                                       |
 | `db.pass`          | `string`  | `"[REDACTED]"`              | Kata sandi database.                                           |
-| `app.secret_key`   | `string`  | `"[HEX 64 chars]"`          | Master secret key untuk enkripsi AES-256-GCM.                  |
-| `pdns_api_url`     | `string`  | `"http://127.0.0.1:8081"`   | URL endpoint PowerDNS Authoritative HTTP API v1.               |
-| `pdns_api_key`     | `string`  | `"[AES-256-GCM Encrypted]"` | Kunci API PowerDNS daemon (tersimpan terenkripsi di database). |
-| `session_lifetime` | `int`     | `7200`                      | Batas waktu sesi aktif pengguna dalam detik (2 jam).           |
-| `rate_limit_ip`    | `int`     | `10`                        | Batas percobaan login per IP per jendela waktu 15 menit.       |
-| `rate_limit_user`  | `int`     | `5`                         | Batas percobaan login per username per jendela waktu 15 menit. |
+| `db.charset`       | `string`  | `"utf8mb4"`                 | Set karakter database (mendukung emoji & multilingual penuh).  |
+| `appKey`           | `string`  | `"[Base64 32 bytes]"`       | Kunci master simetris enkripsi AES-256-GCM (Wajib rahasia).    |
+| `installed`        | `bool`    | `true`                      | Flag penanda status instalasi wizard web.                      |
+
+---
+
+### 2. Pengaturan Dinamis Web Dashboard (`/settings` — `views/settings.php`)
+
+Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel metadata `settings`:
+
+#### A. Koneksi PowerDNS Authoritative API
+- **`pdns_api_url`**: Endpoint webserver API PowerDNS Authoritative (contoh: `http://127.0.0.1:8081`).
+- **`pdns_server_id`**: Server ID PowerDNS (standar: `localhost`).
+- **`pdns_api_key`**: Kunci rahasia API daemon PowerDNS (dienkripsi simetris menggunakan `AES-256-GCM`).
+- **`pdns_verify_tls`**: Verifikasi sertifikat TLS/SSL untuk endpoint HTTPS jarak jauh.
+
+#### B. Parameter & Kebijakan Default DNS
+- **`dns_default_ttl`**: TTL bawaan untuk record baru atau impor zona tanpa TTL eksplisit (30 – 604800 detik, standar: `3600`).
+- **`dns_default_ns`**: Daftar nameserver otoritatif default yang otomatis dipra-isi saat pembuatan zona baru (contoh: `ns1.example.com, ns2.example.com`).
+- **`dns_default_soa_email`**: Format email penanggung jawab zona RNAME (standar: `hostmaster.example.com`).
+- **`dns_default_soa_refresh` / `retry` / `expire` / `minimum`**: Parameter siklus waktu SOA standar RFC 1035 (`10800`, `3600`, `604800`, `3600`).
+- **`dns_auto_ptr_default`**: Status default checkbox sinkronisasi otomatis record A/AAAA ke zona reverse PTR (`1` aktif / `0` nonaktif).
+
+#### C. Identitas, Tema & Kustomisasi Branding
+- **`app_name`**: Nama instansi atau aplikasi yang tampil di navbar, sidebar, dan judul tab browser.
+- **`app_logo_url`**: URL logo kustom atau jalur berkas logo hasil unggah (`PNG`, `SVG`, `WEBP` maks 2MB).
+- **`app_footer_text`**: Teks copyright atau informasi kepatuhan pada bagian bawah panel dan form login.
+- **`app_default_theme`**: Tema bawaan antarmuka untuk pengunjung baru (`dark` OLED Dark atau `light` Daylight Light).
+
+#### D. Keamanan, Sesi & Kebijakan Login
+- **`session_lifetime_minutes`**: Waktu kedaluwarsa sesi idle pengguna (5 – 10080 menit, standar: `120`).
+- **`login_max_attempts`**: Batas kesalahan autentikasi berturut-turut sebelum pemicuan lockout brute-force (standar: `5`).
+- **`login_lockout_seconds`**: Durasi penalti lockout brute-force IP dan akun (standar: `900` detik / 15 menit).
+- **`security_force_hsts`**: Pengiriman header keamanan `Strict-Transport-Security (HSTS)` (`max-age=31536000`).
+
+#### E. Retensi Riwayat Zona & Jejak Audit
+- **`history_max_snapshots`**: Batas kuota rollback snapshot per zona DNS (standar: `25`).
+- **`audit_retention_days`**: Durasi penyimpanan log aktivitas pada tabel audit log (standar: `90` hari).
+
+#### F. Alat Diagnostik Jaringan & rDNS
+- **`rdns_default_naming_pattern`**: Pola naming template generator record PTR massal (standar: `host-[ID].[DOMAIN]`).
+  - *Makro yang didukung:* `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), `[DOMAIN]`.
+- **`dns_public_resolvers`**: Daftar recursive resolver pembanding untuk alat DNS Lookup & Propagation Inspector (`1.1.1.1, 8.8.8.8, 9.9.9.9`).
+
+---
+
+### 3. Arsitektur Web Server & Paritas Konfigurasi Nginx vs Apache
+
+PowerDNS-Admin-PHP menyediakan konfigurasi siap produksi untuk **Nginx** (`deploy/nginx.conf`) dan **Apache** (`public/.htaccess`) dengan paritas fungsional 100%:
+
+| Aspek Keamanan & Performa           | Arahan Apache (`public/.htaccess`)                                  | Padanan Nginx (`deploy/nginx.conf`)                                              |
+| :---------------------------------- | :------------------------------------------------------------------ | :------------------------------------------------------------------------------- |
+| **Front Controller Routing**        | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`   | `location / { try_files $uri $uri/ /index.php?$query_string; }`                   |
+| **Sandboxing Upload Berkas**        | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }` |
+| **Proteksi Berkas Sensitif**        | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`    | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }` |
+| **Blokir Direktori Tersembunyi**    | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                        | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                   |
+| **Proteksi Clickjacking & Sniffing**| `Header always set X-Frame-Options "DENY"`                          | `add_header X-Frame-Options "DENY" always;`                                      |
+| **Kebijakan Keamanan Konten (CSP)** | `Header always set Content-Security-Policy "default-src 'self'..."` | `add_header Content-Security-Policy "default-src 'self'..." always;`             |
+| **Caching Aset Statis Lokal**       | `ExpiresByType text/css "access plus 7 days"`                       | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }` |
+| **PHP-FPM Auto-Detection**          | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"` | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`) |
+
+#### Deteksi Otomatis Versi PHP-FPM
+Skrip `deploy/detect-php-fpm.sh` dapat dijalankan kapan saja untuk memindai versi PHP yang terpasang dan memperbarui symlink universal:
+```bash
+sudo ./deploy/detect-php-fpm.sh
+```
+Skrip instalasi `deploy/install-debian.sh` juga secara otomatis mendeteksi apakah sistem menggunakan PHP 8.1, 8.2, 8.3, atau 8.4 dan menghubungkan socket secara dinamis.
+
+---
 
 ---
 

@@ -1186,6 +1186,50 @@ function processSettingsBrandingLogo(): void
     }
 }
 
+function saveDnsPolicySettings(): void
+{
+    $defaultTtl = max(30, min(604800, (int) ($_POST['dns_default_ttl'] ?? 3600)));
+    $defaultNs = trim((string) ($_POST['dns_default_ns'] ?? ''));
+    $defaultSoaEmail = trim((string) ($_POST['dns_default_soa_email'] ?? 'hostmaster.example.com'));
+    $defaultSoaRefresh = max(60, min(1209600, (int) ($_POST['dns_default_soa_refresh'] ?? 10800)));
+    $defaultSoaRetry = max(60, min(1209600, (int) ($_POST['dns_default_soa_retry'] ?? 3600)));
+    $defaultSoaExpire = max(300, min(2419200, (int) ($_POST['dns_default_soa_expire'] ?? 604800)));
+    $defaultSoaMin = max(30, min(604800, (int) ($_POST['dns_default_soa_minimum'] ?? 3600)));
+    $autoPtrDefault = isset($_POST['dns_auto_ptr_default']) ? '1' : '0';
+
+    settingSet('dns_default_ttl', (string) $defaultTtl);
+    settingSet('dns_default_ns', $defaultNs);
+    settingSet('dns_default_soa_email', $defaultSoaEmail);
+    settingSet('dns_default_soa_refresh', (string) $defaultSoaRefresh);
+    settingSet('dns_default_soa_retry', (string) $defaultSoaRetry);
+    settingSet('dns_default_soa_expire', (string) $defaultSoaExpire);
+    settingSet('dns_default_soa_minimum', (string) $defaultSoaMin);
+    settingSet('dns_auto_ptr_default', $autoPtrDefault);
+}
+
+function saveSecurityAndOperationalSettings(): void
+{
+    $sessionLifetime = max(5, min(10080, (int) ($_POST['session_lifetime_minutes'] ?? 120)));
+    $maxLoginAttempts = max(1, min(50, (int) ($_POST['login_max_attempts'] ?? 5)));
+    $lockoutSeconds = max(30, min(86400, (int) ($_POST['login_lockout_seconds'] ?? 900)));
+    $forceHsts = isset($_POST['security_force_hsts']) ? '1' : '0';
+
+    settingSet('session_lifetime_minutes', (string) $sessionLifetime);
+    settingSet('login_max_attempts', (string) $maxLoginAttempts);
+    settingSet('login_lockout_seconds', (string) $lockoutSeconds);
+    settingSet('security_force_hsts', $forceHsts);
+
+    $maxSnapshots = max(1, min(500, (int) ($_POST['history_max_snapshots'] ?? 25)));
+    $auditDays = max(1, min(3650, (int) ($_POST['audit_retention_days'] ?? 90)));
+    settingSet('history_max_snapshots', (string) $maxSnapshots);
+    settingSet('audit_retention_days', (string) $auditDays);
+
+    $rdnsPattern = trim((string) ($_POST['rdns_default_naming_pattern'] ?? 'host-[ID].[DOMAIN]'));
+    $publicResolvers = trim((string) ($_POST['dns_public_resolvers'] ?? '1.1.1.1, 8.8.8.8, 9.9.9.9'));
+    settingSet('rdns_default_naming_pattern', $rdnsPattern !== '' ? $rdnsPattern : 'host-[ID].[DOMAIN]');
+    settingSet('dns_public_resolvers', $publicResolvers);
+}
+
 function updateApplicationSettings(array $user): void
 {
     csrfCheck();
@@ -1196,6 +1240,7 @@ function updateApplicationSettings(array $user): void
 
     $appName = trim((string) ($_POST['app_name'] ?? 'PowerDNS Admin'));
     $appFooter = trim((string) ($_POST['app_footer_text'] ?? ''));
+    $theme = (isset($_POST['app_default_theme']) && $_POST['app_default_theme'] === 'light') ? 'light' : 'dark';
 
     if (!preg_match('#^https?://#', $url)) {
         flash('danger', 'URL API harus http atau https.');
@@ -1210,11 +1255,14 @@ function updateApplicationSettings(array $user): void
 
     settingSet('app_name', $appName !== '' ? $appName : 'PowerDNS Admin');
     settingSet('app_footer_text', $appFooter);
+    settingSet('app_default_theme', $theme);
 
     processSettingsBrandingLogo();
+    saveDnsPolicySettings();
+    saveSecurityAndOperationalSettings();
 
-    audit($user, 'settings', '', 'Pengaturan endpoint & branding diperbarui');
-    flash('success', 'Pengaturan berhasil disimpan.');
+    audit($user, 'settings', '', 'Pengaturan global aplikasi diperbarui');
+    flash('success', 'Seluruh konfigurasi sistem berhasil disimpan.');
     redirect(PATH_SETTINGS);
 }
 
@@ -1236,6 +1284,23 @@ function handleSettings(array $user): void
         'appName' => appName(),
         'appLogoUrl' => appLogoUrl(),
         'appFooterText' => appFooterText(),
+        'defaultTheme' => (string) setting('app_default_theme', 'dark'),
+        'defaultTtl' => (int) setting('dns_default_ttl', '3600'),
+        'defaultNs' => (string) setting('dns_default_ns', ''),
+        'defaultSoaEmail' => (string) setting('dns_default_soa_email', 'hostmaster.example.com'),
+        'defaultSoaRefresh' => (int) setting('dns_default_soa_refresh', '10800'),
+        'defaultSoaRetry' => (int) setting('dns_default_soa_retry', '3600'),
+        'defaultSoaExpire' => (int) setting('dns_default_soa_expire', '604800'),
+        'defaultSoaMinimum' => (int) setting('dns_default_soa_minimum', '3600'),
+        'autoPtrDefault' => setting('dns_auto_ptr_default', '0') === '1',
+        'sessionLifetime' => (int) setting('session_lifetime_minutes', '120'),
+        'maxLoginAttempts' => (int) setting('login_max_attempts', '5'),
+        'lockoutSeconds' => (int) setting('login_lockout_seconds', '900'),
+        'forceHsts' => setting('security_force_hsts', '1') === '1',
+        'maxSnapshots' => (int) setting('history_max_snapshots', '25'),
+        'auditRetentionDays' => (int) setting('audit_retention_days', '90'),
+        'rdnsPattern' => (string) setting('rdns_default_naming_pattern', 'host-[ID].[DOMAIN]'),
+        'publicResolvers' => (string) setting('dns_public_resolvers', '1.1.1.1, 8.8.8.8, 9.9.9.9'),
     ]);
 }
 

@@ -11,6 +11,31 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 
 ### Fitur Baru & Inovasi (New Features & Innovation)
 
+- **Dukungan Penuh 31 Tipe Record DNS PowerDNS:**
+  - Penambahan dan validasi sintaks komprehensif untuk seluruh 31 tipe record DNS:
+    - *Core & Web:* `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `PTR`, `SOA`, `SRV`, `CAA`.
+    - *Modern Web & Redirection:* `ALIAS` (Zone Apex CNAME flattening native PowerDNS), `DNAME` (Redirection seluruh subtree domain, RFC 6672), `HTTPS` & `SVCB` (Service Binding & HTTP/3 parameters, RFC 9460), `URI` (Uniform Resource Identifier, RFC 7553).
+    - *DNSSEC & Automated Trust:* `DS` (Delegation Signer, RFC 4034), `CDS` (Child DS, RFC 7344), `DNSKEY` (DNSSEC Public Key, RFC 4034), `CDNSKEY` (Child DNSKEY, RFC 7344), `CSYNC` (Child-to-Parent sync, RFC 7477).
+    - *Security & Cryptography:* `TLSA` (DANE TLS authentication, RFC 6698), `SSHFP` (SSH Public Key Fingerprint, RFC 4255), `OPENPGPKEY` (OpenPGP keyring, RFC 7929), `SMIMEA` (S/MIME cert association, RFC 8162), `CERT` (Certificate record, RFC 4398).
+    - *Informational & Legacy:* `SPF` (RFC 4408), `LOC` (Geospatial location, RFC 1876), `HINFO` (Host info CPU & OS, RFC 8482/1035), `RP` (Responsible Person, RFC 1183), `DHCID` (DHCP client identifier, RFC 4701).
+  - Normalisasi FQDN otomatis untuk record target `ALIAS` dan `DNAME`, serta kompatibilitas penuh pada impor dan ekspor format BIND zone file RFC 1035.
+- **Penyempurnaan Generator Subnet Reverse DNS & PTR Multi-Tier:**
+  - Mesin pencocokan zona reverse pintar (`findMatchingReverseZone`) yang hierarkis dan dinamis: mendukung zona reverse IPv4 (/24, /16, /8) dan IPv6 (/64, /48, /32, dll) berdasarkan FQDN PTR kanonikal terpanjang.
+  - Perluasan generator record PTR massal (batch generator) dengan makro lengkap: `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), dan `[DOMAIN]`.
+  - Sinkronisasi otomatis record forward (A/AAAA) ke record PTR (`auto_ptr_sync`) yang cerdas saat menyimpan record zona.
+- **Pusat Pengaturan Komprehensif Sistem (`/settings` — `views/settings.php`):**
+  - Mengintegrasikan seluruh parameter kontrol aplikasi ke dalam 6 klaster konfigurasi terstruktur:
+    1. *Koneksi PowerDNS Authoritative API:* URL API, Server ID, enkripsi simetris API Key via AES-256-GCM, dan verifikasi sertifikat TLS/SSL.
+    2. *Kebijakan & Parameter Default DNS:* Fallback default TTL (30 – 604800 detik), default Authoritative Nameservers saat membuat zona baru, default SOA hostmaster email, parameter waktu siklus SOA standar RFC 1035 (Refresh, Retry, Expire, Min TTL / Negative Caching), serta toggle default Auto-PTR synchronization.
+    3. *Identitas, Tema & Kustomisasi Branding:* Nama panel kustom, unggah logo kustom (PNG, SVG, WEBP maks 2MB) atau URL logo eksternal, teks catatan kaki (footer) kustom, dan tema antarmuka bawaan (`dark` OLED Dark atau `light` Daylight Light).
+    4. *Keamanan, Sesi & Kebijakan Login:* Masa kedaluwarsa sesi pengguna (timeout), batas maksimal percobaan login gagal (rate limiting), durasi penalti lockout brute-force, dan pengiriman header keamanan `Strict-Transport-Security (HSTS)`.
+    5. *Retensi Riwayat Zona & Jejak Audit:* Batas kuota rollback snapshot per zona DNS dan durasi retensi penyimpanan log jejak audit (hari).
+    6. *Alat Diagnostik Jaringan & rDNS:* Pola default naming template batch PTR generator dan daftar recursive DNS resolver publik untuk alat DNS Lookup & Propagation.
+- **Deteksi Otomatis Versi PHP-FPM & Paritas Penuh Nginx vs Apache:**
+  - Skrip mandiri `deploy/detect-php-fpm.sh` yang otomatis mendeteksi versi PHP aktif (CLI & FPM), memindai direktori pool sistem, dan menghubungkan symlink universal `/run/php/php-fpm-pda.sock`.
+  - Pembaruan skrip installer `deploy/install-debian.sh` yang secara otomatis mengenali versi PHP (8.1, 8.2, 8.3, 8.4) dan mengonfigurasi pool terisolasi `[pda]` secara dinamis.
+  - Paritas 100% penerjemahan berkas Apache `.htaccess` ke konfigurasi Nginx (`deploy/nginx.conf`): sandboxing direktori `/uploads/` dari eksekusi script, URL rewrite front-controller ke `index.php`, proteksi berkas sensitif dan tersembunyi, penegakan header keamanan, dan caching aset lokal.
+  - Berkas konfigurasi resmi `public/.htaccess` untuk kompatibilitas native Apache 2.4+.
 - **Font Awesome 6.7.2 Offline Local Integration:**
   - Pustaka ikon resmi `@fortawesome/fontawesome-free@6.7.2` dipaketkan langsung secara lokal di `public/assets/vendor/fontawesome/` (CSS + font WOFF2 dan TTF lengkap).
   - Modernisasi ikon grafis vektor profesional di seluruh antarmuka (Dasbor, Menu Samping, Editor Record Zona, Status Badges, dan Toolbar).
