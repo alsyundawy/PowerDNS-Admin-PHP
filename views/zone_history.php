@@ -69,11 +69,11 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
           <?php foreach (($selectedSnapshot['rrsets'] ?? []) as $rr) : ?>
                 <?php
                 $rname = (string) ($rr['name'] ?? '');
-                $rtype = (string) ($rr['type'] ?? '');
-                $rttl = (int) ($rr['ttl'] ?? 3600);
-                $rrecords = is_array($rr['records'] ?? null) ? $rr['records'] : [];
-                $rcomments = is_array($rr['comments'] ?? null) ? $rr['comments'] : [];
-                ?>
+              $rtype = (string) ($rr['type'] ?? '');
+              $rttl = (int) ($rr['ttl'] ?? 3600);
+              $rrecords = is_array($rr['records'] ?? null) ? $rr['records'] : [];
+              $rcomments = is_array($rr['comments'] ?? null) ? $rr['comments'] : [];
+              ?>
             <tr>
               <td><code><?= e($rname) ?></code></td>
               <td><span class="badge"><?= e($rtype) ?></span></td>

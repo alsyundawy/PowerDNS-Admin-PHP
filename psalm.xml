@@ -21,6 +21,7 @@
         <file name="app/bootstrap.php" />
         <file name="app/csrf.php" />
         <file name="app/dns_name.php" />
+        <file name="app/network_tools.php" />
         <file name="app/PdnsClient.php" />
         <file name="app/services.php" />
         <file name="app/handlers.php" />

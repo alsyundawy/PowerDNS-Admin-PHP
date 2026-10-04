@@ -1,34 +1,49 @@
 /**
- * PowerDNS-Admin-PHP - Modern Responsive Stylesheet
+ * PowerDNS-Admin-PHP - Modern 2026 Responsive Stylesheet
+ * 2026 Cyberpunk-Inspired OLED Dark (Default) & Crisp Light Theme
  * Optimized for cross-device compatibility (VGA 640x480 up to 2K 2560x1440)
- * Enhanced for Xiaomi, Redmi, Poco, MIUI, HyperOS, iOS, Android, and Desktop
+ * Enhanced for Xiaomi, Redmi, Poco, HyperOS, iOS, Android, and Desktop
  */
 
-:root {
-  --ink: #0f172a;
-  --ink-soft: #475569;
-  --ink-muted: #64748b;
-  --line: #e2e8f0;
-  --line-subtle: #f1f5f9;
-  --paper: #f8fafc;
-  --card: #ffffff;
-  --accent: #0d9488;
-  --accent-hover: #0f766e;
-  --accent-light: #f0fdfa;
-  --accent-2: #d97706;
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-text: #cbd5e1;
-  --sidebar-active: #ffffff;
-  --danger: #dc2626;
-  --danger-light: #fef2f2;
-  --success: #16a34a;
-  --success-light: #f0fdf4;
+:root,
+[data-theme="dark"] {
+  --ink: #f8fafc;
+  --ink-soft: #cbd5e1;
+  --ink-muted: #94a3b8;
+  --line: #1e293b;
+  --line-subtle: #162032;
+  --paper: #0b0f19;
+  --card: #111827;
+  --card-header: #131d31;
+  --card-hover: #172338;
+  --accent: #0ea5e9;
+  --accent-hover: #38bdf8;
+  --accent-light: rgba(14, 165, 233, 0.15);
+  --accent-purple: #8b5cf6;
+  --accent-purple-light: rgba(139, 92, 246, 0.15);
+  --accent-2: #f59e0b;
+  --sidebar-bg: #070a12;
+  --sidebar-hover: #131c2e;
+  --sidebar-text: #94a3b8;
+  --sidebar-active: #38bdf8;
+  --sidebar-active-bg: rgba(14, 165, 233, 0.15);
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.15);
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --input-bg: #0d1322;
+  --input-border: #24334a;
+  --input-text: #f8fafc;
+  --table-hover: #141f33;
+  --table-header-bg: #0d1525;
+  --code-bg: #0d1527;
+  --code-color: #38bdf8;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md:
+    0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
 
   /* Safe Area Insets for Notch / Punch-hole / System Bar (Xiaomi/Redmi/Poco/iOS) */
   --safe-top: max(env(safe-area-inset-top, 0px), 0px);
@@ -37,12 +52,50 @@
   --safe-left: max(env(safe-area-inset-left, 0px), 0px);
 }
 
+[data-theme="light"] {
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --ink-muted: #64748b;
+  --line: #e2e8f0;
+  --line-subtle: #f1f5f9;
+  --paper: #f8fafc;
+  --card: #ffffff;
+  --card-header: #f8fafc;
+  --card-hover: #f1f5f9;
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-light: #f0f9ff;
+  --accent-purple: #7c3aed;
+  --accent-purple-light: #f5f3ff;
+  --accent-2: #d97706;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-active: #ffffff;
+  --sidebar-active-bg: #0284c7;
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --success: #16a34a;
+  --success-light: #f0fdf4;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --table-hover: #f8fafc;
+  --table-header-bg: #f8fafc;
+  --code-bg: #f0f9ff;
+  --code-color: #0369a1;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
 /* Prevent MIUI / Android WebView font inflation on wide containers */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  background-color: var(--paper);
 }
 
 *,
@@ -67,6 +120,9 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -84,9 +140,10 @@ a:focus-visible {
 /* Layout Grid */
 .app-body {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 270px 1fr;
   min-height: 100vh;
   min-height: 100dvh;
+  background-color: var(--paper);
 }
 
 /* Mobile Top Bar (Hidden on desktop) */
@@ -101,7 +158,7 @@ a:focus-visible {
   position: sticky;
   top: 0;
   z-index: 1030;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--line);
 }
 
 .brand-mini {
@@ -129,7 +186,12 @@ a:focus-visible {
   min-height: 100vh;
   min-height: 100dvh;
   transition: transform 0.25s ease-in-out;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
 }
 
 .brand,
@@ -166,53 +228,101 @@ a:focus-visible {
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  background: linear-gradient(135deg, var(--accent), var(--accent-purple));
   color: #ffffff;
   font-weight: 700;
   font-size: 15px;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.4);
 }
 
 .sidebar nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 28px;
+  gap: 4px;
+  margin-top: 24px;
+}
+
+.nav-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  padding: 12px 14px 4px;
+  font-weight: 700;
 }
 
 .sidebar nav a {
   color: var(--sidebar-text);
-  padding: 10px 14px;
+  padding: 9px 14px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 42px;
+  gap: 12px;
+  min-height: 40px;
   transition:
     background 0.15s ease,
     color 0.15s ease;
 }
 
+.sidebar nav a i {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-muted);
+  transition: color 0.15s ease;
+}
+
 .sidebar nav a:hover {
   background: var(--sidebar-hover);
-  color: var(--sidebar-active);
+  color: #ffffff;
   text-decoration: none;
 }
 
+.sidebar nav a:hover i {
+  color: var(--accent-hover);
+}
+
 .sidebar nav a.active {
-  background: var(--accent);
-  color: #ffffff;
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active);
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.35);
+  border-left: 3px solid var(--accent);
+}
+
+.sidebar nav a.active i {
+  color: var(--accent);
 }
 
 .sidebar-foot {
   margin-top: auto;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
 }
 
 .who {
@@ -225,7 +335,7 @@ a:focus-visible {
 }
 
 .role {
-  color: #94a3b8;
+  color: var(--ink-muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -315,17 +425,20 @@ a:focus-visible {
   box-shadow: var(--shadow-sm);
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.15s ease;
 }
 
 .stat-grid article:hover {
-  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
 }
 
 .stat-grid span {
   color: var(--ink-soft);
   font-size: 13px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .stat-grid strong {
@@ -341,9 +454,11 @@ a:focus-visible {
 .pill {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   border-radius: 9999px;
   padding: 3px 10px;
-  background: #f1f5f9;
+  background: var(--line-subtle);
+  color: var(--ink-soft);
   font-size: 12px;
   font-weight: 500;
 }
@@ -351,13 +466,19 @@ a:focus-visible {
 .pill.ok {
   background: var(--success-light);
   color: var(--success);
-  border: 1px solid rgba(22, 163, 74, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .pill.bad {
   background: var(--danger-light);
   color: var(--danger);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.pill.accent {
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 1px solid rgba(14, 165, 233, 0.3);
 }
 
 /* Activity Feed */
@@ -371,6 +492,7 @@ a:focus-visible {
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
   font-size: 14px;
+  color: var(--ink);
 }
 
 .feed li:last-child {
@@ -409,14 +531,18 @@ a:focus-visible {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at top left, #ccfbf1, var(--paper) 45%);
+  background: radial-gradient(circle at top left, #131d31, var(--paper) 55%);
   padding: max(20px, var(--safe-top)) max(16px, var(--safe-right))
     max(20px, var(--safe-bottom)) max(16px, var(--safe-left));
 }
 
+[data-theme="light"] .auth-body {
+  background: radial-gradient(circle at top left, #e0f2fe, var(--paper) 55%);
+}
+
 .auth-card {
   width: min(500px, 100%);
-  background: #ffffff;
+  background: var(--card);
   border-radius: var(--radius-lg);
   padding: 32px 28px;
   border: 1px solid var(--line);
@@ -456,6 +582,76 @@ a:focus-visible {
   color: #ffffff;
 }
 
+.btn-outline-secondary {
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--card-hover);
+  color: var(--ink);
+  border-color: var(--ink-muted);
+}
+
+/* Form Controls & Bootstrap Overrides */
+.form-control,
+.form-select {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--input-text);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--input-bg);
+  border-color: var(--accent);
+  color: var(--input-text);
+  box-shadow: 0 0 0 0.2rem var(--accent-light);
+}
+
+.form-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.form-text {
+  color: var(--ink-muted);
+}
+
+/* Alert Overrides */
+.alert {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background-color: var(--card);
+  color: var(--ink);
+}
+
+.alert-success {
+  background-color: var(--success-light);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
+}
+
+.alert-danger {
+  background-color: var(--danger-light);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.alert-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.alert-info {
+  background-color: var(--accent-light);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: var(--accent);
+}
+
 /* Table Styling & Robust Horizontal Scrolling for Xiaomi/Redmi/Poco */
 .table-responsive {
   width: 100%;
@@ -465,6 +661,7 @@ a:focus-visible {
   overscroll-behavior-x: contain;
   margin-bottom: 0;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
 }
 
 #record-table {
@@ -474,12 +671,13 @@ a:focus-visible {
 table {
   width: 100%;
   border-collapse: collapse;
+  color: var(--ink);
 }
 
 table code {
   font-size: 12px;
-  color: #0369a1;
-  background: #f0f9ff;
+  color: var(--code-color);
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 4px;
   word-break: break-all;
@@ -490,6 +688,7 @@ table th {
   vertical-align: middle;
   padding: 10px 12px;
   font-size: 13.5px;
+  border-color: var(--line);
 }
 
 table td {
@@ -500,8 +699,135 @@ table td {
 table th {
   color: var(--ink-soft);
   font-weight: 600;
-  background: #f8fafc;
+  background: var(--table-header-bg);
   white-space: nowrap;
+}
+
+table tbody tr:hover {
+  background-color: var(--table-hover);
+}
+
+/* Card Overrides */
+.card {
+  background-color: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.card-header {
+  background-color: var(--card-header);
+  border-bottom-color: var(--line);
+  color: var(--ink);
+}
+
+.card-footer {
+  background-color: var(--card-header);
+  border-top-color: var(--line);
+  color: var(--ink-soft);
+}
+
+/* Modal Overrides */
+.modal-content {
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: var(--radius-lg);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--line);
+}
+
+/* Network Tools Specific Styles */
+.tools-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tool-card:hover {
+  border-color: var(--accent);
+}
+
+.tool-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  margin-bottom: 14px;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.tool-card.purple .tool-card-icon {
+  background: var(--accent-purple-light);
+  color: var(--accent-purple);
+}
+
+.tool-card.emerald .tool-card-icon {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.ipcalc-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.ipcalc-card {
+  background: var(--card-header);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.ipcalc-card-title {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+
+.ipcalc-card-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.raw-output-box {
+  background: var(--sidebar-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  max-height: 520px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Responsive Media Queries */
@@ -523,7 +849,7 @@ table th {
     height: calc(100vh - 56px);
     height: calc(100dvh - 56px);
     z-index: 1025;
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
     overflow-y: auto;
   }
 
@@ -587,6 +913,10 @@ table th {
 
   .auth-card {
     padding: 22px 18px;
+  }
+
+  .ipcalc-result-grid {
+    grid-template-columns: 1fr;
   }
 }
 

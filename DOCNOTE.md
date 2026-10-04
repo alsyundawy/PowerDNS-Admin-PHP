@@ -12,7 +12,59 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
-## 2. Catatan Arsitektur & Operasional Versi 0.2.0 (Advanced Features & Innovations)
+## 2. Catatan Arsitektur & Operasional Versi 0.2.1 (2026 UI Design, Offline Font Awesome & Advanced Network Suite)
+
+### A. Font Awesome 6.7.2 Offline Local Architecture
+
+1. **Struktur Berkas & Distribusi Mandiri:**
+   - Seluruh pustaka ikon resmi `@fortawesome/fontawesome-free@6.7.2` dipaketkan langsung dalam direktori `public/assets/vendor/fontawesome/` tanpa ketergantungan pada CDN eksternal.
+   - Struktur folder:
+     - `public/assets/vendor/fontawesome/css/all.min.css` (72 KB stylesheet terkompresi).
+     - `public/assets/vendor/fontawesome/webfonts/` (berisi font format WOFF2 modern dan TTF untuk Solid, Regular, Brands, dan v4 compatibility).
+2. **Keamanan & Kepatuhan Zero-CDN:**
+   - Menghilangkan celah pelacakan pihak ketiga dan potensi serangan supply chain CDN.
+   - Menjamin antarmuka tetap tampil sempurna di lingkungan jaringan tertutup (air-gapped), server intranet perusahaan, atau lingkungan perbankan dengan firewall ketat.
+
+---
+
+### B. 2026 UI Design System & Dual-Theme Engine (Dark / Light)
+
+1. **Cyberpunk OLED Dark Mode (Default) & Daylight Slate Light Mode:**
+   - Sesuai standar tren UI 2026 dan palet visual cyberpunk yang tajam, pekat, dan elegan:
+     - **Dark Canvas:** `#0b0f19` (OLED obsidian space), kartu `#111827`, border `#1e293b`, aksen elektrik cyan `#0ea5e9`, ungu neon `#8b5cf6`, dan status emerald `#10b981`.
+     - **Light Canvas:** `#f8fafc` (Daylight Slate), kartu `#ffffff`, border `#e2e8f0`, teks kontras `#0f172a`.
+2. **Zero-Blur & Zero-Haze Rendering:**
+   - Menghindari filter *backdrop-blur* berlebih yang membebani GPU perangkat seluler.
+   - Menggunakan garis tepi tegas 1px (`var(--line)`), bayangan multi-layer tajam, serta antialiasing font `-webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility`.
+3. **Pencegahan Bug Font Inflation & Layar Terpotong (Xiaomi/Redmi/Poco/MIUI/HyperOS):**
+   - Aturan proteksi `-webkit-text-size-adjust: 100%` dan `text-size-adjust: 100%` mencegah browser Android/MIUI membesarkan font secara sepihak pada wadah lebar.
+   - Dukungan safe-area insets (`--safe-top`, `--safe-right`, `--safe-bottom`, `--safe-left`) dengan `viewport-fit=cover` untuk punch-hole dan notch kamera.
+   - Wadah tabel fleksibel dengan `-webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;` agar data teknis panjang (IPv6 / Reverse DNS) tidak memotong layout.
+4. **Mekanisme Pengalih Tema (Theme Switcher):**
+   - Skrip inline pada `<head>` mengeksekusi pengecekan `localStorage.getItem('pdns_theme')` sebelum DOM di-render, menghilangkan kedipan visual (zero flash of unstyled theme).
+   - Tombol toggle interaktif di sidebar dan bilah atas mobile memperbarui atribut `data-theme` pada elemen `<html>` secara real-time.
+
+---
+
+### C. Advanced Network Tools Engine (`app/network_tools.php`)
+
+1. **IPCalc Bitwise Engine (IPv4 & IPv6):**
+   - **IPv4 (`ipcalcProcessIpv4`):** Menggunakan aritmatika bitwise native PHP 32-bit untuk menghitung Network, Netmask, Wildcard, Broadcast, Host Pertama/Terakhir, Total Host, Jumlah Usable Host (dengan penanganan RFC 3021 untuk `/31` dan Single Host `/32`), Kelas IP (A/B/C/D/E), Cakupan RFC (Private RFC 1918, CGNAT RFC 6598, Loopback RFC 1122, Public), Pointer rDNS (`in-addr.arpa.`), dan format biner 32-bit.
+   - **IPv6 (`ipcalcProcessIpv6`):** Melakukan unkompresi 128-bit ke 32 karakter heksadesimal (8 grup x 4 hex), pemadatan alamat (RFC 5952), kalkulasi network address, estimasi jumlah subnet `/64` yang tersedia, klasifikasi cakupan (Loopback, Link-Local, ULA RFC 4193, Multicast, Dokumentasi RFC 3849, Global Unicast), serta zona pointer rDNS (`ip6.arpa.`).
+2. **IPv6 Subnet Splitter Berbasis Generator Memory-Safe:**
+   - Fungsi `ipv6splitGenerate()` memproses pemecahan prefix arbitrary (dari `/1` hingga `/128`, dengan selisih hingga 16 bit / 65.536 subnet) menggunakan PHP `Generator` (`yield`).
+   - Mencegah alokasi memori puluhan megabyte untuk array string besar.
+   - Endpoint `/tools/ipv6-splitter?download=1` mengirimkan berkas lampiran teks murni (`Content-Type: text/plain`) secara streaming langsung ke output buffer, menjaga konsumsi RAM server tetap di bawah 2 MB.
+3. **WHOIS & RDAP Lookup Tool:**
+   - **RDAP Client (`whoisQueryRdap`):** Klien modern berbasis HTTPS (RFC 9082 & RFC 7480) yang melakukan kueri ke `https://rdap.org/` dengan penanganan pengalihan HTTP otomatis. Menghasilkan representasi terstruktur untuk registrar, negara, rentang IP, status EPP, riwayat tanggal registrasi, serta daftar name server.
+   - **WHOIS Socket Fallback (`whoisQuerySocket`):** Klien TCP port 43 native (RFC 3912) melalui `fsockopen()` untuk mendukung kueri TLD warisan atau server WHOIS spesifik dengan batas aman (timeout 6 detik, pembatasan buffer 64 KB).
+4. **Native DNS Record Lookup Tool:**
+   - Menggunakan fungsi native PHP `dns_get_record()` untuk mengeksekusi kueri otoritatif DNS publik untuk 10+ tipe record (`A`, `AAAA`, `NS`, `MX`, `TXT`, `SOA`, `CNAME`, `PTR`, `SRV`, `CAA`).
+   - Mengidentifikasi name server delegasi dan secara otomatis menyelesaikan alamat IP glue record (IPv4 via DNS_A dan IPv6 via DNS_AAAA).
+
+---
+
+## 3. Catatan Arsitektur & Operasional Versi 0.2.0 (Advanced Features & Innovations)
 
 ### A. Visual Subnet Calculator & rDNS Wizard (`/tools/rdns`)
 

@@ -23,29 +23,37 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
     <code><?= e($soa) ?></code>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-outline-primary" href="/zones/<?= e($cleanZone) ?>/dnssec">DNSSEC</a>
+    <a class="btn btn-outline-primary" href="/zones/<?= e($cleanZone) ?>/dnssec">
+      <i class="fa-solid fa-shield-halved me-1"></i>DNSSEC
+    </a>
     <a
       class="btn btn-outline-secondary"
       href="/zones/<?= e($cleanZone) ?>/history"
       title="Riwayat versi & 1-Click Rollback"
-    >Riwayat</a>
+    ><i class="fa-solid fa-clock-rotate-left me-1"></i>Riwayat</a>
     <a
       class="btn btn-outline-secondary"
       href="/zones/<?= e($cleanZone) ?>/export"
       title="Ekspor file zona BIND RFC 1035"
-    >Ekspor BIND</a>
+    ><i class="fa-solid fa-file-export me-1"></i>Ekspor BIND</a>
     <?php if ($canEdit) : ?>
       <form method="post" action="/zones/<?= e($cleanZone) ?>/notify" class="d-inline">
         <?= csrfField() ?>
-        <button class="btn btn-outline-secondary" type="submit">NOTIFY</button>
+        <button class="btn btn-outline-secondary" type="submit">
+          <i class="fa-solid fa-bell me-1"></i>NOTIFY
+        </button>
       </form>
       <form method="post" action="/zones/<?= e($cleanZone) ?>/axfr" class="d-inline">
         <?= csrfField() ?>
-        <button class="btn btn-outline-secondary" type="submit">AXFR</button>
+        <button class="btn btn-outline-secondary" type="submit">
+          <i class="fa-solid fa-arrows-spin me-1"></i>AXFR
+        </button>
       </form>
       <form method="post" action="/zones/<?= e($cleanZone) ?>/rectify" class="d-inline">
         <?= csrfField() ?>
-        <button class="btn btn-outline-secondary" type="submit" title="Rectify zona DNSSEC">Rectify</button>
+        <button class="btn btn-outline-secondary" type="submit" title="Rectify zona DNSSEC">
+          <i class="fa-solid fa-wrench me-1"></i>Rectify
+        </button>
       </form>
     <?php endif; ?>
     <?php if (($user['role'] ?? '') === 'admin') : ?>
@@ -56,7 +64,9 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
         onsubmit="return confirm('Hapus zona ini dari PowerDNS?')"
       >
         <?= csrfField() ?>
-        <button class="btn btn-outline-danger" type="submit">Hapus</button>
+        <button class="btn btn-outline-danger" type="submit">
+          <i class="fa-solid fa-trash me-1"></i>Hapus
+        </button>
       </form>
     <?php endif; ?>
   </div>
@@ -93,8 +103,12 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
               </label>
             </div>
           <?php endif; ?>
-          <button class="btn btn-outline-primary" type="button" id="add-row">Tambah baris</button>
-          <button class="btn btn-primary" type="submit">Terapkan ke PowerDNS</button>
+          <button class="btn btn-outline-primary" type="button" id="add-row">
+            <i class="fa-solid fa-plus me-1"></i>Tambah baris
+          </button>
+          <button class="btn btn-primary" type="submit">
+            <i class="fa-solid fa-check me-1"></i>Terapkan ke PowerDNS
+          </button>
         </div>
       </div>
       <div class="table-responsive">
@@ -173,7 +187,7 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
                   class="btn btn-sm btn-outline-danger rm-row"
                   type="button"
                   aria-label="Hapus baris"
-                >&times;</button>
+                ><i class="fa-solid fa-trash-can"></i></button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -206,7 +220,7 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
           class="btn btn-sm btn-outline-danger rm-row"
           type="button"
           aria-label="Hapus baris"
-        >&times;</button>
+        ><i class="fa-solid fa-trash-can"></i></button>
       </td>
     </tr>
   </template>

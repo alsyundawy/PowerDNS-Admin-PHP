@@ -13,6 +13,7 @@ parameters:
         - app/bootstrap.php
         - app/csrf.php
         - app/dns_name.php
+        - app/network_tools.php
         - app/PdnsClient.php
         - app/services.php
         - app/handlers.php

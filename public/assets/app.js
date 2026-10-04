@@ -1,8 +1,45 @@
 /**
  * PowerDNS-Admin-PHP Core JavaScript (Vanilla ES6+)
  * Zero dependencies, high performance, cross-browser compatible.
+ * Enhanced with 2026 Dark/Light theme switching & network tools utilities.
  */
 document.addEventListener("DOMContentLoaded", () => {
+  // Theme Switcher Controller (2026 Dark Mode Default)
+  const themeToggleBtns = document.querySelectorAll(".theme-toggle-btn");
+
+  const updateThemeUI = (theme) => {
+    themeToggleBtns.forEach((btn) => {
+      const icon = btn.querySelector("i");
+      const label = btn.querySelector(".theme-label");
+      if (theme === "light") {
+        if (icon) icon.className = "fa-solid fa-moon text-warning";
+        if (label) label.textContent = "Mode Terang";
+        btn.setAttribute("aria-label", "Beralih ke Mode Gelap");
+      } else {
+        if (icon) icon.className = "fa-solid fa-sun text-warning";
+        if (label) label.textContent = "Mode Gelap";
+        btn.setAttribute("aria-label", "Beralih ke Mode Terang");
+      }
+    });
+  };
+
+  const currentTheme =
+    document.documentElement.getAttribute("data-theme") ||
+    localStorage.getItem("pdns_theme") ||
+    "dark";
+  updateThemeUI(currentTheme);
+
+  themeToggleBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const active =
+        document.documentElement.getAttribute("data-theme") || "dark";
+      const nextTheme = active === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", nextTheme);
+      localStorage.setItem("pdns_theme", nextTheme);
+      updateThemeUI(nextTheme);
+    });
+  });
+
   // Mobile sidebar toggle for small screens / Xiaomi / Redmi / Poco
   const toggleBtn = document.getElementById("sidebar-toggle");
   const sidebar = document.getElementById("app-sidebar");
@@ -12,6 +49,35 @@ document.addEventListener("DOMContentLoaded", () => {
       toggleBtn.setAttribute("aria-expanded", String(isOpen));
     });
   }
+
+  // Copy to clipboard utility for tools
+  const copyButtons = document.querySelectorAll(".btn-copy-target");
+  copyButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-target");
+      if (!targetId) return;
+      const targetEl = document.getElementById(targetId);
+      if (!targetEl) return;
+      const textToCopy =
+        targetEl.tagName === "INPUT" || targetEl.tagName === "TEXTAREA"
+          ? targetEl.value
+          : targetEl.textContent || "";
+
+      navigator.clipboard
+        .writeText(textToCopy.trim())
+        .then(() => {
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+          }, 2000);
+        })
+        .catch(() => {
+          // Fallback if clipboard API is restricted
+          console.warn("Clipboard access denied");
+        });
+    });
+  });
 
   // Add DNS record row from template
   const addRowBtn = document.getElementById("add-row");
@@ -31,8 +97,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (recordTable) {
     recordTable.addEventListener("click", (e) => {
       const target = e.target;
-      if (target?.classList.contains("rm-row")) {
-        const tr = target.closest("tr");
+      const btn = target?.closest(".rm-row");
+      if (btn) {
+        const tr = btn.closest("tr");
         if (tr) {
           tr.remove();
         }

@@ -5,4 +5,5 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
-vendor/
+/vendor/
+!public/assets/vendor/

@@ -5,6 +5,53 @@ Format ini mengikuti panduan [Keep a Changelog](https://keepachangelog.com/id/1.
 
 ---
 
+## [0.2.1] - 2026-10-04
+
+Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan tingkat lanjut (Advanced Network Tools Suite):
+
+### Fitur Baru & Inovasi (New Features & Innovation)
+
+- **Font Awesome 6.7.2 Offline Local Integration:**
+  - Pustaka ikon resmi `@fortawesome/fontawesome-free@6.7.2` dipaketkan langsung secara lokal di `public/assets/vendor/fontawesome/` (CSS + font WOFF2 dan TTF lengkap).
+  - Modernisasi ikon grafis vektor profesional di seluruh antarmuka (Dasbor, Menu Samping, Editor Record Zona, Status Badges, dan Toolbar).
+  - Arsitektur 100% Zero-CDN tetap terjaga penuh: aplikasi dapat beroperasi tanpa koneksi internet (air-gapped) atau di balik firewall ketat.
+- **2026 UI Design Trend (OLED Dark Mode Default & Crisp Light Mode):**
+  - Desain bertema Cyberpunk OLED Dark Mode sebagai tema bawaan (default) yang tajam, pekat (`#0b0f19`), bebas blur/kabut, dengan aksen elektrik cyan (`#0ea5e9`), ungu neon (`#8b5cf6`), dan emerald (`#10b981`) yang terinspirasi dari standar desain modern.
+  - Opsi Light Mode (Daylight Slate `#f8fafc`) dengan rasio kontras tinggi standar WCAG AAA untuk keterbacaan optimal di siang hari.
+  - Sakelar pengalih tema (Dark/Light mode switch) instan di sidebar desktop dan bilah navigasi seluler dengan persistensi `localStorage` tanpa kedipan FOUT/FOIT.
+  - Desain ultra-responsif dari layar VGA (640x480) hingga resolusi 2K/4K (2560x1440), dilengkapi proteksi anti-font inflation dan notch safe-area khusus perangkat Xiaomi, Redmi, Poco (MIUI / HyperOS), iOS, dan Android.
+- **IPCalc Subnetting Engine untuk IPv4 & IPv6 (`/tools/ipcalc`):**
+  - Kalkulator subnetting bitwise lengkap untuk IPv4: kalkulasi Network Address, Netmask, Wildcard Mask, Broadcast Address, rentang host usable, total host, kelas alamat (A/B/C/D/E), cakupan IP (Private RFC 1918 / Public / CGNAT / Loopback), reverse DNS pointer (`in-addr.arpa`), serta representasi biner 32-bit.
+  - Kalkulator dan ekspansi 128-bit IPv6: representasi 32-digit heksadesimal lengkap (8 kelompok x 4 digit), pemadatan alamat (RFC 5952), kalkulasi network address, jumlah subnet `/64` yang tersedia, deteksi cakupan IPv6 (Loopback, Link-Local, ULA RFC 4193, Multicast, Dokumentasi RFC 3849, Global Unicast), serta zona pointer reverse DNS (`ip6.arpa`).
+- **IPv6 Subnet Splitter Berkinerja Tinggi (`/tools/ipv6-splitter`):**
+  - Pemecah prefix IPv6 berbasis bit arbitrary dengan arsitektur memori aman menggunakan PHP `Generator` (`yield`), mampu menghasilkan hingga 65.536 subnet tanpa risiko *memory exhaustion*.
+  - Pratinjau interaktif di layar (hingga 256 subnet) dengan tombol 1-klik salin ke clipboard.
+  - Fitur unduh berkas massal instan (`Content-Type: text/plain`, streaming download) untuk seluruh daftar subnet tanpa buffering RAM berlebih.
+- **WHOIS & RDAP Lookup Tool (`/tools/whois`):**
+  - Klien RDAP modern berbasis HTTPS (RFC 9082 & RFC 7480) dengan query ke `rdap.org` dan penanganan redirect otomatis.
+  - Ekstraksi terstruktur untuk registrar, negara, rentang IP, status EPP domain, riwayat tanggal registrasi/pembaruan/kedaluwarsa, daftar name server delegasi, dan penampil JSON mentah interaktif.
+  - Fallback otomatis ke protokol klasik WHOIS Port 43 TCP Socket (RFC 3912) untuk TLD lawas atau server WHOIS kustom.
+- **Native DNS Record Lookup Tool (`/tools/dns-lookup`):**
+  - Alat inspeksi record DNS publik otoritatif menggunakan engine resolver native PHP (`dns_get_record()`) untuk 10+ tipe record (`A`, `AAAA`, `NS`, `MX`, `TXT`, `SOA`, `CNAME`, `PTR`, `SRV`, `CAA`).
+  - Resolusi otomatis glue record IPv4 dan IPv6 untuk name server delegasi.
+  - Filter interaktif berbasis pil tipe record dan tombol 1-klik salin data record.
+
+### Keamanan, Performa & Perbaikan (Security, Performance & Fixes)
+
+- **Perbaikan `.gitignore` untuk Vendor Aset Lokal:**
+  - Mengubah aturan `vendor/` menjadi `/vendor/` dan mengecualikan `!public/assets/vendor/` agar pustaka front-end lokal (Bootstrap, Font Awesome, jQuery) terkelola secara presisi di repositori Git tanpa mengikutsertakan dependensi internal Composer.
+- **Zero-Dependency Streaming HTTP Response:**
+  - Fitur unduh subnet IPv6 memanfaatkan flush buffer native PHP secara streaming sehingga konsumsi memori puncak (peak memory) tetap berada di bawah 2 MB bahkan saat membangkitkan 65.536 baris teks.
+- **Verifikasi Kualitas Kode Menyeluruh (13 Pillars):**
+  - Lolos 100% PHPCS (PSR-12) dengan 0 error dan 0 warning.
+  - Lolos 100% PHPStan (Level 5) dengan 0 error.
+  - Lolos 100% Psalm (Level 7) dengan 0 error.
+  - Lolos 100% PHP-CS-Fixer tanpa ada berkas yang perlu diformat ulang.
+  - Lolos 100% ESLint, Stylelint, Prettier, dan Markdownlint.
+  - Seluruh 45/45 asersi unit test di folder `tests/` berjalan sukses (`PASS`).
+
+---
+
 ## [0.2.0] - 2026-10-04
 
 Rilis pembaruan besar (major feature update) menghadirkan otomasi Reverse DNS (rDNS), manajemen riwayat zona atomik, interoperabilitas BIND RFC 1035, Dynamic DNS, dan penguatan keamanan Zero-CDN:

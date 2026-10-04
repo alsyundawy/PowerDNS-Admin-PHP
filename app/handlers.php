@@ -1603,3 +1603,191 @@ function handleDynDns(): void
     }
     exit;
 }
+
+/**
+ * Handler for IPCalc (IPv4 & IPv6 Subnet Calculator).
+ *
+ * @param array<string, mixed> $user
+ */
+function handleIpcalcTool(array $user, string $path, string $method): void
+{
+    $cidr = trim((string) ($_GET['cidr'] ?? ($_POST['cidr'] ?? '')));
+    if ($cidr === '') {
+        $cidr = '192.168.1.0/24';
+    }
+
+    $error = null;
+    $result = null;
+
+    if (str_contains($cidr, ':')) {
+        $result = ipcalcProcessIpv6($cidr);
+    } else {
+        $result = ipcalcProcessIpv4($cidr);
+    }
+
+    if ($result === null) {
+        $error = 'Format CIDR tidak valid. Contoh: 192.168.1.0/24 atau 2001:db8::/32';
+    }
+
+    view('tools_ipcalc', [
+        'title' => 'IPCalc & Subnetting IPv4 / IPv6',
+        'user' => $user,
+        'activeTab' => 'ipcalc',
+        'cidr' => $cidr,
+        'result' => $result,
+        'error' => $error,
+    ]);
+}
+
+/**
+ * Handler for IPv6 Subnet Splitter.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleIpv6SplitterTool(array $user, string $path, string $method): void
+{
+    $subnet = trim((string) ($_GET['subnet'] ?? ($_POST['subnet'] ?? '2001:db8::/32')));
+    $targetMask = (int) ($_GET['target_mask'] ?? ($_POST['target_mask'] ?? 48));
+    $isDownload = (string) ($_GET['download'] ?? '') === '1';
+
+    $parsed = ipv6splitValidate($subnet);
+    $error = null;
+    $previewSubnets = [];
+    $totalCount = 0;
+
+    if ($parsed === null) {
+        $error = 'Format prefix IPv6 tidak valid. Contoh: 2001:db8::/32';
+    } elseif ($targetMask < $parsed['mask']) {
+        $error = 'Target prefix (/' . $targetMask . ') harus lebih spesifik atau sama dengan prefix sumber (/'
+            . $parsed['mask'] . ')';
+    } elseif ($targetMask > 128) {
+        $error = 'Target prefix tidak boleh lebih dari /128';
+    } elseif (($targetMask - $parsed['mask']) > 16) {
+        $error = 'Perbedaan prefix maksimal 16 bit (maksimum 65.536 subnet per operasi).';
+    } else {
+        $totalCount = (int) (2 ** ($targetMask - $parsed['mask']));
+
+        if ($isDownload) {
+            $filename = sprintf(
+                'ipv6_subnets_%s_slash_%d_to_%d.txt',
+                str_replace(':', '_', $parsed['ip']),
+                $parsed['mask'],
+                $targetMask
+            );
+            header('Content-Type: text/plain; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('X-Content-Type-Options: nosniff');
+            foreach (ipv6splitGenerate($parsed['ip'], $parsed['mask'], $targetMask) as $item) {
+                echo $item . "\n";
+            }
+            exit;
+        }
+
+        $count = 0;
+        foreach (ipv6splitGenerate($parsed['ip'], $parsed['mask'], $targetMask) as $item) {
+            $previewSubnets[] = $item;
+            $count++;
+            if ($count >= 256) {
+                break;
+            }
+        }
+    }
+
+    view('tools_ipcalc', [
+        'title' => 'IPv6 Subnet Splitter',
+        'user' => $user,
+        'activeTab' => 'splitter',
+        'subnet' => $subnet,
+        'targetMask' => $targetMask,
+        'previewSubnets' => $previewSubnets,
+        'totalCount' => $totalCount,
+        'error' => $error,
+    ]);
+}
+
+/**
+ * Handler for WHOIS & RDAP Lookup Tool.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleWhoisTool(array $user, string $path, string $method): void
+{
+    $query = trim((string) ($_GET['query'] ?? ($_POST['query'] ?? '')));
+    $customServer = trim((string) ($_GET['server'] ?? ($_POST['server'] ?? '')));
+    $mode = trim((string) ($_GET['mode'] ?? 'rdap'));
+
+    $rdapResult = null;
+    $socketResult = null;
+    $error = null;
+
+    if ($query !== '') {
+        if ($mode === 'socket' || $customServer !== '') {
+            $socketResult = whoisQuerySocket($query, $customServer !== '' ? $customServer : null);
+            if (!$socketResult['success']) {
+                $error = $socketResult['error'] ?? 'Gagal query WHOIS socket.';
+            }
+        } else {
+            $rdapResult = whoisQueryRdap($query);
+            if (!$rdapResult['success']) {
+                // Fallback to socket query if RDAP failed or unsupported
+                $socketResult = whoisQuerySocket($query);
+                if (!$socketResult['success']) {
+                    $error = 'RDAP & WHOIS Socket tidak menemukan data untuk query tersebut.';
+                }
+            }
+        }
+    }
+
+    view('tools_whois', [
+        'title' => 'WHOIS & RDAP Lookup',
+        'user' => $user,
+        'query' => $query,
+        'server' => $customServer,
+        'mode' => $mode,
+        'rdapResult' => $rdapResult,
+        'socketResult' => $socketResult,
+        'error' => $error,
+    ]);
+}
+
+/**
+ * Handler for Native DNS Record Lookup Tool.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleDnsLookupTool(array $user, string $path, string $method): void
+{
+    $domain = trim((string) ($_GET['domain'] ?? ($_POST['domain'] ?? '')));
+    $type = strtoupper(trim((string) ($_GET['type'] ?? ($_POST['type'] ?? 'ANY'))));
+
+    $validTypes = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', 'CAA'];
+    if (!in_array($type, $validTypes, true)) {
+        $type = 'ANY';
+    }
+
+    $records = [];
+    $error = null;
+
+    if ($domain !== '') {
+        $result = dnsLookupAll($domain);
+        if ($result['status'] === 'success') {
+            $records = $result['records'];
+            if ($type !== 'ANY') {
+                $records = array_values(
+                    array_filter($records, static fn (array $r): bool => ($r['type'] ?? '') === $type)
+                );
+            }
+        } else {
+            $error = $result['message'] ?? 'Tidak dapat melakukan query DNS.';
+        }
+    }
+
+    view('tools_dns_lookup', [
+        'title' => 'DNS Record Lookup',
+        'user' => $user,
+        'domain' => $domain,
+        'type' => $type,
+        'records' => $records,
+        'error' => $error,
+    ]);
+}

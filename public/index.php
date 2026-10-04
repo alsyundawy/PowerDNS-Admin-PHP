@@ -23,6 +23,7 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
     require_once dirname(__DIR__) . '/app/bootstrap.php';
     require_once dirname(__DIR__) . '/app/csrf.php';
     require_once dirname(__DIR__) . '/app/dns_name.php';
+    require_once dirname(__DIR__) . '/app/network_tools.php';
     require_once dirname(__DIR__) . '/app/PdnsDnssecTrait.php';
     require_once dirname(__DIR__) . '/app/PdnsMetadataTrait.php';
     require_once dirname(__DIR__) . '/app/PdnsClient.php';
@@ -117,6 +118,14 @@ if ($path === '/') {
     handleSettings($user);
 } elseif (str_starts_with($path, '/tools/rdns')) {
     handleRdnsTool($user, $path, $method);
+} elseif ($path === '/tools/ipcalc') {
+    handleIpcalcTool($user, $path, $method);
+} elseif ($path === '/tools/ipv6-splitter') {
+    handleIpv6SplitterTool($user, $path, $method);
+} elseif ($path === '/tools/whois') {
+    handleWhoisTool($user, $path, $method);
+} elseif ($path === '/tools/dns-lookup') {
+    handleDnsLookupTool($user, $path, $method);
 } elseif (preg_match('#^/zones/([^/]+)$#', $path, $m) && $method === 'GET') {
     handleZoneShow($user, $m[1]);
 } elseif (preg_match('#^/zones/([^/]+)/save$#', $path, $m) && $method === 'POST') {

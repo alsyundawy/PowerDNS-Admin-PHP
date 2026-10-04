@@ -9,6 +9,10 @@ export default [
         document: "readonly",
         console: "readonly",
         fetch: "readonly",
+        localStorage: "readonly",
+        navigator: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
       },
     },
     rules: {
