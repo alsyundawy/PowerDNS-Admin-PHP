@@ -654,33 +654,41 @@ a:focus-visible {
 .alert-success {
   background-color: var(--success-light);
   border-color: rgba(16, 185, 129, 0.3);
-  color: var(--success);
+  color: #6ee7b7;
+}
+
+[data-theme="light"] .alert-success {
+  color: #047857;
 }
 
 .alert-danger {
   background-color: var(--danger-light);
   border-color: rgba(239, 68, 68, 0.3);
-  color: #b91c1c;
+  color: #fca5a5;
 }
 
-[data-theme="dark"] .alert-danger {
-  color: #fca5a5;
+[data-theme="light"] .alert-danger {
+  color: #b91c1c;
 }
 
 .alert-warning {
   background-color: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.3);
-  color: #92400e;
+  color: #fde68a;
 }
 
-[data-theme="dark"] .alert-warning {
-  color: #fde68a;
+[data-theme="light"] .alert-warning {
+  color: #92400e;
 }
 
 .alert-info {
   background-color: var(--accent-light);
   border-color: rgba(14, 165, 233, 0.3);
-  color: var(--accent);
+  color: #7dd3fc;
+}
+
+[data-theme="light"] .alert-info {
+  color: #0369a1;
 }
 
 /* Table Styling & Robust Horizontal Scrolling for Xiaomi/Redmi/Poco */

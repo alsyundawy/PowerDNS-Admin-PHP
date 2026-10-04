@@ -590,12 +590,11 @@ function processUploadedImage(
     bool $allowGif = true
 ): array {
     $paramErr = validateUploadFileParams($file, $label);
-    if ($paramErr !== null) {
-        return ['ok' => false, 'error' => $paramErr];
-    }
-
     $tmp = (string) ($file['tmp_name'] ?? '');
-    $val = validateImageMimeAndContent($tmp, $label, $allowGif);
+    $val = $paramErr === null
+        ? validateImageMimeAndContent($tmp, $label, $allowGif)
+        : ['ok' => false, 'error' => $paramErr];
+
     if (!$val['ok']) {
         return ['ok' => false, 'error' => $val['error'] ?? 'Validasi gambar gagal.'];
     }
@@ -610,10 +609,11 @@ function processUploadedImage(
     $moved = move_uploaded_file($tmp, $targetPath);
     if ($moved) {
         @chmod($targetPath, 0644); // NOSONAR: Public web upload file requires 0644 web server read access
-        return ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename];
     }
 
-    return ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
+    return $moved
+        ? ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename]
+        : ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
 }
 
 /**

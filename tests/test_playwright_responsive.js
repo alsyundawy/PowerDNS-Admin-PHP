@@ -242,13 +242,31 @@ async function runTests() {
       return;
     }
 
-    const filePath = path.join(PUBLIC_DIR, urlPath);
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath).toLowerCase();
+    // Serve static assets with strict path traversal containment checks (CodeQL CWE-22)
+    if (!urlPath.startsWith("/assets/")) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Not Found: " + urlPath);
+      return;
+    }
+
+    const safeSuffix = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
+    const resolvedPath = path.resolve(PUBLIC_DIR, "." + safeSuffix);
+
+    if (
+      !resolvedPath.startsWith(PUBLIC_DIR + path.sep) &&
+      resolvedPath !== PUBLIC_DIR
+    ) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("Forbidden");
+      return;
+    }
+
+    if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
+      const ext = path.extname(resolvedPath).toLowerCase();
       res.writeHead(200, {
         "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
       });
-      fs.createReadStream(filePath).pipe(res);
+      fs.createReadStream(resolvedPath).pipe(res);
       return;
     }
 
