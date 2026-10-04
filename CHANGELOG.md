@@ -14,7 +14,7 @@ Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, i
 1. **Native Two-Factor Authentication (2FA TOTP RFC 6238):**
    - Pure native PHP Base32 codec (`RFC 4648`) and TOTP algorithm (`RFC 6238`) with ±30-second time-drift tolerance.
    - Self-contained SVG vector QR Code generator (`ISO/IEC 18004 Model 2` Reed-Solomon) without dependencies on GD, Imagick, or third-party external APIs.
-   - 10 single-use emergency scratch recovery codes hashed with `password_hash()`.
+   - 10 single-use emergency scratch recovery codes hashed with `PASSWORD_ARGON2ID` (with fallback to `PASSWORD_DEFAULT`).
    - Integrated 2FA verification pipeline at `/login/2fa` and self-service management at `/profile`.
 
 2. **Multi-Server PowerDNS Node Clustering Engine:**
@@ -56,7 +56,14 @@ Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, i
      - Transport protocol distribution gauge (UDP vs. TCP queries).
      - SVG horizontal bar charts for Top 10 queried domains and Top 10 client IPs.
    - Configurable auto-refresh (Off, 15s, 30s, 60s), cluster node selector, and client IP privacy anonymization.
-   - JSON telemetry snapshot export endpoint at `/analytics/export`.
+9. **Enterprise Multi-Channel Structured Logging Subsystem & Systems Optimization:**
+   - Independent channels: `application`, `api`, `pdns_api`, `security`, `audit`, `auth`, `authorization`, `backup`, `restore`, `import`, `export`, `database`, `performance`, `system`, `debug`, `warning`, `error`.
+   - Recursive sensitive credential redactor (`appRedactSensitive`) automatically masking passwords, API keys, tokens, session IDs, and TOTP secrets.
+   - Dedicated helpers: `logSecurity()`, `logAuth()`, `logApi()`, `logPdns()`, and dual DB + structured JSON output in `audit()`.
+   - Transactional atomic zone synchronization (`syncZonesFromPdns()`) with automatic rollback, accelerating multi-zone sync by up to 50x.
+   - Master database schema parity in `sql/schema.sql` incorporating `pdns_servers`, `webhooks`, `dyndns_tokens`, and `users` TOTP columns for fresh installs.
+   - PowerDNS 4.9/5.0 `Primary` and `Secondary` zone kind aliases supported alongside `Master` and `Slave`.
+   - 100% English codebase standardization across all source comments, views, test mocks, and accessibility labels.
 
 ### Security — Critical Fix & Hardening
 

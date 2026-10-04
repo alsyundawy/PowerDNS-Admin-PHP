@@ -40,7 +40,7 @@ const MIME_TYPES = {
 // Generate sample rendered HTML for Main Dashboard Layout and Bare Auth Layout
 function createSampleDashboardHtml() {
   return `<!doctype html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -53,21 +53,21 @@ function createSampleDashboardHtml() {
   <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="app-body">
-  <div class="mobile-nav" aria-label="Bilah Navigasi Seluler">
-    <button class="mobile-nav-toggle" id="sidebar-toggle" aria-label="Buka Menu Navigasi" aria-expanded="false">
+  <div class="mobile-nav" aria-label="Mobile Navigation Bar">
+    <button class="mobile-nav-toggle" id="sidebar-toggle" aria-label="Open Navigation Menu" aria-expanded="false">
       <i class="fa-solid fa-bars" aria-hidden="true"></i>
     </button>
     <div class="mobile-nav-brand">
       <div class="brand-shield" aria-hidden="true"></div>
       <div class="mobile-nav-title">PowerDNS Admin</div>
     </div>
-    <button type="button" class="mobile-nav-toggle theme-toggle-btn" aria-label="Ganti Tema">
+    <button type="button" class="mobile-nav-toggle theme-toggle-btn" aria-label="Toggle Theme">
       <i class="fa-solid fa-moon theme-icon-dark" aria-hidden="true"></i>
       <i class="fa-solid fa-sun theme-icon-light" aria-hidden="true"></i>
     </button>
   </div>
   <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
-  <aside class="sidebar" id="app-sidebar" aria-label="Navigasi Utama">
+  <aside class="sidebar" id="app-sidebar" aria-label="Main Navigation">
     <div class="sidebar-brand">
       <div class="brand-shield" aria-hidden="true"></div>
       <div class="brand-text">
@@ -84,22 +84,22 @@ function createSampleDashboardHtml() {
         <div class="sidebar-user-role">admin</div>
       </div>
     </div>
-    <nav class="sidebar-nav" aria-label="Menu Aplikasi">
-      <div class="sidebar-section-label">Navigasi</div>
+    <nav class="sidebar-nav" aria-label="Application Menu">
+      <div class="sidebar-section-label">Navigation</div>
       <a href="/dashboard" class="sidebar-item active">
         <i class="fa-solid fa-gauge" aria-hidden="true"></i>
-        <span>Dasbor</span>
+        <span>Dashboard</span>
       </a>
       <a href="/zones" class="sidebar-item">
         <i class="fa-solid fa-globe" aria-hidden="true"></i>
-        <span>Zona DNS</span>
+        <span>DNS Zones</span>
       </a>
     </nav>
     <div class="sidebar-footer">
-      <button type="button" class="sidebar-item theme-toggle-btn w-100 border-0 bg-transparent" aria-label="Ganti Tema">
+      <button type="button" class="sidebar-item theme-toggle-btn w-100 border-0 bg-transparent" aria-label="Toggle Theme">
         <i class="fa-solid fa-moon theme-icon-dark" aria-hidden="true"></i>
         <i class="fa-solid fa-sun theme-icon-light" aria-hidden="true"></i>
-        <span>Tema Tampilan</span>
+        <span>Appearance Theme</span>
       </button>
     </div>
   </aside>
@@ -107,7 +107,7 @@ function createSampleDashboardHtml() {
     <header class="topbar">
       <div class="topbar-inner">
         <div class="topbar-left">
-          <h1 class="page-title">Dasbor Ringkasan</h1>
+          <h1 class="page-title">Dashboard Overview</h1>
         </div>
         <div class="topbar-right">
           <div class="badge-accent">
@@ -120,29 +120,29 @@ function createSampleDashboardHtml() {
     <main class="main" id="main-content">
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-label">Total Zona Otoritatif</div>
+          <div class="metric-label">Total Authoritative Zones</div>
           <div class="metric-val">12</div>
-          <div class="metric-desc">Semua sinkron dengan backend daemon</div>
+          <div class="metric-desc">Synchronized with backend daemon</div>
         </div>
         <div class="metric-card">
-          <div class="metric-label">Total Record RRset</div>
+          <div class="metric-label">Total RRset Records</div>
           <div class="metric-val">148</div>
-          <div class="metric-desc">Termasuk A, AAAA, MX, TXT, PTR</div>
+          <div class="metric-desc">Includes A, AAAA, MX, TXT, PTR</div>
         </div>
       </div>
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">Daftar Zona Terkelola</div>
+          <div class="panel-title">Managed Zones List</div>
         </div>
         <div class="panel-body p-0">
           <div class="table-responsive">
             <table class="table-custom mb-0">
               <thead>
                 <tr>
-                  <th scope="col">Nama Zona</th>
-                  <th scope="col">Jenis</th>
+                  <th scope="col">Zone Name</th>
+                  <th scope="col">Kind</th>
                   <th scope="col">Serial</th>
-                  <th scope="col">Aksi</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,7 +150,7 @@ function createSampleDashboardHtml() {
                   <td><strong>corp-production-us-east-zone-internal-network.enterprise.example.com.</strong></td>
                   <td><span class="badge-tech">Native</span></td>
                   <td>2026040801</td>
-                  <td><button class="btn-custom btn-secondary-custom btn-sm">Kelola</button></td>
+                  <td><button class="btn-custom btn-secondary-custom btn-sm">Manage</button></td>
                 </tr>
               </tbody>
             </table>
@@ -171,12 +171,12 @@ function createSampleDashboardHtml() {
 
 function createSampleAuthHtml() {
   return `<!doctype html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#0b0f19">
-  <title>Masuk - PowerDNS Admin</title>
+  <title>Sign In - PowerDNS Admin</title>
   <link rel="stylesheet" href="/assets/vendor/bootstrap.min.css">
   <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="/assets/app.css">
@@ -186,7 +186,7 @@ function createSampleAuthHtml() {
     <div class="auth-logo">
       <div class="brand-shield" aria-hidden="true"></div>
       <h1 class="auth-title">PowerDNS Admin</h1>
-      <p class="auth-subtitle">Masuk untuk mengelola DNS server otoritatif</p>
+      <p class="auth-subtitle">Sign in to manage authoritative DNS servers</p>
     </div>
     <form class="auth-form" method="post" action="/login">
       <div class="form-group mb-3">
@@ -194,10 +194,10 @@ function createSampleAuthHtml() {
         <input type="text" class="form-control-custom" id="username" name="username" required>
       </div>
       <div class="form-group mb-4">
-        <label for="password" class="form-label">Kata Sandi</label>
+        <label for="password" class="form-label">Password</label>
         <input type="password" class="form-control-custom" id="password" name="password" required>
       </div>
-      <button type="submit" class="btn-custom btn-primary-custom w-100">Masuk</button>
+      <button type="submit" class="btn-custom btn-primary-custom w-100">Sign In</button>
     </form>
   </div>
 </body>

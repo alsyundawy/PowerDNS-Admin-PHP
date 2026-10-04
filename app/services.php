@@ -59,30 +59,39 @@ function syncZonesFromPdns(PdnsClient $pdns): int
     $remote = $pdns->zones();
     $seen = [];
     $n = 0;
-    $up = db()->prepare(
-        'INSERT INTO zones (name, kind, dnssec, serial, catalog, synced_at) VALUES (?, ?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE kind = VALUES(kind), dnssec = VALUES(dnssec), serial = VALUES(serial),
-         catalog = VALUES(catalog), synced_at = NOW()'
-    );
-    foreach ($remote as $z) {
-        if (!is_array($z) || empty($z['name'])) {
-            continue;
+    db()->beginTransaction();
+    try {
+        $up = db()->prepare(
+            'INSERT INTO zones (name, kind, dnssec, serial, catalog, synced_at) VALUES (?, ?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE kind = VALUES(kind), dnssec = VALUES(dnssec), serial = VALUES(serial),
+             catalog = VALUES(catalog), synced_at = NOW()'
+        );
+        foreach ($remote as $z) {
+            if (!is_array($z) || empty($z['name'])) {
+                continue;
+            }
+            $name = dnsCanonical((string) $z['name']);
+            $seen[] = $name;
+            $up->execute([
+                $name,
+                (string) ($z['kind'] ?? 'Native'),
+                !empty($z['dnssec']) ? 1 : 0,
+                isset($z['serial']) ? (int) $z['serial'] : null,
+                (string) ($z['catalog'] ?? ''),
+            ]);
+            $n++;
         }
-        $name = dnsCanonical((string) $z['name']);
-        $seen[] = $name;
-        $up->execute([
-            $name,
-            (string) ($z['kind'] ?? 'Native'),
-            !empty($z['dnssec']) ? 1 : 0,
-            isset($z['serial']) ? (int) $z['serial'] : null,
-            (string) ($z['catalog'] ?? ''),
-        ]);
-        $n++;
-    }
-    if ($seen) {
-        $marks = implode(',', array_fill(0, count($seen), '?'));
-        $del = db()->prepare("DELETE FROM zones WHERE name NOT IN ($marks)");
-        $del->execute($seen);
+        if ($seen) {
+            $marks = implode(',', array_fill(0, count($seen), '?'));
+            $del = db()->prepare("DELETE FROM zones WHERE name NOT IN ($marks)");
+            $del->execute($seen);
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        if (db()->inTransaction()) {
+            db()->rollBack();
+        }
+        throw $e;
     }
     return $n;
 }

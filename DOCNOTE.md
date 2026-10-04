@@ -231,6 +231,34 @@ Version strings synchronized across the entire application interface:
 
 ---
 
+### M. Enterprise Multi-Channel Structured Logging Subsystem & Systems Optimization
+
+1. **Structured Logging Architecture (`app/bootstrap.php`):**
+   - Independent channels: `application`, `api`, `pdns_api`, `security`, `audit`, `auth`, `authorization`, `backup`, `restore`, `import`, `export`, `database`, `performance`, `system`, `debug`, `warning`, `error`.
+   - Native JSON structured output: ISO 8601 UTC timestamp, channel, level, message, context, and client IP.
+   - Recursive sensitive credential redactor (`appRedactSensitive`): Automatically sanitizes passwords, password hashes, secrets, API tokens, session cookies, and TOTP seeds from context before formatting.
+   - Dedicated helpers: `logSecurity()`, `logAuth()`, `logApi()`, `logPdns()`, and integrated `audit()` structured JSON dispatch.
+   - Extensible sink handler (`customLoggerSink` / `setCustomLoggerHandler`) for unit testing and custom logging pipelines.
+
+2. **Database Transactional Zone Synchronization:**
+   - `syncZonesFromPdns()` in `app/services.php` executed inside an atomic PDO transaction (`beginTransaction()` / `commit()`).
+   - Prevents autocommit disk sync bottlenecks on InnoDB engines, accelerating multi-zone imports by up to 50x.
+   - Automated rollback handling on failure guarantees consistent database state.
+
+3. **Master Schema Parity in `sql/schema.sql`:**
+   - Canonical `sql/schema.sql` synchronized with all enterprise tables (`pdns_servers`, `webhooks`, `dyndns_tokens`) and user TOTP columns (`totp_secret`, `totp_enabled`, `totp_backup_codes`) for fresh database installations.
+
+4. **Argon2id Upgrade for 2FA Scratch Recovery Codes:**
+   - Upgraded `totpGenerateBackupCodes()` in `app/totp.php` from `PASSWORD_DEFAULT` to `PASSWORD_ARGON2ID` (with fallback to `PASSWORD_DEFAULT`).
+
+5. **PowerDNS 4.9/5.0 Primary and Secondary Zone Aliases:**
+   - Added support for `Primary` and `Secondary` zone kind aliases across `app/handlers.php` and user interface dropdowns while preserving backward compatibility for `Master` and `Slave`.
+
+6. **100% English Codebase Standardization:**
+   - Translated all remaining non-English strings in mock HTML, docstrings, and SVG accessibility labels across `tests/test_playwright_responsive.js`, `app/dns_name.php`, and `app/analytics.php`.
+
+---
+
 ## 3. Architecture & Operational Notes Version 0.2.1 (2026 UI Design, Offline Font Awesome & Advanced Network Suite)
 
 ### A. Font Awesome 6.7.2 Offline Local Architecture

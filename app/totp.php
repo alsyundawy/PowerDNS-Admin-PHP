@@ -128,7 +128,8 @@ function totpGenerateBackupCodes(int $count = 10, int $length = 8): array
         $bytes = random_bytes((int) ceil($length / 2));
         $code = substr(bin2hex($bytes), 0, $length);
         $plain[] = $code;
-        $hashed[] = password_hash($code, PASSWORD_DEFAULT);
+        $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT;
+        $hashed[] = password_hash($code, $algo);
     }
     return [
         'plaintext' => $plain,

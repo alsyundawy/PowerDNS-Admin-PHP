@@ -20,7 +20,7 @@ declare(strict_types=1);
     <input class="form-control" name="q" value="<?= e($q) ?>" placeholder="Search zone name..." aria-label="Search zones">
     <select class="form-select" name="kind" aria-label="Zone type">
       <option value="">All types</option>
-      <?php foreach (['Native', 'Master', 'Slave', 'Producer', 'Consumer'] as $k) : ?>
+      <?php foreach (['Native', 'Master', 'Slave', 'Primary', 'Secondary', 'Producer', 'Consumer'] as $k) : ?>
         <option value="<?= e($k) ?>" <?= $kind === $k ? 'selected' : '' ?>><?= e($k) ?></option>
       <?php endforeach; ?>
     </select>

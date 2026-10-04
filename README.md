@@ -337,13 +337,15 @@ All generated operations are merged into a single atomic payload `{"rrsets": [ .
 | Layer / Boundary | Threat Vector Addressed | Defensive Mechanism & Invariant |
 | :--- | :--- | :--- |
 | **Ingress Proxy** | Man-in-the-Middle (MitM), Clickjacking | TLS 1.3, HSTS (`preload`), `X-Frame-Options: SAMEORIGIN`, strict `CSP` |
-| **Authentication** | Brute-force & Credential Stuffing | Dual-axis sliding-window rate limiting; Argon2id (`memory=64MB, time=4`) |
-| **Session & MFA** | Session Hijacking & Stolen Credentials | `HttpOnly`, `SameSite=Lax`, `Secure` session cookies; RFC 6238 TOTP |
+| **Authentication** | Brute-force & Credential Stuffing | Dual-axis sliding-window rate limiting; Argon2id (`memory=64MB, time=4`) for passwords & 2FA backup codes |
+| **Session & MFA** | Session Hijacking & Stolen Credentials | `HttpOnly`, `SameSite=Strict`, `Secure` session cookies; RFC 6238 TOTP |
 | **Mutating HTTP** | Cross-Site Request Forgery (CSRF) | Session-bound cryptographic tokens with per-mutation rotation |
 | **Persistence** | SQL Injection (SQLi) | 100% Parameterized PDO prepared statements; zero dynamic concatenation |
 | **Secrets at Rest** | Database Compromise / Data Leakage | PowerDNS API keys encrypted via `AES-256-GCM` with dynamic IV vectors |
 | **Output Encoding**| Cross-Site Scripting (Stored/Reflected XSS) | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`) |
-| **Third-Party I/O** | Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
+| **Structured Logs**| Observability & Sensitive Data Leakage | Multi-channel structured JSON logging (`appLogger`) with automated recursive secret masking |
+| **Third-Party I/O**| Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
+| **Zone Ingestion** | Database Lock Contention / Partial Ingestion | Transactional atomic batch synchronization (`syncZonesFromPdns`) with automatic rollback |
 
 ---
 
@@ -902,6 +904,7 @@ PowerDNS-Admin-PHP/
 │   ├── test_cluster.php         # Multi-server cluster & node routing test suite
 │   ├── test_dyndns.php          # DynDNS 2 HTTP endpoint & credential test suite
 │   ├── test_linter.php          # Zone RFC compliance & linting engine test suite
+│   ├── test_logger.php          # Structured logging & credential redaction test suite
 │   ├── test_network_tools.php   # IPCalc, IPv6 splitter & WHOIS test suite
 │   ├── test_playwright_responsive.js # Cross-device responsive layout test suite (10 viewports)
 │   ├── test_profile.php         # User profile, password hashing & avatar test suite

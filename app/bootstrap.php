@@ -321,6 +321,124 @@ function requireRole(array $user, array $roles): void
 }
 
 /**
+ * Recursively sanitize and mask sensitive secrets, passwords, and tokens.
+ */
+function appRedactSensitive(mixed $data): mixed
+{
+    if (!is_array($data)) {
+        return $data;
+    }
+    $sensitivePattern = '/(pass|password|hash|secret|token|api_key|authorization|bearer|cookie|session|credential)/i';
+    $sanitized = [];
+    foreach ($data as $k => $v) {
+        if (is_string($k) && preg_match($sensitivePattern, $k)) {
+            $sanitized[$k] = '[REDACTED]';
+        } elseif (is_array($v)) {
+            $sanitized[$k] = appRedactSensitive($v);
+        } else {
+            $sanitized[$k] = $v;
+        }
+    }
+    return $sanitized;
+}
+
+/**
+ * Global custom logger sink handler (primarily for testing and custom log pipelines).
+ *
+ * @param (callable(array<string, mixed>): void)|null|false $handler False to read, null to clear, callable to set.
+ * @return (callable(array<string, mixed>): void)|null
+ */
+function customLoggerSink(callable|null|false $handler = false): ?callable
+{
+    /** @var (callable(array<string, mixed>): void)|null $sink */
+    static $sink = null;
+    if ($handler !== false) {
+        $sink = $handler;
+    }
+    return $sink;
+}
+
+/**
+ * @param (callable(array<string, mixed>): void)|null $handler
+ */
+function setCustomLoggerHandler(?callable $handler): void
+{
+    customLoggerSink($handler);
+}
+
+/**
+ * Structured enterprise multi-channel logger.
+ * Supports channels: application, api, pdns_api, security, audit, auth,
+ * authorization, backup, restore, import, export, database, performance, system, debug, warning, error.
+ *
+ * @param array<string, mixed> $context
+ */
+function appLogger(string $channel, string $level, string $message, array $context = []): void
+{
+    $normalizedChannel = strtolower(trim($channel));
+    $validChannels = [
+        'application', 'api', 'pdns_api', 'security', 'audit', 'auth',
+        'authorization', 'backup', 'restore', 'import', 'export', 'database',
+        'performance', 'system', 'debug', 'warning', 'error',
+    ];
+    if (!in_array($normalizedChannel, $validChannels, true)) {
+        $normalizedChannel = 'application';
+    }
+
+    $record = [
+        'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+        'channel' => $normalizedChannel,
+        'level' => strtoupper($level),
+        'message' => $message,
+        'context' => appRedactSensitive($context),
+        'client_ip' => clientIp(),
+    ];
+
+    $sink = customLoggerSink();
+    if (is_callable($sink)) {
+        $sink($record);
+        return;
+    }
+
+    $json = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json !== false) {
+        error_log('[PDNS-ADMIN][' . $normalizedChannel . '] ' . $json);
+    }
+}
+
+/**
+ * @param array<string, mixed> $context
+ */
+function logSecurity(string $message, array $context = [], string $level = 'WARNING'): void
+{
+    appLogger('security', $level, $message, $context);
+}
+
+/**
+ * @param array<string, mixed> $context
+ */
+function logAuth(string $message, array $context = [], string $level = 'INFO'): void
+{
+    appLogger('auth', $level, $message, $context);
+}
+
+/**
+ * @param array<string, mixed> $context
+ */
+function logApi(string $message, array $context = [], string $level = 'INFO'): void
+{
+    appLogger('api', $level, $message, $context);
+}
+
+/**
+ * @param array<string, mixed> $context
+ */
+function logPdns(string $message, array $context = [], string $level = 'INFO'): void
+{
+    appLogger('pdns_api', $level, $message, $context);
+}
+
+/**
  * @param array<string, mixed>|null $user
  */
 function audit(?array $user, string $action, string $zone, string $detail): void
@@ -335,6 +453,12 @@ function audit(?array $user, string $action, string $zone, string $detail): void
         $zone,
         $detail,
         clientIp(),
+    ]);
+
+    appLogger('audit', 'INFO', $action, [
+        'user' => $user['username'] ?? 'anonymous',
+        'zone' => $zone,
+        'detail' => $detail,
     ]);
 }
 

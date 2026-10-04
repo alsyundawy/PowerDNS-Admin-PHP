@@ -147,7 +147,7 @@ function renderSvgProtocolRatio(int $udp, int $tcp, int $width = 320, int $heigh
 
     $svgOpen = sprintf(
         '<svg viewBox="0 0 %d %d" width="100%%" height="%d" class="proto-ratio-bar" role="img" '
-        . 'aria-label="Rasio UDP vs TCP">',
+        . 'aria-label="UDP vs TCP Ratio">',
         $width,
         $height,
         $height

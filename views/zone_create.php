@@ -35,7 +35,7 @@ declare(strict_types=1);
     <div class="col-md-4">
       <label class="form-label" for="zone-kind">Zone Type</label>
       <select class="form-select" id="zone-kind" name="kind">
-        <?php foreach (['Native', 'Master', 'Slave', 'Producer', 'Consumer'] as $k) : ?>
+        <?php foreach (['Native', 'Master', 'Slave', 'Primary', 'Secondary', 'Producer', 'Consumer'] as $k) : ?>
           <option value="<?= e($k) ?>"><?= e($k) ?></option>
         <?php endforeach; ?>
       </select>

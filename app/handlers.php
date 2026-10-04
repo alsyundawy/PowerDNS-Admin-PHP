@@ -167,6 +167,7 @@ function loginUserSession(array $user, string $password): void
 function executeLoginAttempt(string $username, string $password, string $ip): string
 {
     if (isLoginThrottled($ip, $username)) {
+        logSecurity('Login throttled: maximum failed attempts exceeded', ['username' => $username, 'ip' => $ip]);
         return 'Too many login attempts. Please wait 15 minutes.';
     }
 
@@ -178,15 +179,18 @@ function executeLoginAttempt(string $username, string $password, string $ip): st
         ->execute([$username, $ip, $ok ? 1 : 0]);
 
     if (!$ok) {
+        logSecurity('Failed authentication attempt', ['username' => $username, 'ip' => $ip]);
         return 'Invalid username or password.';
     }
 
     if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
         $_SESSION['pending_2fa_user_id'] = (int) $user['id'];
         $_SESSION['pending_2fa_pw'] = $password;
+        logAuth('User credentials valid; prompting TOTP 2FA challenge', ['username' => $username]);
         redirect('/login?2fa=1');
     }
 
+    logAuth('User logged in successfully', ['username' => $username, 'role' => (string) ($user['role'] ?? '')]);
     loginUserSession($user, $password);
     return '';
 }
@@ -265,6 +269,8 @@ function handleCancel2Fa(): void
 function handleLogout(): void
 {
     csrfCheck();
+    $uid = $_SESSION['uid'] ?? null;
+    logAuth('User logged out', ['user_id' => $uid]);
     $_SESSION = [];
     session_destroy();
     redirect(PATH_LOGIN);
@@ -356,7 +362,7 @@ function handleZones(array $user): void
         $sql .= ' AND z.name LIKE ?';
         $args[] = '%' . $q . '%';
     }
-    if (in_array($kind, ['Native','Master','Slave','Producer','Consumer'], true)) {
+    if (in_array($kind, ['Native', 'Master', 'Slave', 'Primary', 'Secondary', 'Producer', 'Consumer'], true)) {
         $sql .= ' AND z.kind = ?';
         $args[] = $kind;
     }
@@ -393,10 +399,10 @@ function validateZoneCreateInput(string $name, string $kind, array $masters, str
     $err = '';
     if (!str_ends_with($name, '.') || !preg_match('/^[a-z0-9_.*\/-]+\.$/', $name)) {
         $err = 'Invalid zone name. Example: example.com or 10.in-addr.arpa';
-    } elseif (!in_array($kind, ['Native', 'Master', 'Slave', 'Producer', 'Consumer'], true)) {
+    } elseif (!in_array($kind, ['Native', 'Master', 'Slave', 'Primary', 'Secondary', 'Producer', 'Consumer'], true)) {
         $err = 'Unknown zone kind.';
-    } elseif ($kind === 'Slave' && !$masters) {
-        $err = 'Slave zone must have primary master addresses.';
+    } elseif (in_array($kind, ['Slave', 'Secondary'], true) && !$masters) {
+        $err = 'Slave/Secondary zone must have primary master addresses.';
     } elseif (!in_array($soaEdit, $allowedSoa, true)) {
         $err = 'Invalid SOA-EDIT-API mode.';
     }
@@ -496,7 +502,7 @@ function processZoneCreateSubmission(array $user): string
     $payload = [
         'name' => $name,
         'kind' => $kind,
-        'masters' => $kind === 'Slave' ? $masters : [],
+        'masters' => in_array($kind, ['Slave', 'Secondary'], true) ? $masters : [],
         'nameservers' => array_map('dnsCanonical', $ns),
         'soa_edit_api' => $soaEdit,
         'api_rectify' => true,

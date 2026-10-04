@@ -144,7 +144,7 @@ function ipv6ToRelativePtr64(string $ipv6): ?string
 }
 
 /**
- * Menghasilkan FQDN kanonikal record PTR IPv6 lengkap (32 nibble terbalik).
+ * Generate full canonical IPv6 PTR record FQDN (32 reversed nibbles).
  */
 function ipv6ToPtrFqdn(string $ipv6): ?string
 {

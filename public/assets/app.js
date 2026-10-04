@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .writeText(textToCopy.trim())
         .then(() => {
           const originalHtml = btn.innerHTML;
-          btn.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin!';
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
           setTimeout(() => {
             btn.innerHTML = originalHtml;
           }, 2000);
