@@ -339,7 +339,8 @@ dan mengatur perizinan direktori.
 ```bash
 sudo apt update && sudo apt install -y \
   nginx mariadb-server \
-  php-fpm php-mysql php-curl php-mbstring php-xml php-intl
+  php-fpm php-mysql php-curl php-mbstring php-xml php-intl php-gmp php-bcmath php-zip \
+  curl git unzip ca-certificates
 ```
 
 #### Step B: Create Panel Database & User
@@ -350,11 +351,13 @@ Masuk ke console MariaDB/MySQL:
 sudo mysql -u root
 ```
 
-Jalankan perintah SQL pembuatan database:
+Jalankan perintah SQL pembuatan database (dengan hak akses ganda localhost dan 127.0.0.1):
 
 ```sql
 CREATE DATABASE pda CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'pda_user'@'localhost' IDENTIFIED BY 'GantiDenganSandiKuat_123!';
 CREATE USER 'pda_user'@'127.0.0.1' IDENTIFIED BY 'GantiDenganSandiKuat_123!';
+GRANT ALL ON pda.* TO 'pda_user'@'localhost';
 GRANT ALL ON pda.* TO 'pda_user'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EXIT;
@@ -516,11 +519,11 @@ QUALITY GATE VERIFICATION RESULTS
 ✔ PHP CodeSniffer (PSR-12 & PSR-1 SideEffects) : 0 Error / 0 Warning
 ✔ PHP-CS-Fixer 3.95 (Dry-Run Check)            : 0 Files to Fix
 ✔ PHPStan Static Analysis (Level 5)            : [OK] 0 Errors
-✔ Psalm Static Type Inference                  : 0 Errors (95.5% Type Inference)
+✔ Psalm Static Type Inference (Level 7)        : 0 Errors (96.4% Type Inference)
 ✔ ESLint (public/assets/app.js)                : 0 Lint Errors
 ✔ Stylelint (public/assets/app.css)            : 0 Style Errors
 ✔ Prettier Format Check                        : 100% Code Formatting Match
-✔ ShellCheck (deploy/install-debian.sh)        : 0 Shell Script Warnings
+✔ ShellCheck & Trunk (deploy/install-debian.sh): 0 Shell Script Warnings / POSIX
 ✔ SonarLint Cognitive Complexity               : All Handlers <= 15 Complexity
 ✔ Max Line Length Invariant                    : 100% Non-Vendor Lines <= 120 Chars
 ✔ Git Whitespace Check (git diff --check)      : Clean (0 Trailing Spaces / EOF Issues)

@@ -64,6 +64,37 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
+### D. Penyelarasan Infrastruktur Produksi (Nginx, PHP-FPM, MariaDB & Bash Automation)
+
+1. **Pengerasan & Tuning Nginx (`deploy/nginx.conf`):**
+   - Menonaktifkan pembocoran versi web server via `server_tokens off;` dan menetapkan `charset utf-8;`.
+   - Mengoptimalkan buffer transmisi HTTP: `client_max_body_size 64M`, `client_body_buffer_size 128k`.
+   - Menambahkan kompresi Gzip terpadu (level 6) untuk tipe MIME umum (`text/plain`, `text/css`, `application/json`, `application/javascript`, `text/xml`).
+   - Penyetelan parameter FastCGI: `fastcgi_read_timeout 180s`, `fastcgi_send_timeout 180s`, serta buffer `fastcgi_buffers 16 16k` dan `fastcgi_buffer_size 32k` guna menampung payload zona berukuran besar.
+   - Aturan proteksi berkas sensitif berbasis regex: memblokir akses langsung ke berkas `.sql`, `.md`, `.log`, `.sh`, `.json`, `.lock`, `.neon`, `.xml`, dan `.conf` dengan status HTTP 404/403.
+   - Sinkronisasi header Content Security Policy (CSP) pada level Nginx agar sejalan dengan aplikasi.
+
+2. **Dedicated Isolated PHP-FPM Pool (`/etc/php/{VER}/fpm/pool.d/pda.conf`):**
+   - Menjalankan aplikasi di bawah pool mandiri `[pda]` dengan socket Unix berizin ketat `listen.mode = 0660` milik `www-data:www-data`.
+   - Menerapkan model manajemen proses `pm = ondemand` dengan `pm.max_children = 16`, `pm.process_idle_timeout = 10s`, dan daur ulang worker setiap `pm.max_requests = 500` untuk mencegah kebocoran memori pada server berdaya komputasi rendah.
+   - Mengalokasikan `memory_limit = 256M` dan `max_execution_time = 180s` guna kelancaran pemrosesan zona dengan ribuan record.
+
+3. **Pemberian Hak Akses Ganda MariaDB (Dual-Host Grants) & Auto-Schema:**
+   - Kredensial pengguna database diinstalasi serentak untuk `'user'@'localhost'` (koneksi socket Unix) dan `'user'@'127.0.0.1'` (koneksi loopback TCP PDO).
+   - Skrip instalasi secara otomatis mengimpor `sql/schema.sql` jika tabel metadata belum terdeteksi.
+
+4. **Arsitektur PowerDNS 4.8+ Recursor Deprecation (`deploy/pdns.snippet.conf`):**
+   - PowerDNS 4.8+ secara resmi mendepresiasi opsi bawaan `recursor=`. Dokumentasi snippet diperbarui untuk menyarankan arsitektur split-DNS: PowerDNS Authoritative bertindak murni pada port 53 untuk zona lokal, dan meneruskan kueri rekursif melalui Unbound lokal yang berjalan pada `127.0.0.1:5353`.
+   - Menghapus direktif redundan `bind-config=` saat backend `gmysql` aktif.
+
+5. **Standarisasi Scripting Shell POSIX & Trunk Linter Compliance:**
+   - Seluruh blok kondisional pada `deploy/install-debian.sh` menggunakan operator modern `[[ ... ]]` yang aman dari _word splitting_.
+   - Semua variabel dibungkus kurung kurawal ketat `${...}`.
+   - Nilai kembalian eksekusi perintah tidak termasking di dalam ekspansi parameter (`CURRENT_UID="$(id -u)"`).
+   - Format kode lolos 100% pada verifikasi `shfmt`, `shellcheck`, dan Trunk.
+
+---
+
 ## 3. Catatan Arsitektur & Operasional Versi 0.2.0 (Advanced Features & Innovations)
 
 ### A. Visual Subnet Calculator & rDNS Wizard (`/tools/rdns`)
