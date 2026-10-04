@@ -56,7 +56,7 @@ Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, i
      - Transport protocol distribution gauge (UDP vs. TCP queries).
      - SVG horizontal bar charts for Top 10 queried domains and Top 10 client IPs.
    - Configurable auto-refresh (Off, 15s, 30s, 60s), cluster node selector, and client IP privacy anonymization.
-9. **Enterprise Multi-Channel Structured Logging Subsystem & Systems Optimization:**
+8. **Enterprise Multi-Channel Structured Logging Subsystem & Systems Optimization:**
    - Independent channels: `application`, `api`, `pdns_api`, `security`, `audit`, `auth`, `authorization`, `backup`, `restore`, `import`, `export`, `database`, `performance`, `system`, `debug`, `warning`, `error`.
    - Recursive sensitive credential redactor (`appRedactSensitive`) automatically masking passwords, API keys, tokens, session IDs, and TOTP secrets.
    - Dedicated helpers: `logSecurity()`, `logAuth()`, `logApi()`, `logPdns()`, and dual DB + structured JSON output in `audit()`.

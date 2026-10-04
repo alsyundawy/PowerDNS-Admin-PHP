@@ -39,6 +39,7 @@ This payload would execute in the browsers of all panel visitors, including unau
 ```
 
 Applied in:
+
 - `views/layout.php:177`
 - `views/login.php:45`
 
@@ -352,6 +353,7 @@ Version strings synchronized across the entire application interface:
 ### G. System Settings Console (`/settings` — `views/settings.php`)
 
 Six centralized configuration clusters:
+
 1. PowerDNS Authoritative API Connection
 2. DNS Policy & Default Parameters
 3. Branding, Identity & Theme Customization
@@ -364,25 +366,30 @@ Six centralized configuration clusters:
 ## 4. Architecture & Operational Notes Version 0.2.0 (Advanced Features & Innovations)
 
 ### A. Subnet Calculator & rDNS Wizard (`/tools/rdns`)
+
 - RFC 1035 IPv4 /24 octet reversal (`2.0.192.in-addr.arpa.`).
 - RFC 3596 IPv6 /64 nibble reversal (`8.7.6.5...ip6.arpa.`).
 - Batch PTR generator with automated macro expansion.
 - Integrated `auto_ptr_sync` forward-to-reverse hooks.
 
 ### B. Zone Snapshot History & 1-Click Rollback (`/zones/{name}/history`)
+
 - Revision snapshots persisted in `zone_snapshots` table.
 - Inverse diff engine (`DELETE` and `REPLACE`) generating atomic API PATCH payloads.
 - Automatic safety snapshot captured immediately prior to rollback.
 
 ### C. Native RFC 1035 BIND Zone Parser & Exporter
+
 - Dependency-free native parser supporting `$ORIGIN`, `$TTL`, time shorthands, semicolon comments, and multi-line parentheses.
 - On-demand zone file export endpoint at `/zones/{name}/export`.
 
 ### D. Modern DNSSEC Suite (Ed25519 & RFC 7344 CDS/CDNSKEY)
+
 - Ed25519 (Algorithm 15, Curve25519, RFC 8080) and ECDSA P-384.
 - 1-click publishing for automated parent delegation: `PUBLISH-CDS` (`["2"]`) and `PUBLISH-CDNSKEY` (`["1"]`).
 
 ### E. Dynamic DNS (DynDNS 2 Protocol) Endpoint (`/nic/update`)
+
 - Standard `/nic/update` endpoint compatible with ddclient, RouterOS, OpenWrt, pfSense, and inadyn.
 - Dual authentication via HTTP Basic Auth and API Keys.
 - Standard response codes: `good`, `nochg`, `nohost`, `badauth`, `notfqdn`, `badagent`, `911`.

@@ -314,6 +314,7 @@ Unlike legacy control panels that truncate and rebuild entire zone files, PowerD
 $$\Delta \text{RRSet} = (S_{\text{desired}} \setminus S_{\text{current}}) \cup (S_{\text{current}} \setminus S_{\text{desired}})$$
 
 For each modified name-type pair $(n, t)$:
+
 1. If $(n, t) \in S_{\text{current}} \land (n, t) \notin S_{\text{desired}}$, an atomic `DELETE` instruction is generated:
    $$\text{Action}_{\text{del}} = \left\{ \text{"action"}: \text{"DELETE"}, \text{"name"}: n, \text{"type"}: t \right\}$$
 2. If $(n, t) \in S_{\text{desired}}$, an atomic `REPLACE` instruction is generated with the desired TTL and record set:
@@ -342,9 +343,9 @@ All generated operations are merged into a single atomic payload `{"rrsets": [ .
 | **Mutating HTTP** | Cross-Site Request Forgery (CSRF) | Session-bound cryptographic tokens with per-mutation rotation |
 | **Persistence** | SQL Injection (SQLi) | 100% Parameterized PDO prepared statements; zero dynamic concatenation |
 | **Secrets at Rest** | Database Compromise / Data Leakage | PowerDNS API keys encrypted via `AES-256-GCM` with dynamic IV vectors |
-| **Output Encoding**| Cross-Site Scripting (Stored/Reflected XSS) | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`) |
-| **Structured Logs**| Observability & Sensitive Data Leakage | Multi-channel structured JSON logging (`appLogger`) with automated recursive secret masking |
-| **Third-Party I/O**| Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
+| **Output Encoding** | Cross-Site Scripting (Stored/Reflected XSS) | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`) |
+| **Structured Logs** | Observability & Sensitive Data Leakage | Multi-channel structured JSON logging (`appLogger`) with automated recursive secret masking |
+| **Third-Party I/O** | Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
 | **Zone Ingestion** | Database Lock Contention / Partial Ingestion | Transactional atomic batch synchronization (`syncZonesFromPdns`) with automatic rollback |
 
 ---
