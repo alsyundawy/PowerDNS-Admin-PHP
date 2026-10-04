@@ -281,6 +281,32 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
+### I. Suite Cadangan & Pemulihan (Database Metadata, Config & PowerDNS Zones)
+
+1. **Arsitektur Pemisahan Cadangan (`app/backup_services.php`):**
+   - **Database Metadata SQL Dump (`backupDatabaseMetadata` / `restoreDatabaseMetadata`):** Mengekspor 13 tabel internal aplikasi (`users`, `accounts`, `account_user`, `zones`, `zone_user`, `templates`, `template_records`, `api_keys`, `api_key_zone`, `history`, `settings`, `login_attempts`, `zone_snapshots`). Dilengkapi blok transaksi ACID terisolasi, penonaktifan foreign keys sementara (`FOREIGN_KEY_CHECKS=0`), serta validasi parser kustom (`splitSqlStatements`) yang secara ketat hanya mengizinkan klausa DML/DDL yang sah (`INSERT`, `TRUNCATE`, `DELETE`, `REPLACE`, `UPDATE`) dan menolak injeksi perintah berbahaya (`DROP DATABASE`, dll).
+   - **Pengaturan & Preferensi Panel (Settings JSON):** Mengekspor konfigurasi panel, preferensi branding, endpoint PowerDNS, dan footer dalam format JSON standar portabel.
+   - **Snapshot Zona PowerDNS (Zones Snapshot JSON):** Mengekspor seluruh pohon zona otoritatif beserta kumpulan RRset lengkap via PowerDNS REST API v1 dan representasi BIND zone file standar. Pemulihan otomatis merekonstruksi zona yang belum ada dan melakukan patching RRset via API.
+2. **Automasi Berjadwal:**
+   - Menyediakan panduan praktis cron job Linux untuk pencadangan berkala di tingkat server produksi.
+
+---
+
+### J. Manajemen Profil Pengguna, Keamanan Foto Profil & Identitas Branding
+
+1. **Manajemen Profil Mandiri (`/profile`):**
+   - Pengubahan kata sandi mandiri menggunakan algoritma hash modern `PASSWORD_ARGON2ID` dengan validasi verifikasi kata sandi saat ini dan panjang minimal 8 karakter.
+   - Pembaruan nama tampilan dan alamat email terintegrasi langsung dengan jejak audit sistem (`audit()`).
+2. **Keamanan Unggah Foto Profil & Logo (`public/uploads/`):**
+   - Direktori `public/uploads/avatars/` dan `public/uploads/branding/` dilindungi oleh berkas `.htaccess` yang melarang eksekusi skrip secara mutlak (`Options -ExecCGI -Indexes`, penonaktifan engine PHP, serta penolakan akses ke seluruh ekstensi skrip).
+   - Validasi MIME type menggunakan `finfo_file(FILEINFO_MIME_TYPE)` (hanya mengizinkan PNG, JPG, WEBP, GIF, dan SVG).
+   - Verifikasi integritas raster image via `getimagesize()` dan sanitasi konten SVG dari tag `<script>` atau event handler berbahaya.
+   - Penamaan berkas acak kriptografis (`avatar_{uid}_{hex}.ext` dan `logo_{hex}.ext`) serta penghapusan otomatis berkas lama saat diperbarui.
+3. **Kustomisasi Identitas Branding:**
+   - Dukungan konfigurasi Nama Aplikasi kustom, Logo gambar lokal atau URL eksternal (didukung header CSP `img-src 'self' data: https:`), serta teks footer kustom yang dirender konsisten pada layout utama, dasbor, dan halaman masuk (`/login`).
+
+---
+
 ## 3. Catatan Arsitektur & Operasional Versi 0.1.0 (Initial Modernization)
 
 ### A. Format Dokumentasi README & Standardisasi Lokasi
@@ -325,11 +351,14 @@ Proyek dilengkapi dengan pengujian mandiri tanpa dependensi PHPUnit eksternal:
 
 ```bash
 # 1. Jalankan seluruh test suite unit test
-php tests/test_rdns_math.php      # Verifikasi kalkulasi matematika rDNS IPv4 & IPv6
-php tests/test_rdns_services.php  # Verifikasi batch generator PTR
-php tests/test_snapshots.php      # Verifikasi diff atomik snapshot & rollback
-php tests/test_bind_parser.php    # Verifikasi parser RFC 1035 BIND zone file
-php tests/test_dyndns.php         # Verifikasi protokol DynDNS 2 dan response codes
+php tests/test_backup.php        # Verifikasi parser SQL dump, sanitasi kueri & JSON config
+php tests/test_profile.php       # Verifikasi hash Argon2id & validasi unggah foto profil
+php tests/test_network_tools.php # Verifikasi IPCalc, IPv6 Splitter, WHOIS, DNS lookup
+php tests/test_rdns_math.php     # Verifikasi kalkulasi matematika rDNS IPv4 & IPv6
+php tests/test_rdns_services.php # Verifikasi batch generator PTR
+php tests/test_snapshots.php     # Verifikasi diff atomik snapshot & rollback
+php tests/test_bind_parser.php   # Verifikasi parser RFC 1035 BIND zone file
+php tests/test_dyndns.php        # Verifikasi protokol DynDNS 2 dan response codes
 
 # 2. Jalankan linter sintaksis PHP
 find . -name "*.php" -not -path "*/vendor/*" -exec php -l {} +

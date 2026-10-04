@@ -28,6 +28,7 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
     require_once dirname(__DIR__) . '/app/PdnsMetadataTrait.php';
     require_once dirname(__DIR__) . '/app/PdnsClient.php';
     require_once dirname(__DIR__) . '/app/services.php';
+    require_once dirname(__DIR__) . '/app/backup_services.php';
     require_once dirname(__DIR__) . '/app/handlers.php';
 }
 
@@ -44,7 +45,7 @@ header(
     "Content-Security-Policy: default-src 'self'; " .
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
-    "img-src 'self' data:; font-src 'self'; " .
+    "img-src 'self' data: https:; font-src 'self'; " .
     "connect-src 'self'; " .
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 );
@@ -117,6 +118,10 @@ if ($path === '/') {
     handleAudit($user);
 } elseif ($path === '/settings') {
     handleSettings($user);
+} elseif (str_starts_with($path, '/profile')) {
+    handleProfile($user, $path, $method);
+} elseif (str_starts_with($path, '/backup')) {
+    handleBackup($user, $path, $method);
 } elseif (str_starts_with($path, '/tools/rdns')) {
     handleRdnsTool($user, $path, $method);
 } elseif ($path === '/tools/ipcalc') {

@@ -66,13 +66,17 @@ function db(): PDO
 
 function setting(string $name, ?string $default = null): ?string
 {
-    $st = db()->prepare('SELECT value FROM settings WHERE name = ?');
-    $st->execute([$name]);
-    $row = $st->fetch();
-    if (!$row) {
+    try {
+        $st = db()->prepare('SELECT value FROM settings WHERE name = ?');
+        $st->execute([$name]);
+        $row = $st->fetch();
+        if (!$row) {
+            return $default;
+        }
+        return (string) $row['value'];
+    } catch (Throwable) {
         return $default;
     }
-    return (string) $row['value'];
 }
 
 function settingSet(string $name, string $value): void
@@ -162,6 +166,55 @@ function takeFlash(): ?array
     return null;
 }
 
+function ensureUserAvatarColumn(): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+    try {
+        $st = db()->query("SHOW COLUMNS FROM users LIKE 'avatar_url'");
+        if ($st && $st->rowCount() === 0) {
+            db()->exec("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NOT NULL DEFAULT '' AFTER email");
+        }
+    } catch (Throwable) {
+        // Table might not exist yet or running in unit tests, safely ignore
+    }
+}
+
+/**
+ * @param array<string, mixed>|null $user
+ */
+function userAvatar(?array $user): string
+{
+    if ($user && !empty($user['avatar_url'])) {
+        return (string) $user['avatar_url'];
+    }
+    return '';
+}
+
+function appName(): string
+{
+    $name = setting('app_name');
+    return ($name !== null && trim($name) !== '') ? trim($name) : 'PowerDNS Admin';
+}
+
+function appLogoUrl(): ?string
+{
+    $logo = setting('app_logo_url');
+    return ($logo !== null && trim($logo) !== '') ? trim($logo) : null;
+}
+
+function appFooterText(): string
+{
+    $footer = setting('app_footer_text');
+    if ($footer !== null && trim($footer) !== '') {
+        return trim($footer);
+    }
+    return 'PowerDNS-Admin-PHP &bull; Native High-Performance DNS Panel';
+}
+
 /**
  * @return array<string, mixed>|null
  */
@@ -171,7 +224,8 @@ function currentUser(): ?array
     if (!$id) {
         return null;
     }
-    $st = db()->prepare('SELECT id, username, display_name, email, role, active FROM users WHERE id = ?');
+    ensureUserAvatarColumn();
+    $st = db()->prepare('SELECT id, username, display_name, email, avatar_url, role, active FROM users WHERE id = ?');
     $st->execute([(int) $id]);
     $user = $st->fetch();
     if (!$user || !(int) $user['active']) {

@@ -39,8 +39,12 @@ declare(strict_types=1);
 <body class="app-body">
   <header class="mobile-nav-bar d-lg-none">
     <a class="brand-mini" href="/">
-      <span class="brand-mark"><i class="fa-solid fa-bolt"></i></span>
-      <span class="fw-bold">PowerDNS</span>
+      <?php if (appLogoUrl()) : ?>
+        <img src="<?= e((string) appLogoUrl()) ?>" alt="Logo" class="brand-logo-mini">
+      <?php else : ?>
+        <span class="brand-mark"><i class="fa-solid fa-bolt"></i></span>
+      <?php endif; ?>
+      <span class="fw-bold"><?= e(appName()) ?></span>
     </a>
     <div class="d-flex align-items-center gap-2">
       <button class="btn btn-sm btn-outline-light theme-toggle-btn"
@@ -55,9 +59,13 @@ declare(strict_types=1);
   </header>
   <aside class="sidebar" id="app-sidebar">
     <a class="brand" href="/">
-      <span class="brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
+      <?php if (appLogoUrl()) : ?>
+        <img src="<?= e((string) appLogoUrl()) ?>" alt="Logo" class="brand-logo-img">
+      <?php else : ?>
+        <span class="brand-mark"><i class="fa-solid fa-shield-halved"></i></span>
+      <?php endif; ?>
       <span>
-        <strong>PowerDNS Admin</strong>
+        <strong><?= e(appName()) ?></strong>
         <small>PHP native &bull; v0.2.1</small>
       </span>
     </a>
@@ -70,6 +78,9 @@ declare(strict_types=1);
       </a>
       <a class="<?= ($title ?? '') === 'Pencarian' ? 'active' : '' ?>" href="/search">
         <i class="fa-solid fa-magnifying-glass fa-fw"></i> Pencarian
+      </a>
+      <a class="<?= ($title ?? '') === 'Profil Pengguna' ? 'active' : '' ?>" href="/profile">
+        <i class="fa-solid fa-user fa-fw"></i> Profil Saya
       </a>
 
       <div class="nav-section-title">Alat Jaringan</div>
@@ -106,6 +117,9 @@ declare(strict_types=1);
         <a class="<?= ($title ?? '') === 'Pengguna' ? 'active' : '' ?>" href="/users">
           <i class="fa-solid fa-user-shield fa-fw"></i> Pengguna
         </a>
+        <a class="<?= ($title ?? '') === 'Cadangan & Pemulihan' ? 'active' : '' ?>" href="/backup">
+          <i class="fa-solid fa-database fa-fw"></i> Cadangan & Restore
+        </a>
         <a class="<?= ($title ?? '') === 'Audit' ? 'active' : '' ?>" href="/audit">
           <i class="fa-solid fa-clipboard-list fa-fw"></i> Audit
         </a>
@@ -124,8 +138,22 @@ declare(strict_types=1);
         <span class="badge bg-secondary-subtle text-secondary small">2026</span>
       </button>
 
-      <div class="who"><?= e((string) (!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna'))) ?></div>
-      <div class="role"><?= e((string) ($user['role'] ?? 'user')) ?></div>
+      <a href="/profile" class="sidebar-user-card text-decoration-none">
+        <div class="sidebar-avatar-wrap">
+          <?php if (userAvatar($user) !== '') : ?>
+            <img src="<?= e(userAvatar($user)) ?>" alt="Avatar" class="sidebar-avatar-img">
+          <?php else : ?>
+            <div class="sidebar-avatar-initials">
+              <?= e(strtoupper(substr((string) ($user['username'] ?? 'U'), 0, 2))) ?>
+            </div>
+          <?php endif; ?>
+        </div>
+        <div class="sidebar-user-info">
+          <div class="who"><?= e((string) (!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna'))) ?></div>
+          <div class="role"><?= e((string) ($user['role'] ?? 'user')) ?></div>
+        </div>
+      </a>
+
       <form method="post" action="/logout">
         <?= csrfField() ?>
         <button class="btn btn-sm btn-outline-light w-100" type="submit">
@@ -146,6 +174,21 @@ declare(strict_types=1);
       <div class="alert alert-<?= e($flash['type']) ?>" role="alert"><?= e($flash['message']) ?></div>
     <?php endif; ?>
     <?= $content ?>
+
+    <footer class="app-footer text-secondary small py-3 mt-4 border-top border-secondary-subtle">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <?= appFooterText() ?>
+        </div>
+        <div class="d-flex gap-3">
+          <span>v0.2.1</span>
+          <?php if (($user['role'] ?? '') === 'admin') : ?>
+            <a href="/backup" class="text-secondary text-decoration-none">Cadangan</a>
+            <a href="/settings" class="text-secondary text-decoration-none">Pengaturan</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </footer>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"
           integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"

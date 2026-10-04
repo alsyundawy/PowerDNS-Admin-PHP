@@ -8,6 +8,7 @@ declare(strict_types=1);
  *   username: string,
  *   display_name: string,
  *   email: string,
+ *   avatar_url?: string,
  *   role: string,
  *   active: int|bool,
  *   last_login_at: string|null
@@ -78,9 +79,23 @@ declare(strict_types=1);
         </tr>
       </thead>
       <tbody>
-      <?php foreach ($users as $row) : ?>
+      <?php foreach ($users as $row) :
+          $rowAvatar = !empty($row['avatar_url']) ? (string) $row['avatar_url'] : '';
+          $initial = strtoupper(substr((string) $row['username'], 0, 2));
+      ?>
         <tr>
-          <td><strong><?= e($row['username']) ?></strong></td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="user-table-avatar">
+                <?php if ($rowAvatar !== '') : ?>
+                  <img src="<?= e($rowAvatar) ?>" alt="Avatar" class="user-table-avatar-img">
+                <?php else : ?>
+                  <div class="user-table-avatar-initials"><?= e($initial) ?></div>
+                <?php endif; ?>
+              </div>
+              <strong><?= e($row['username']) ?></strong>
+            </div>
+          </td>
           <td><?= e($row['display_name']) ?></td>
           <td><?= e($row['email'] ?: '–') ?></td>
           <td><span class="badge bg-secondary"><?= e($row['role']) ?></span></td>

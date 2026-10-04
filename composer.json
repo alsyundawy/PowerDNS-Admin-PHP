@@ -17,6 +17,7 @@
       "app/PdnsMetadataTrait.php",
       "app/PdnsClient.php",
       "app/services.php",
+      "app/backup_services.php",
       "app/handlers.php"
     ]
   }

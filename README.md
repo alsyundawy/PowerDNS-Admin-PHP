@@ -144,6 +144,10 @@ PowerDNS administration:
 | **Global Instant Search**      | Sub-second fuzzy search across zone names, record comments, and RRSet contents powered by the PowerDNS `/search-data` API endpoint.                           |
 | **Tamper-Evident Audit Trail** | Comprehensive logging of authentication events, zone creation, record mutations, and role elevations with IP addresses and user agents.                       |
 | **Live Telemetry Dashboard**   | Real-time server telemetry: UDP/TCP query volume, packetcache hit/miss ratio, recursion statistics, and operational load metrics.                             |
+| **Database & Zone Backup**     | 1-Click MySQL metadata SQL dump/restore with query sanitation, settings JSON export, and full PowerDNS zones API snapshot suite.                              |
+| **User Profile & Avatar**      | Self-service profile management, Argon2id password changes, secure image avatar upload, and universal UI avatar integration.                                  |
+| **Custom Branding & GUI**      | Customizable panel branding (Logo upload/URL, custom App Name, custom footer text) and integrated dashboard quick controls.                                   |
+| **Advanced Network Tools**     | IPCalc (IPv4/IPv6 bitwise), memory-safe IPv6 Subnet Splitter (up to 65k subnets), WHOIS/RDAP client (RFC 9082), and native DNS lookup resolver.               |
 | **Panel REST API**             | External token-authenticated REST API (`X-API-Key`) for automation via Ansible, Terraform, ACME Let's Encrypt bots, and custom scripts.                       |
 
 ---

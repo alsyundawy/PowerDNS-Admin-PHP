@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(128) NOT NULL DEFAULT '',
   email VARCHAR(190) NOT NULL DEFAULT '',
+  avatar_url VARCHAR(255) NOT NULL DEFAULT '',
   role ENUM('admin','operator','user') NOT NULL DEFAULT 'user',
   active TINYINT(1) NOT NULL DEFAULT 1,
   last_login_at DATETIME NULL,

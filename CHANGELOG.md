@@ -30,11 +30,28 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 - **WHOIS & RDAP Lookup Tool (`/tools/whois`):**
   - Klien RDAP modern berbasis HTTPS (RFC 9082 & RFC 7480) dengan query ke `rdap.org` dan penanganan redirect otomatis.
   - Ekstraksi terstruktur untuk registrar, negara, rentang IP, status EPP domain, riwayat tanggal registrasi/pembaruan/kedaluwarsa, daftar name server delegasi, dan penampil JSON mentah interaktif.
-  - Fallback otomatis ke protokol klasik WHOIS Port 43 TCP Socket (RFC 3912) untuk TLD lawas atau server WHOIS kustom.
 - **Native DNS Record Lookup Tool (`/tools/dns-lookup`):**
   - Alat inspeksi record DNS publik otoritatif menggunakan engine resolver native PHP (`dns_get_record()`) untuk 10+ tipe record (`A`, `AAAA`, `NS`, `MX`, `TXT`, `SOA`, `CNAME`, `PTR`, `SRV`, `CAA`).
   - Resolusi otomatis glue record IPv4 dan IPv6 untuk name server delegasi.
   - Filter interaktif berbasis pil tipe record dan tombol 1-klik salin data record.
+- **Suite Cadangan & Pemulihan Komprehensif (`/backup`):**
+  - **Cadangan & Pemulihan Metadata Database (SQL Dump):** Pencadangan terenkapsulasi transaksi untuk 13 tabel metadata aplikasi (`users`, `accounts`, `account_user`, `zones`, `zone_user`, `templates`, `template_records`, `api_keys`, `api_key_zone`, `history`, `settings`, `login_attempts`, `zone_snapshots`). Dilengkapi validasi parser anti-injeksi yang secara ketat hanya mengizinkan perintah DML/DDL yang sah dan menolak perintah berbahaya.
+  - **Cadangan & Pemulihan Pengaturan (Settings JSON):** Ekspor dan impor portabel seluruh pasangan kunci-nilai konfigurasi panel dalam format JSON terstruktur.
+  - **Cadangan & Pemulihan Zona PowerDNS (Zones Snapshot JSON):** Ekstraksi menyeluruh seluruh zona otoritatif beserta kumpulan RRset lengkap via PowerDNS REST API v1 dan representasi BIND zone file standar. Pemulihan otomatis merekonstruksi zona yang hilang dan melakukan patching RRset via API.
+  - **Panduan Automasi Linux Crontab:** Perintah siap pakai untuk penjadwalan dump berkala di lingkungan produksi.
+- **Manajemen Profil Pengguna & Foto Profil (`/profile`):**
+  - **Ubah Kata Sandi Mandiri:** Menggunakan algoritma hash generasi terbaru `PASSWORD_ARGON2ID` dengan validasi verifikasi kata sandi saat ini dan panjang minimal 8 karakter.
+  - **Unggah & Kelola Foto Profil (Avatar):** Dukungan format gambar PNG, JPG, WEBP, GIF, dan SVG dengan batas aman 2 MB, validasi ketat MIME type (`finfo_file`), verifikasi dimensi raster image, sanitasi konten SVG dari tag `<script>`, serta rotasi berkas lama secara bersih.
+  - **Integrasi Avatar Menyeluruh:** Foto profil ditampilkan di widget Dasbor, header navigasi sidebar desktop dan seluler, halaman profil, serta kolom tabel daftar pengguna sistem (`/users`).
+  - **Pembaruan Data Akun:** Kemudahan memperbarui nama tampilan (display name) dan alamat email dengan validasi format standar RFC.
+- **Kontrol Cepat Dasbor & Konfigurasi GUI (`/`):**
+  - **Widget Profil Pengguna:** Kartu salam pengguna di bagian atas dasbor menampilkan foto profil/avatar, peran sistem, username, status sesi, dan tombol pintasan ke `/profile`.
+  - **Bilah Aksi Cepat & Konfigurasi GUI:** Tombol sinkronisasi zona instan 1-klik (`/zones/sync`), tombol unduh cepat cadangan SQL dan JSON konfigurasi, sakelar pengalih tema instan, dan tautan langsung ke halaman pengaturan sistem.
+  - **Panel Spesifikasi Runtime:** Menampilkan versi runtime PHP aktual, konsumsi memori sistem aktif, dan jenis web server secara real-time.
+- **Kustomisasi Identitas Branding, Logo & Footer (`/settings`):**
+  - **Logo Kustom Aplikasi:** Opsi unggah berkas logo (PNG/SVG/WEBP) atau konfigurasi URL logo eksternal (didukung direktif CSP `img-src 'self' data: https:`), dilengkapi pratinjau live dan opsi 1-klik untuk kembali ke logo perisai bawaan.
+  - **Nama Panel Kustom:** Pengaturan nama aplikasi yang tercermin di seluruh navbar, sidebar, dan tab peramban.
+  - **Teks Footer Kustom:** Pengaturan teks catatan kaki atau hak cipta kustom yang ditampilkan secara konsisten pada dasbor, layout utama, dan halaman login (`/login`).
 
 ### Keamanan, Performa & Perbaikan (Security, Performance & Fixes)
 
