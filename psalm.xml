@@ -26,6 +26,7 @@
         <file name="app/handlers.php" />
     </extraFiles>
     <issueHandlers>
+        <UndefinedConstant errorLevel="info" />
         <UndefinedClass errorLevel="info" />
         <PossiblyUnusedReturnValue errorLevel="info" />
         <PossiblyUnusedMethod errorLevel="info" />

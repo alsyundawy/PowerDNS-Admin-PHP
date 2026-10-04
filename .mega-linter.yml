@@ -1,0 +1,53 @@
+---
+# =============================================================================
+# MegaLinter Configuration File — PowerDNS-Admin-PHP
+# https://megalinter.io/latest/configuration/
+# =============================================================================
+
+# All supported linters for the PowerDNS-Admin-PHP stack:
+ENABLE_LINTERS:
+  - PHP_PHPCS
+  - PHP_PHPSTAN
+  - PHP_PSALM
+  - PHP_PHPLINT
+  - PHP_PHPCSFIXER
+  - CSS_STYLELINT
+  - JAVASCRIPT_ES
+  - JAVASCRIPT_PRETTIER
+  - MARKDOWN_MARKDOWNLINT
+  - BASH_SHELLCHECK
+  - BASH_SHFMT
+  - JSON_PRETTIER
+  - JSON_V8R
+  - YAML_YAMLLINT
+  - YAML_PRETTIER
+  - YAML_V8R
+  - XML_XMLLINT
+  - ACTION_ACTIONLINT
+
+# Config files
+PHP_PHPCS_CONFIG_FILE: phpcs.xml
+PHP_PHPSTAN_CONFIG_FILE: phpstan.neon
+PHP_PSALM_CONFIG_FILE: psalm.xml
+PHP_PHPCSFIXER_CONFIG_FILE: .php-cs-fixer.php
+MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+CSS_STYLELINT_CONFIG_FILE: .stylelintrc.json
+JAVASCRIPT_ES_CONFIG_FILE: eslint.config.js
+
+# Project-mode CLI Analysis for PHP
+PHP_PHPCS_CLI_LINT_MODE: project
+PHP_PHPSTAN_CLI_LINT_MODE: project
+PHP_PSALM_CLI_LINT_MODE: project
+PHP_PHPCS_FORWARD_EXCLUDED_DIRECTORIES: false
+
+# Exclude vendor and cache directories
+FILTER_REGEX_EXCLUDE: "(vendor|node_modules|public/assets/vendor|\\.cache|\\.phpunit\\.cache|\\.php-cs-fixer\\.cache|megalinter-reports|\\.kilo)"
+
+# Reporters
+SARIF_REPORTER: false
+TEXT_REPORTER: true
+JSON_REPORTER: true
+SHOW_ELAPSED_TIME: true
+SHOW_SKIPPED_LINTERS: false
+PARALLEL: true
+LOG_LEVEL: INFO

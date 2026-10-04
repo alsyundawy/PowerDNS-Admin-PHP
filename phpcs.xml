@@ -4,6 +4,9 @@
     <rule ref="PSR12">
         <exclude name="PSR1.Classes.ClassDeclaration.MissingNamespace"/>
     </rule>
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <exclude-pattern>views/*</exclude-pattern>
+    </rule>
     <file>app</file>
     <file>public</file>
     <file>views</file>

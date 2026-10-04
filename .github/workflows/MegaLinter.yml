@@ -18,9 +18,9 @@ env:
   APPLY_FIXES: all
   APPLY_FIXES_EVENT: pull_request
   APPLY_FIXES_MODE: commit
-  APPLY_FIXES_IF: 'false'
-  APPLY_FIXES_IF_COMMIT: 'false'
-  APPLY_FIXES_IF_PR: 'false'
+  APPLY_FIXES_IF: "false"
+  APPLY_FIXES_IF_COMMIT: "false"
+  APPLY_FIXES_IF_PR: "false"
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -56,7 +56,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: pdo, sqlite3, pdo_sqlite, mbstring, intl, curl, openssl
           coverage: none
 
@@ -80,27 +80,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # --------------- Supported Linters for PowerDNS-Admin-PHP Stack -----------
-          ENABLE_LINTERS: >-
-            PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPCSFIXER,
-            HTML_DJLINT,HTML_HTMLHINT,
-            CSS_STYLELINT,
-            JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
-            MARKDOWN_MARKDOWNLINT,
-            BASH_SHELLCHECK,BASH_SHFMT,
-            JSON_PRETTIER,JSON_V8R,
-            YAML_YAMLLINT,YAML_PRETTIER,YAML_V8R,
-            XML_XMLLINT,
-            ACTION_ACTIONLINT
+          ENABLE_LINTERS: PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,MARKDOWN_MARKDOWNLINT,BASH_SHELLCHECK,BASH_SHFMT,JSON_PRETTIER,JSON_V8R,YAML_YAMLLINT,YAML_PRETTIER,YAML_V8R,XML_XMLLINT,ACTION_ACTIONLINT
 
           # --------------- Auto-fix -----------------------------------------
-          APPLY_FIXES: >-
-            PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
-            MARKDOWN_MARKDOWNLINT,BASH_SHFMT,JSON_PRETTIER,YAML_PRETTIER
+          APPLY_FIXES: PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,MARKDOWN_MARKDOWNLINT,BASH_SHFMT,JSON_PRETTIER,YAML_PRETTIER
 
           # --------------- Project-mode CLI Analysis for PHP -----------------
           PHP_PHPCS_CLI_LINT_MODE: project
           PHP_PHPSTAN_CLI_LINT_MODE: project
           PHP_PSALM_CLI_LINT_MODE: project
+          PHP_PHPCS_FORWARD_EXCLUDED_DIRECTORIES: false
 
           # --------------- Config files -------------------------------------
           PHP_PHPCS_CONFIG_FILE: phpcs.xml
@@ -117,7 +106,7 @@ jobs:
 
           # --------------- Reporting ----------------------------------------
           REPORT_OUTPUT_FOLDER: megalinter-reports
-          SARIF_REPORTER: true
+          SARIF_REPORTER: false
           TEXT_REPORTER: true
           JSON_REPORTER: true
           SHOW_ELAPSED_TIME: true
@@ -138,16 +127,6 @@ jobs:
           path: |
             megalinter-reports
             mega-linter.log
-
-      # -----------------------------------------------------------------------
-      # 4. Upload SARIF to GitHub Security tab
-      # -----------------------------------------------------------------------
-      - name: Upload SARIF to GitHub Security
-        if: success() || failure()
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        with:
-          sarif_file: megalinter-reports/megalinter-report.sarif
-        continue-on-error: true
 
       # -----------------------------------------------------------------------
       # 5. Compute fix-application conditions
