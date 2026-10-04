@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/helper.php';
 require_once dirname(__DIR__) . '/app/network_tools.php';
 
+const DOC_NET_IPV6 = '2001:db8::';
+
 // Test 1: IPv4 Calculation Standard /24
 $res1 = ipcalcProcessIpv4('192.168.1.50/24');
 assertEq(is_array($res1), true, 'ipcalcProcessIpv4 returns array for 192.168.1.50/24');
@@ -46,13 +48,12 @@ assertEq(ipcalcProcessIpv4('192.168.1.1/35'), null, 'ipcalcProcessIpv4 rejects m
 assertEq(ipcalcProcessIpv4('not-an-ip'), null, 'ipcalcProcessIpv4 rejects garbage');
 
 // Test 5: IPv6 Calculation Standard /64
-$docNetIpv6 = '2001:db8::';
-$res6_1 = ipcalcProcessIpv6($docNetIpv6 . '1/64');
+$res6_1 = ipcalcProcessIpv6(DOC_NET_IPV6 . '1/64');
 assertEq(is_array($res6_1), true, 'ipcalcProcessIpv6 returns array for 2001:db8::1/64');
 if ($res6_1 !== null) {
     assertEq($res6_1['uncompressed'], '2001:0db8:0000:0000:0000:0000:0000:0001', 'IPv6 uncompressed expansion');
     assertEq($res6_1['compressed'], '2001:db8::1', 'IPv6 compressed string');
-    assertEq($res6_1['network'], $docNetIpv6, 'IPv6 network address');
+    assertEq($res6_1['network'], DOC_NET_IPV6, 'IPv6 network address');
     assertEq($res6_1['mask'], 64, 'IPv6 mask integer');
     assertEq($res6_1['subnets_slash_64'], '1', 'IPv6 /64 has 1 subnet of size /64');
     assertEq($res6_1['scope'], 'Documentation (RFC 3849)', 'IPv6 scope detection for 2001:db8::');
@@ -60,7 +61,7 @@ if ($res6_1 !== null) {
 }
 
 // Test 6: IPv6 /32 Calculation
-$res6_2 = ipcalcProcessIpv6($docNetIpv6 . '/32');
+$res6_2 = ipcalcProcessIpv6(DOC_NET_IPV6 . '/32');
 if ($res6_2 !== null) {
     assertEq($res6_2['subnets_slash_64'], '4,294,967,296', 'IPv6 /32 has 4,294,967,296 /64 subnets');
 }
@@ -77,19 +78,19 @@ if ($resLinkLocal !== null) {
 }
 
 // Test 8: IPv6 Splitter Validation
-$val1 = ipv6splitValidate('2001:db8::/32');
+$val1 = ipv6splitValidate(DOC_NET_IPV6 . '/32');
 assertEq(is_array($val1), true, 'ipv6splitValidate accepts 2001:db8::/32');
 if ($val1 !== null) {
-    assertEq($val1['ip'], '2001:db8::', 'ipv6splitValidate normalized base IP');
+    assertEq($val1['ip'], DOC_NET_IPV6, 'ipv6splitValidate normalized base IP');
     assertEq($val1['mask'], 32, 'ipv6splitValidate extracted mask');
 }
 
 assertEq(ipv6splitValidate('invalid-ipv6'), null, 'ipv6splitValidate rejects invalid string');
-assertEq(ipv6splitValidate('2001:db8::/129'), null, 'ipv6splitValidate rejects mask > 128');
+assertEq(ipv6splitValidate(DOC_NET_IPV6 . '/129'), null, 'ipv6splitValidate rejects mask > 128');
 
 // Test 9: IPv6 Generator (/32 to /36 produces 16 subnets)
 $subnets = [];
-foreach (ipv6splitGenerate('2001:db8::', 32, 36) as $sub) {
+foreach (ipv6splitGenerate(DOC_NET_IPV6, 32, 36) as $sub) {
     $subnets[] = $sub;
 }
 assertEq(count($subnets), 16, 'IPv6 split /32 to /36 yields exactly 16 subnets');

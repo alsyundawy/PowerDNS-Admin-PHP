@@ -31,7 +31,11 @@ function config(bool $reload = false): array
     if ($reload || $cfg === null) {
         $path = configPath();
         $loaded = is_file($path) ? (require_once $path) : [];
-        $cfg = is_array($loaded) ? $loaded : (is_array($cfg) ? $cfg : []);
+        if (is_array($loaded)) {
+            $cfg = $loaded;
+        } elseif (!is_array($cfg)) {
+            $cfg = [];
+        }
     }
     return is_array($cfg) ? $cfg : [];
 }

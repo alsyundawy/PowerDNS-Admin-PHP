@@ -184,13 +184,14 @@ function ipcalcProcessIpv6(string $cidrInput): ?array
 
     $ip = $m[1];
     $cidr = isset($m[2]) ? (int) $m[2] : 128;
-
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) || $cidr < 0 || $cidr > 128) {
-        return null;
-    }
-
     $uncompressed = ipcalcUncompressIpv6($ip);
-    if ($uncompressed === '') {
+
+    if (
+        !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ||
+        $cidr < 0 ||
+        $cidr > 128 ||
+        $uncompressed === ''
+    ) {
         return null;
     }
 
@@ -326,18 +327,23 @@ function fetchRdapJson(string $url): array
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
+    $errorMsg = null;
     if ($res === false || $err !== '') {
-        return ['success' => false, 'error' => 'Kueri RDAP gagal: ' . $err];
-    }
-    if ($httpCode !== 200) {
-        return ['success' => false, 'error' => 'Server RDAP mengembalikan status HTTP ' . $httpCode];
+        $errorMsg = 'Kueri RDAP gagal: ' . $err;
+    } elseif ($httpCode !== 200) {
+        $errorMsg = 'Server RDAP mengembalikan status HTTP ' . $httpCode;
+    } else {
+        $json = json_decode((string) $res, true);
+        if (!is_array($json)) {
+            $errorMsg = 'Respons RDAP bukan format JSON yang valid.';
+        }
     }
 
-    $json = json_decode((string) $res, true);
-    if (!is_array($json)) {
-        return ['success' => false, 'error' => 'Respons RDAP bukan format JSON yang valid.'];
+    if ($errorMsg !== null) {
+        return ['success' => false, 'error' => $errorMsg];
     }
 
+    /** @var array<string, mixed> $json */
     return ['success' => true, 'data' => $json];
 }
 

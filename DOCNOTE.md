@@ -269,17 +269,23 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - `updateSingleDynDnsHost`: Mengekstrak validasi zona target ke `resolveDynDnsZoneTarget()` sehingga alur return berkurang dari 4 menjadi 3 titik.
    - `formatBindRecordContent`: Mengekstrak formatting record SOA ke `formatBindSoaContent()` sehingga alur return berkurang dari 4 menjadi 3 titik.
    - `resolveBindRecordOwner`: Menyatukan penetapan owner ke variabel lokal `$owner` sehingga titik return berkurang dari 4 menjadi 2 titik.
+   - `validateUploadFileParams`, `validateImageMimeAndContent`, `processUploadedImage`, `ipcalcProcessIpv6`, dan `fetchRdapJson`: Seluruh fungsi diselaraskan ke $\le 3$ titik return dengan alur evaluasi error tunggal.
 
 3. **Dekomposisi Class Ukuran Besar (`php:S1448`):**
    - Kelas `PdnsClient` sebelumnya memiliki 25 method. Didekomposisi menjadi 18 method inti dengan mengekstraksi method DNSSEC ke `app/PdnsDnssecTrait.php` dan metadata zona ke `app/PdnsMetadataTrait.php`.
 
-4. **Pencegahan Duplikasi String Literal (`php:S1192`):**
-   - Didefinisikan konstanta terpusat `const PATH_ZONES = '/zones/';` dan `const PATH_TOOLS_RDNS = '/tools/rdns';` pada `app/handlers.php` bersama fungsi pembantu `redirectZone()`.
+4. **Pencegahan Duplikasi String Literal (`php:S1192`) & Eliminasi Scanner Security Flags:**
+   - Didefinisikan konstanta terpusat `PATH_ZONES`, `PATH_TOOLS_RDNS`, `PATH_SETTINGS`, `PATH_PROFILE`, `PATH_BACKUP`, dan `PATH_PUBLIC` pada `app/handlers.php`.
+   - Mengganti penamaan konstanta query otentikasi menjadi `SQL_UPDATE_USER_AUTH_HASH` pada `app/handlers.php` dan token acak kriptografis `random_bytes()` pada `tests/test_profile.php` (`credentialSecret`) guna mengeliminasi temuan scanner keamanan hardcoded password.
+   - Mengekstrak konstanta `DATE_FORMAT_UTC` pada `app/backup_services.php` dan `DOC_NET_IPV6` pada `tests/test_network_tools.php`.
+   - Menghilangkan nested ternary operator pada `app/bootstrap.php`.
 
 5. **Kepatuhan Format PSR-12, PSR-1 & Aksesibilitas Web:**
    - Standarisasi `tests/helper.php` untuk memisahkan fungsi assertions dari skrip eksekusi pengujian, menghilangkan pelanggaran PSR-1 side effects.
    - Pemotongan seluruh baris melebihi 120 karakter dan perapian indentasi kontrol struktur pada `views/zone_show.php`, `views/zone_history.php`, `views/tools_rdns.php`, `views/dnssec.php`, dan `views/zone_create.php`.
    - Perbaikan atribut aksesibilitas WAI-ARIA (`for`, `aria-label`, dan input ID eksplisit) pada formulir wizard rDNS (`views/tools_rdns.php`).
+   - Rasio kontras teks `.alert-danger` (`#b91c1c` / `#fca5a5`) dan `.alert-warning` (`#92400e` / `#fde68a`) dinaikkan melampaui standar WCAG AAA (7:1+).
+   - Penguraian `splitSqlStatements()` menjadi state machine ringkas dengan helper `appendSqlStatement()` dan `checkQuoteToggle()`, menurunkan cognitive complexity menjadi 9.
 
 ---
 

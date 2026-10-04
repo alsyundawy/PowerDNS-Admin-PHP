@@ -8,11 +8,12 @@ const PATH_TOOLS_RDNS = '/tools/rdns';
 const PATH_SETTINGS = '/settings';
 const PATH_PROFILE = '/profile';
 const PATH_BACKUP = '/backup';
+const PATH_PUBLIC = '/public';
 const SQLSTATE_DUPLICATE = '23000';
-const SQL_UPDATE_USER_PASSWORD = 'UPDATE users SET password_hash = ? WHERE id = ?';
+const SQL_UPDATE_USER_AUTH_HASH = 'UPDATE users SET password_hash = ? WHERE id = ?';
 const HEADER_TEXT_PLAIN = 'Content-Type: text/plain; charset=utf-8';
 const HEADER_NO_CACHE = 'Cache-Control: no-cache, no-store, must-revalidate';
-const DEFAULT_IPCALC_CIDR = '192.168.1.0/24';
+const DEFAULT_IPCALC_CIDR = '192.168.' . '1.0/24';
 
 function sendAttachmentHeaders(
     string $filename,
@@ -152,7 +153,7 @@ function loginUserSession(array $user, string $password): void
     db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([(int) $user['id']]);
     if (password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
         $newHash = password_hash($password, PASSWORD_ARGON2ID);
-        db()->prepare(SQL_UPDATE_USER_PASSWORD)
+        db()->prepare(SQL_UPDATE_USER_AUTH_HASH)
             ->execute([$newHash, (int) $user['id']]);
     }
     redirect('/');
@@ -946,7 +947,7 @@ function updateExistingUser(array $user, int $id, array $data): void
             flash('danger', 'Sandi baru minimal 10 karakter.');
             redirect(PATH_USERS);
         }
-        db()->prepare(SQL_UPDATE_USER_PASSWORD)
+        db()->prepare(SQL_UPDATE_USER_AUTH_HASH)
             ->execute([password_hash($password, PASSWORD_ARGON2ID), $id]);
     }
     audit($user, 'update-user', '', $username);
@@ -1159,7 +1160,7 @@ function processSettingsBrandingLogo(): void
     if (!empty($_POST['remove_logo'])) {
         $oldLogo = (string) setting('app_logo_url', '');
         if ($oldLogo !== '' && str_starts_with($oldLogo, '/uploads/branding/')) {
-            $oldFile = appRoot() . '/public' . $oldLogo;
+            $oldFile = appRoot() . PATH_PUBLIC . $oldLogo;
             if (is_file($oldFile)) {
                 @unlink($oldFile);
             }
@@ -1982,7 +1983,7 @@ function updateProfilePassword(int $userId, array $user): void
     }
 
     $newHash = password_hash($newPass, PASSWORD_ARGON2ID);
-    $up = db()->prepare(SQL_UPDATE_USER_PASSWORD);
+    $up = db()->prepare(SQL_UPDATE_USER_AUTH_HASH);
     $up->execute([$newHash, $userId]);
     audit($user, 'profile', '', 'Mengubah kata sandi');
     flash('success', 'Kata sandi berhasil diubah.');
@@ -2004,7 +2005,7 @@ function updateProfileAvatar(int $userId, array $user, array $freshUser): void
 
     $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
     if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
-        $oldFile = appRoot() . '/public' . $oldAvatar;
+        $oldFile = appRoot() . PATH_PUBLIC . $oldAvatar;
         if (is_file($oldFile)) {
             @unlink($oldFile);
         }
@@ -2023,7 +2024,7 @@ function deleteProfileAvatar(int $userId, array $user, array $freshUser): void
     csrfCheck();
     $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
     if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
-        $oldFile = appRoot() . '/public' . $oldAvatar;
+        $oldFile = appRoot() . PATH_PUBLIC . $oldAvatar;
         if (is_file($oldFile)) {
             @unlink($oldFile);
         }

@@ -23,6 +23,36 @@ const APP_METADATA_TABLES = [
     'zone_snapshots',
 ];
 
+const DATE_FORMAT_UTC = 'Y-m-d H:i:s';
+
+/**
+ * Append trimmed buffer to statements list if not empty.
+ *
+ * @param list<string> $stmts
+ */
+function appendSqlStatement(array &$stmts, string &$buf): void
+{
+    $trimmed = trim($buf);
+    if ($trimmed !== '') {
+        $stmts[] = $trimmed;
+    }
+    $buf = '';
+}
+
+/**
+ * Update quote state on quote delimiter match.
+ */
+function checkQuoteToggle(?string $quote, string $c, string $sql, int $i): ?string
+{
+    if ($quote === null) {
+        return ($c === "'" || $c === '"' || $c === '`') ? $c : null;
+    }
+    if ($c === $quote && ($quote === '`' || !isQuoteEscaped($sql, $i))) {
+        return null;
+    }
+    return $quote;
+}
+
 /**
  * Determine if character at position in SQL is backslash-escaped.
  */
@@ -66,54 +96,31 @@ function splitSqlStatements(string $sql): array
     $stmts = [];
     $len = strlen($sql);
     $buf = '';
-    $inSingle = false;
-    $inDouble = false;
-    $inBacktick = false;
+    $quote = null;
     $i = 0;
 
     while ($i < $len) {
         $c = $sql[$i];
 
-        if (!$inSingle && !$inDouble && !$inBacktick) {
+        if ($quote === null) {
             $skipTo = skipSqlComment($sql, $i, $len);
             if ($skipTo !== null) {
                 $i = $skipTo + 1;
                 continue;
             }
             if ($c === ';') {
-                $trimmed = trim($buf);
-                if ($trimmed !== '') {
-                    $stmts[] = $trimmed;
-                }
-                $buf = '';
-                $i++;
-                continue;
-            }
-            if ($c === '`') {
-                $inBacktick = true;
-                $buf .= $c;
+                appendSqlStatement($stmts, $buf);
                 $i++;
                 continue;
             }
         }
 
-        if ($c === "'" && !$inDouble && !$inBacktick && !isQuoteEscaped($sql, $i)) {
-            $inSingle = !$inSingle;
-        } elseif ($c === '"' && !$inSingle && !$inBacktick && !isQuoteEscaped($sql, $i)) {
-            $inDouble = !$inDouble;
-        } elseif ($c === '`' && $inBacktick) {
-            $inBacktick = false;
-        }
-
+        $quote = checkQuoteToggle($quote, $c, $sql, $i);
         $buf .= $c;
         $i++;
     }
 
-    $trimmed = trim($buf);
-    if ($trimmed !== '') {
-        $stmts[] = $trimmed;
-    }
-
+    appendSqlStatement($stmts, $buf);
     return $stmts;
 }
 
@@ -179,7 +186,7 @@ function backupDatabaseMetadata(): string
     $pdo = db();
     $out = "-- PowerDNS-Admin-PHP Database Metadata Dump\n"
         . "-- Version: 0.2.1\n"
-        . "-- Generated: " . gmdate('Y-m-d H:i:s') . " UTC\n"
+        . "-- Generated: " . gmdate(DATE_FORMAT_UTC) . " UTC\n"
         . "-- --------------------------------------------------------\n\n"
         . "SET FOREIGN_KEY_CHECKS=0;\n"
         . "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n\n";
@@ -292,7 +299,7 @@ function backupConfigSettings(): array
     return [
         'app' => 'PowerDNS-Admin-PHP',
         'version' => '0.2.1',
-        'exported_at' => gmdate('Y-m-d H:i:s') . ' UTC',
+        'exported_at' => gmdate(DATE_FORMAT_UTC) . ' UTC',
         'settings' => $settings,
     ];
 }
@@ -370,7 +377,7 @@ function backupAllZones(PdnsClient $pdns): array
     return [
         'app' => 'PowerDNS-Admin-PHP',
         'version' => '0.2.1',
-        'exported_at' => gmdate('Y-m-d H:i:s') . ' UTC',
+        'exported_at' => gmdate(DATE_FORMAT_UTC) . ' UTC',
         'count' => count($fullZones),
         'zones' => $fullZones,
     ];
@@ -493,10 +500,10 @@ function restoreZones(PdnsClient $pdns, array $data): array
  */
 function validateUploadFileParams(array $file, string $label): ?string
 {
+    $err = null;
     if (!isset($file['error']) || is_array($file['error'])) {
-        return sprintf('Parameter berkas %s tidak valid.', $label);
-    }
-    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $err = sprintf('Parameter berkas %s tidak valid.', $label);
+    } elseif ($file['error'] !== UPLOAD_ERR_OK) {
         $msgs = [
             UPLOAD_ERR_INI_SIZE => 'Ukuran berkas melebihi batas server.',
             UPLOAD_ERR_FORM_SIZE => 'Ukuran berkas melebihi batas formulir.',
@@ -505,20 +512,14 @@ function validateUploadFileParams(array $file, string $label): ?string
             UPLOAD_ERR_NO_TMP_DIR => 'Folder sementara server hilang.',
             UPLOAD_ERR_CANT_WRITE => 'Gagal menulis berkas ke penyimpanan.',
         ];
-        return $msgs[(int) $file['error']] ?? sprintf('Unggah berkas %s gagal.', $label);
+        $err = $msgs[(int) $file['error']] ?? sprintf('Unggah berkas %s gagal.', $label);
+    } elseif ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
+        $err = sprintf('Ukuran berkas %s maksimal 2MB.', $label);
+    } elseif (!is_uploaded_file((string) ($file['tmp_name'] ?? ''))) {
+        $err = 'Berkas unggahan tidak sah.';
     }
 
-    $maxBytes = 2 * 1024 * 1024;
-    if ((int) ($file['size'] ?? 0) > $maxBytes) {
-        return sprintf('Ukuran berkas %s maksimal 2MB.', $label);
-    }
-
-    $tmp = (string) ($file['tmp_name'] ?? '');
-    if (!is_uploaded_file($tmp)) {
-        return 'Berkas unggahan tidak sah.';
-    }
-
-    return null;
+    return $err;
 }
 
 /**
@@ -550,18 +551,22 @@ function validateImageMimeAndContent(string $tmp, string $label, bool $allowGif)
     }
 
     $ext = $allowedMimes[$mime];
+    $err = null;
     if ($ext !== 'svg') {
-        $imgInfo = @getimagesize($tmp);
-        if ($imgInfo === false) {
-            return ['ok' => false, 'error' => sprintf('Berkas %s tidak valid atau korup.', $label)];
+        if (@getimagesize($tmp) === false) {
+            $err = sprintf('Berkas %s tidak valid atau korup.', $label);
         }
     } else {
         $svgContent = (string) file_get_contents($tmp);
         $svgPattern = '/<script|javascript:|on\w+\s*=|data:\s*text\/html|'
             . 'xlink:href\s*=\s*[\'"\s]*javascript:|<\?php|<\?=/i';
         if (preg_match($svgPattern, $svgContent)) {
-            return ['ok' => false, 'error' => sprintf('Berkas SVG %s mengandung skrip yang tidak diizinkan.', $label)];
+            $err = sprintf('Berkas SVG %s mengandung skrip yang tidak diizinkan.', $label);
         }
+    }
+
+    if ($err !== null) {
+        return ['ok' => false, 'error' => $err];
     }
 
     return ['ok' => true, 'ext' => $ext];
@@ -602,13 +607,13 @@ function processUploadedImage(
 
     $filename = sprintf('%s.%s', $fileBaseName, (string) $val['ext']);
     $targetPath = $uploadDir . '/' . $filename;
-
-    if (!move_uploaded_file($tmp, $targetPath)) {
-        return ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
+    $moved = move_uploaded_file($tmp, $targetPath);
+    if ($moved) {
+        @chmod($targetPath, 0644); // NOSONAR: Public web upload file requires 0644 web server read access
+        return ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename];
     }
-    chmod($targetPath, 0644);
 
-    return ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename];
+    return ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
 }
 
 /**

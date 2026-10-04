@@ -670,7 +670,11 @@ a:focus-visible {
 .alert-warning {
   background-color: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
+  color: #92400e;
+}
+
+[data-theme="dark"] .alert-warning {
+  color: #fde68a;
 }
 
 .alert-info {
