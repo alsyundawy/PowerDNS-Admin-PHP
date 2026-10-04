@@ -171,6 +171,11 @@ function takeFlash(): ?array
 
 function ensureUserAvatarColumn(): void
 {
+    ensureEnterpriseSchema();
+}
+
+function ensureEnterpriseSchema(): void
+{
     static $checked = false;
     if ($checked) {
         return;
@@ -181,6 +186,54 @@ function ensureUserAvatarColumn(): void
         if ($st && $st->rowCount() === 0) {
             db()->exec("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(255) NOT NULL DEFAULT '' AFTER email");
         }
+        $stTotp = db()->query("SHOW COLUMNS FROM users LIKE 'totp_secret'");
+        if ($stTotp && $stTotp->rowCount() === 0) {
+            db()->exec("ALTER TABLE users
+                ADD COLUMN totp_secret VARCHAR(64) NULL AFTER password_hash,
+                ADD COLUMN totp_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER totp_secret,
+                ADD COLUMN totp_backup_codes TEXT NULL AFTER totp_enabled");
+        }
+        db()->exec("CREATE TABLE IF NOT EXISTS pdns_servers (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(128) NOT NULL,
+          api_url VARCHAR(255) NOT NULL,
+          api_key_encrypted TEXT NOT NULL,
+          server_id VARCHAR(64) NOT NULL DEFAULT 'localhost',
+          is_default TINYINT(1) NOT NULL DEFAULT 0,
+          is_active TINYINT(1) NOT NULL DEFAULT 1,
+          latency_ms INT NULL,
+          last_check_at DATETIME NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_pdns_server_name (name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        db()->exec("CREATE TABLE IF NOT EXISTS webhooks (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(128) NOT NULL,
+          url VARCHAR(512) NOT NULL,
+          secret VARCHAR(128) NOT NULL,
+          events VARCHAR(255) NOT NULL DEFAULT 'zone.created,zone.deleted,record.updated',
+          is_active TINYINT(1) NOT NULL DEFAULT 1,
+          last_status_code INT NULL,
+          last_error VARCHAR(255) NULL,
+          last_triggered_at DATETIME NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        db()->exec("CREATE TABLE IF NOT EXISTS dyndns_tokens (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(128) NOT NULL,
+          token_hash CHAR(64) NOT NULL,
+          hostname VARCHAR(255) NOT NULL,
+          record_type ENUM('A','AAAA','BOTH') NOT NULL DEFAULT 'BOTH',
+          user_id INT UNSIGNED NOT NULL,
+          last_ip VARCHAR(64) NULL,
+          last_update_at DATETIME NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uq_dyndns_token (token_hash),
+          KEY idx_dyndns_host (hostname),
+          KEY idx_dyndns_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     } catch (Throwable) {
         // Table might not exist yet or running in unit tests, safely ignore
     }

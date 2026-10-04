@@ -180,5 +180,86 @@ $initials = strtoupper(substr((string) $profile['username'], 0, 2));
         </div>
       </form>
     </div>
+
+    <!-- Two-Factor Authentication (2FA TOTP RFC 6238) Section -->
+    <div class="panel mt-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h6 mb-0"><i class="fa-solid fa-shield-halved me-2 text-success"></i>Autentikasi Dua Faktor (2FA TOTP)</h3>
+        <?php if (!empty($profile['totp_enabled'])) : ?>
+          <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check me-1"></i>2FA Aktif</span>
+        <?php else : ?>
+          <span class="badge bg-secondary-subtle text-secondary">Belum Aktif</span>
+        <?php endif; ?>
+      </div>
+
+      <?php if (!empty($profile['totp_enabled'])) : ?>
+        <p class="small text-secondary mb-3">Akun Anda dilindungi dengan standar TOTP RFC 6238 (Google Authenticator, Authy, Apple Passwords, 1Password). Setiap login memerlukan kode verifikasi 6-digit.</p>
+        <form method="post" action="/profile/2fa/disable" onsubmit="return confirm('Nonaktifkan perlindungan 2FA untuk akun ini?');" class="stack">
+          <?= csrfField() ?>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-8">
+              <label class="form-label small" for="disable-2fa-pw">Masukkan Kata Sandi Saat Ini untuk Menonaktifkan</label>
+              <input class="form-control form-control-sm" type="password" id="disable-2fa-pw" name="current_password" required>
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-sm btn-outline-danger w-100" type="submit">
+                <i class="fa-solid fa-lock-open me-1"></i> Nonaktifkan 2FA
+              </button>
+            </div>
+          </div>
+        </form>
+      <?php elseif (!empty($totpSetup)) : ?>
+        <div class="border border-success-subtle rounded p-3 bg-dark-subtle mb-3">
+          <h4 class="h6 text-success mb-2"><i class="fa-solid fa-qrcode me-1"></i> Konfigurasi Autentikator Baru</h4>
+          <p class="small text-secondary mb-3">Pindai kode QR berikut menggunakan aplikasi autentikator pilihan Anda atau masukkan kunci manual di bawah ini:</p>
+          <div class="row g-3 align-items-center">
+            <div class="col-sm-5 text-center">
+              <div class="bg-white p-2 rounded d-inline-block shadow-sm">
+                <?= $totpSetup['qrSvg'] ?>
+              </div>
+            </div>
+            <div class="col-sm-7">
+              <label for="secret-copy-input" class="form-label small text-secondary">Kunci Rahasia (Manual Entry):</label>
+              <div class="input-group input-group-sm mb-3">
+                <input type="text" class="form-control font-monospace" value="<?= e((string) $totpSetup['secret']) ?>" id="secret-copy-input" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('secret-copy-input').value); alert('Kunci rahasia disalin!');">
+                  <i class="fa-solid fa-copy"></i> Salin
+                </button>
+              </div>
+              <div class="alert alert-warning p-2 small mb-0">
+                <strong>Simpan Kode Cadangan Darurat:</strong>
+                <div class="font-monospace small mt-1 d-flex flex-wrap gap-1">
+                  <?php foreach ($totpSetup['backup']['plaintext'] as $bCode) : ?>
+                    <span class="badge bg-secondary"><?= e($bCode) ?></span>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </div>
+          </div>
+          <form method="post" action="/profile/2fa/verify" class="mt-3 pt-3 border-top border-secondary-subtle">
+            <?= csrfField() ?>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-7">
+                <label class="form-label small" for="confirm-code">Masukkan 6 Digit Kode dari Aplikasi untuk Konfirmasi</label>
+                <input class="form-control form-control-sm font-monospace text-center fs-6" id="confirm-code" name="code" placeholder="123456" inputmode="numeric" required>
+              </div>
+              <div class="col-md-5">
+                <button class="btn btn-sm btn-success w-100" type="submit">
+                  <i class="fa-solid fa-check me-1"></i> Aktifkan & Kunci 2FA
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      <?php else : ?>
+        <p class="small text-secondary mb-3">Tingkatkan keamanan akun Anda dengan verifikasi 2 langkah (TOTP). Tidak memerlukan SMS atau internet saat menghasilkan kode.</p>
+        <form method="post" action="/profile/2fa/setup">
+          <?= csrfField() ?>
+          <button class="btn btn-sm btn-primary" type="submit">
+            <i class="fa-solid fa-qrcode me-1"></i> Mulai Aktivasi 2FA
+          </button>
+        </form>
+      <?php endif; ?>
+    </div>
   </div>
 </div>

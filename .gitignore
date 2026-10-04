@@ -7,3 +7,5 @@ Thumbs.db
 *.swp
 /vendor/
 !public/assets/vendor/
+node_modules/
+.trunk/

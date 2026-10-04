@@ -62,7 +62,7 @@ declare(strict_types=1);
       <?php endif; ?>
       <span>
         <strong><?= e(appName()) ?></strong>
-        <small>PHP native &bull; v0.2.1</small>
+        <small>PHP native &bull; v0.3.0</small>
       </span>
     </a>
     <nav aria-label="Menu navigasi utama">
@@ -106,10 +106,22 @@ declare(strict_types=1);
         <a class="<?= ($title ?? '') === 'API key' ? 'active' : '' ?>" href="/apikeys">
           <i class="fa-solid fa-key fa-fw"></i> API key
         </a>
+        <a class="<?= str_contains($title ?? '', 'Rekam Massal') ? 'active' : '' ?>" href="/bulk-records">
+          <i class="fa-solid fa-list-check fa-fw"></i> Rekam Massal
+        </a>
       <?php endif; ?>
 
       <?php if (($user['role'] ?? '') === 'admin') : ?>
         <div class="nav-section-title">Sistem</div>
+        <a class="<?= str_contains($title ?? '', 'Cluster') || str_contains($title ?? '', 'Node') ? 'active' : '' ?>" href="/servers">
+          <i class="fa-solid fa-server fa-fw"></i> Node Server
+        </a>
+        <a class="<?= str_contains($title ?? '', 'Webhooks') ? 'active' : '' ?>" href="/webhooks">
+          <i class="fa-solid fa-bolt fa-fw"></i> Webhooks
+        </a>
+        <a class="<?= str_contains($title ?? '', 'Analitik') ? 'active' : '' ?>" href="/analytics">
+          <i class="fa-solid fa-chart-pie fa-fw"></i> Analitik DNS
+        </a>
         <a class="<?= ($title ?? '') === 'Pengguna' ? 'active' : '' ?>" href="/users">
           <i class="fa-solid fa-user-shield fa-fw"></i> Pengguna
         </a>
@@ -160,11 +172,41 @@ declare(strict_types=1);
   </aside>
   <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
   <main class="main">
-    <header class="topbar">
+    <header class="topbar d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
-        <h1><?= e($title ?? '') ?></h1>
-        <p>Panel otoritatif. Record hidup di PowerDNS, bukan di database ini.</p>
+        <h1 class="mb-0 fs-5"><?= e($title ?? '') ?></h1>
+        <p class="mb-0 small text-secondary">Panel otoritatif. Record hidup di PowerDNS, bukan di database ini.</p>
       </div>
+      <?php if (!empty($user) && in_array($user['role'] ?? '', ['admin', 'operator'], true)) : ?>
+        <?php
+          $clusterServers = class_exists('PdnsCluster') ? PdnsCluster::listServers() : [];
+          $activeServer = class_exists('PdnsCluster') ? PdnsCluster::getActiveServer() : null;
+          ?>
+        <?php if (!empty($clusterServers)) : ?>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="badge bg-success rounded-pill" style="width: 8px; height: 8px; padding: 0;"></span>
+              <i class="fa-solid fa-server small"></i>
+              <span>Node: <strong><?= e((string) ($activeServer['name'] ?? 'Default')) ?></strong></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li><h6 class="dropdown-header">Pilih PowerDNS Node</h6></li>
+              <?php foreach ($clusterServers as $srv) : ?>
+                <li>
+                  <a class="dropdown-item d-flex justify-content-between align-items-center <?= ((int) ($activeServer['id'] ?? 0) === (int) $srv['id']) ? 'active' : '' ?>" href="/servers/switch?id=<?= (int) $srv['id'] ?>">
+                    <span><?= e((string) $srv['name']) ?></span>
+                    <?php if (isset($srv['latency_ms'])) : ?>
+                      <span class="badge bg-secondary-subtle text-secondary small ms-2"><?= (int) $srv['latency_ms'] ?>ms</span>
+                    <?php endif; ?>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item small text-primary" href="/servers"><i class="fa-solid fa-gear me-1"></i> Kelola Node Cluster</a></li>
+            </ul>
+          </div>
+        <?php endif; ?>
+      <?php endif; ?>
     </header>
     <?php if (!empty($flash)) : ?>
       <div class="alert alert-<?= e($flash['type']) ?>" role="alert"><?= e($flash['message']) ?></div>
@@ -174,10 +216,10 @@ declare(strict_types=1);
     <footer class="app-footer text-secondary small py-3 mt-4 border-top border-secondary-subtle">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
-          <?= appFooterText() ?>
+          <?= e(appFooterText()) ?>
         </div>
         <div class="d-flex gap-3">
-          <span>v0.2.1</span>
+          <span>v0.3.0</span>
           <?php if (($user['role'] ?? '') === 'admin') : ?>
             <a href="/backup" class="text-secondary text-decoration-none">Cadangan</a>
             <a href="/settings" class="text-secondary text-decoration-none">Pengaturan</a>

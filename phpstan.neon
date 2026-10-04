@@ -14,6 +14,15 @@ parameters:
         - app/csrf.php
         - app/dns_name.php
         - app/network_tools.php
+        - app/PdnsDnssecTrait.php
+        - app/PdnsMetadataTrait.php
         - app/PdnsClient.php
+        - app/totp.php
+        - app/PdnsCluster.php
+        - app/cache.php
+        - app/webhook_services.php
+        - app/zone_linter.php
+        - app/analytics.php
         - app/services.php
+        - app/backup_services.php
         - app/handlers.php

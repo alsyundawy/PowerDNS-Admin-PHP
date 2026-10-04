@@ -1156,3 +1156,129 @@ table tbody tr:hover {
 .app-footer {
   font-size: 0.825rem;
 }
+
+/* ==========================================================================
+   Ultra-Small Device Breakpoint (Xiaomi Redmi 9A, Redmi Note, Poco C series)
+   360×640 up to 390×844 — critical for MIUI / HyperOS WebView rendering
+   ========================================================================== */
+
+@media (max-width: 390px) {
+  .main {
+    padding: 12px max(10px, var(--safe-right)) max(24px, var(--safe-bottom))
+      max(10px, var(--safe-left));
+  }
+
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  .panel {
+    padding: 12px 10px;
+    border-radius: var(--radius-sm);
+  }
+
+  .panel header h2 {
+    font-size: 15px;
+  }
+
+  .auth-card {
+    padding: 18px 14px;
+  }
+
+  .stat-grid strong {
+    font-size: 20px;
+  }
+
+  .toolbar > *,
+  .zone-head > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 13px;
+  }
+
+  /* Prevent button text overflow on very small screens */
+  .btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Zone action buttons must wrap gracefully */
+  .zone-head .d-flex.gap-2 {
+    gap: 6px !important;
+  }
+
+  .zone-head .btn i {
+    margin-right: 0 !important;
+  }
+
+  .zone-head .btn span,
+  .zone-head .btn .me-1 + * {
+    display: none;
+  }
+
+  /* Narrow record table on small Xiaomi screens */
+  #record-table {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-nav-bar {
+    padding: max(10px, var(--safe-top)) max(10px, var(--safe-right)) 10px
+      max(10px, var(--safe-left));
+  }
+
+  .brand-mini span.fw-bold {
+    font-size: 13px;
+  }
+
+  .topbar h1 {
+    font-size: 16px;
+  }
+
+  .stat-grid {
+    gap: 8px;
+  }
+
+  .stat-grid article {
+    padding: 12px 10px;
+  }
+
+  .sidebar {
+    width: 260px;
+  }
+}
+
+/* Fix body horizontal overflow on all mobile - most common Xiaomi issue */
+@media (max-width: 991.98px) {
+  body,
+  html {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+  }
+
+  .main {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure table containers don't exceed viewport */
+  .table-responsive {
+    max-width: calc(100vw - 28px);
+  }
+
+  /* Word break for code content in read-only zone view */
+  td code {
+    word-break: break-all;
+    max-width: 240px;
+    display: inline-block;
+  }
+}

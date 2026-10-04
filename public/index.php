@@ -27,6 +27,12 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
     require_once dirname(__DIR__) . '/app/PdnsDnssecTrait.php';
     require_once dirname(__DIR__) . '/app/PdnsMetadataTrait.php';
     require_once dirname(__DIR__) . '/app/PdnsClient.php';
+    require_once dirname(__DIR__) . '/app/totp.php';
+    require_once dirname(__DIR__) . '/app/PdnsCluster.php';
+    require_once dirname(__DIR__) . '/app/cache.php';
+    require_once dirname(__DIR__) . '/app/webhook_services.php';
+    require_once dirname(__DIR__) . '/app/zone_linter.php';
+    require_once dirname(__DIR__) . '/app/analytics.php';
     require_once dirname(__DIR__) . '/app/services.php';
     require_once dirname(__DIR__) . '/app/backup_services.php';
     require_once dirname(__DIR__) . '/app/handlers.php';
@@ -82,6 +88,14 @@ if ($path === '/login') {
     handleLogin();
     exit;
 }
+if ($path === '/login/2fa') {
+    handleLogin2Fa();
+    exit;
+}
+if ($path === '/login/cancel-2fa') {
+    handleCancel2Fa();
+    exit;
+}
 if ($path === '/logout' && $method === 'POST') {
     handleLogout();
 }
@@ -118,6 +132,14 @@ if ($path === '/') {
     handleAudit($user);
 } elseif ($path === '/settings') {
     handleSettings($user);
+} elseif (str_starts_with($path, '/servers')) {
+    handleServers($user, $path, $method);
+} elseif (str_starts_with($path, '/webhooks')) {
+    handleWebhooks($user, $path, $method);
+} elseif (str_starts_with($path, '/bulk-records')) {
+    handleBulkRecords($user, $path, $method);
+} elseif (str_starts_with($path, '/analytics')) {
+    handleAnalytics($user, $path);
 } elseif (str_starts_with($path, '/profile')) {
     handleProfile($user, $path, $method);
 } elseif (str_starts_with($path, '/backup')) {

@@ -72,6 +72,34 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
   </div>
 </div>
 
+<?php
+$zoneRrsets = is_array($data['rrsets'] ?? null) ? $data['rrsets'] : [];
+$rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrsets) : [];
+?>
+<?php if (!empty($rfcIssues)) : ?>
+  <div class="alert alert-warning mb-3" role="alert">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <strong class="d-flex align-items-center gap-1">
+        <i class="fa-solid fa-triangle-exclamation"></i> Diagnostik Kepatuhan RFC (<?= count($rfcIssues) ?> Catatan)
+      </strong>
+      <button class="btn btn-xs btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#rfc-issues-collapse">
+        Detail & Solusi
+      </button>
+    </div>
+    <div class="collapse show mt-2" id="rfc-issues-collapse">
+      <ul class="mb-0 ps-3 small">
+        <?php foreach ($rfcIssues as $iss) : ?>
+          <li class="mb-1">
+            <span class="badge bg-<?= $iss['severity'] === 'error' ? 'danger' : 'warning text-dark' ?> me-1"><?= e($iss['code']) ?></span>
+            <strong><?= e($iss['message']) ?></strong>
+            <span class="text-secondary">&rarr; <?= e($iss['suggestion']) ?></span>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+  </div>
+<?php endif; ?>
+
 <?php if ($canEdit) : ?>
   <form method="post" action="/zones/<?= e($cleanZone) ?>/save" id="record-form">
     <?= csrfField() ?>

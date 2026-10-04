@@ -121,6 +121,65 @@ function validateExtendedRecord(string $type, string $content): ?string
     };
 }
 
+/**
+ * Validate IP address records (A, AAAA).
+ */
+function validateIpRecord(string $type, string $content): ?string
+{
+    if ($type === 'A') {
+        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? null : 'A harus alamat IPv4 valid.';
+    }
+    if ($type === 'AAAA') {
+        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? null : 'AAAA harus alamat IPv6 valid.';
+    }
+    return null;
+}
+
+/**
+ * Validate target hostname records (CNAME, NS, PTR, ALIAS, DNAME).
+ */
+function validateNameRecord(string $type, string $content): ?string
+{
+    if (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME'], true)) {
+        return preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.')) ? null : 'Nama host target tidak valid.';
+    }
+    return null;
+}
+
+/**
+ * Validate special format records (MX, SRV, CAA, TXT, SPF).
+ */
+function validateSpecialRecord(string $type, string $content): ?string
+{
+    $error = null;
+    if ($type === 'MX') {
+        $error = preg_match('/^\d{1,5}\s+\S+$/', $content)
+            ? null : 'MX harus format: "prioritas hostname" (contoh: 10 mail.example.com).';
+    } elseif ($type === 'SRV') {
+        $error = preg_match(REGEX_NUM_NUM_NUM_STR, $content)
+            ? null : 'SRV harus format: "prio weight port target".';
+    } elseif ($type === 'CAA') {
+        $error = preg_match('/^\d+\s+\S+\s+/', $content) ? null : 'CAA harus format: "flags tag value".';
+    } elseif ($type === 'TXT' || $type === 'SPF') {
+        $error = strlen($content) > 4096 ? 'Teks terlalu panjang (maksimal 4096 karakter).' : null;
+    }
+    return $error;
+}
+
+/**
+ * Validate standard DNS records (A, AAAA, CNAME, MX, SRV, CAA, TXT, etc.).
+ */
+function validateStandardRecord(string $type, string $content): ?string
+{
+    if ($type === 'A' || $type === 'AAAA') {
+        return validateIpRecord($type, $content);
+    }
+    if (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME'], true)) {
+        return validateNameRecord($type, $content);
+    }
+    return validateSpecialRecord($type, $content);
+}
+
 function validateRecord(string $type, string $content): ?string
 {
     $type = strtoupper($type);
@@ -131,26 +190,16 @@ function validateRecord(string $type, string $content): ?string
     if (!in_array($type, RECORD_TYPES, true)) {
         return 'Tipe record tidak diizinkan.';
     }
+
     if (in_array($type, ['DS', 'CDS', 'DNSKEY', 'CDNSKEY', 'TLSA', 'SMIMEA', 'SSHFP', 'CERT', 'CSYNC'], true)) {
-        return validateSecurityRecord($type, $content);
-    }
-    if (in_array($type, ['HTTPS', 'SVCB', 'URI', 'HINFO', 'RP'], true)) {
-        return validateExtendedRecord($type, $content);
+        $result = validateSecurityRecord($type, $content);
+    } elseif (in_array($type, ['HTTPS', 'SVCB', 'URI', 'HINFO', 'RP'], true)) {
+        $result = validateExtendedRecord($type, $content);
+    } else {
+        $result = validateStandardRecord($type, $content);
     }
 
-    return match ($type) {
-        'A' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? null : 'A harus alamat IPv4 valid.',
-        'AAAA' => filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? null : 'AAAA harus alamat IPv6 valid.',
-        'CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME' => preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.'))
-            ? null : 'Nama host target tidak valid.',
-        'MX' => preg_match('/^\d{1,5}\s+\S+$/', $content)
-            ? null : 'MX harus format: "prioritas hostname" (contoh: 10 mail.example.com).',
-        'SRV' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
-            ? null : 'SRV harus format: "prio weight port target".',
-        'CAA' => preg_match('/^\d+\s+\S+\s+/', $content) ? null : 'CAA harus format: "flags tag value".',
-        'TXT', 'SPF' => strlen($content) > 4096 ? 'Teks terlalu panjang (maksimal 4096 karakter).' : null,
-        default => null,
-    };
+    return $result;
 }
 
 function normalizeContent(string $type, string $content): string
@@ -999,4 +1048,310 @@ function findMatchingZoneForHostname(string $hostname): ?string
         }
     }
     return $bestMatch;
+}
+
+/**
+ * Check and collect matching records within a single RRset.
+ *
+ * @param array<string, mixed> $rr
+ * @return list<array{zone: string, name: string, type: string, ttl: int, content: string, disabled: bool}>
+ */
+function matchRrsetRecords(string $zoneName, array $rr, string $query): array
+{
+    $matches = [];
+    $recName = (string) ($rr['name'] ?? '');
+    $type = (string) ($rr['type'] ?? '');
+    $ttl = (int) ($rr['ttl'] ?? 300);
+
+    foreach ($rr['records'] ?? [] as $rec) {
+        $content = (string) ($rec['content'] ?? '');
+        if (stripos($content, $query) !== false || stripos($recName, $query) !== false) {
+            $matches[] = [
+                'zone' => $zoneName,
+                'name' => $recName,
+                'type' => $type,
+                'ttl' => $ttl,
+                'content' => $content,
+                'disabled' => !empty($rec['disabled']),
+            ];
+        }
+    }
+    return $matches;
+}
+
+/**
+ * Search matching records in a single authoritative zone.
+ *
+ * @return list<array{zone: string, name: string, type: string, ttl: int, content: string, disabled: bool}>
+ */
+function searchZoneRrsets(PdnsClient $pdns, string $zoneName, string $query, ?string $typeFilter): array
+{
+    $matches = [];
+    try {
+        $data = $pdns->zone($zoneName);
+        $rrsets = is_array($data['rrsets'] ?? null) ? $data['rrsets'] : [];
+        foreach ($rrsets as $rr) {
+            if ($typeFilter !== null && strtoupper((string) $rr['type']) !== $typeFilter) {
+                continue;
+            }
+            $matched = matchRrsetRecords($zoneName, $rr, $query);
+            if (!empty($matched)) {
+                array_push($matches, ...$matched);
+            }
+        }
+    } catch (Throwable) {
+        return [];
+    }
+    return $matches;
+}
+
+/**
+ * Search records across authoritative zones by content or record name.
+ *
+ * @param array<int, string> $allowedZones
+ * @return array<int, array{zone: string, name: string, type: string, ttl: int, content: string, disabled: bool}>
+ */
+function bulkSearchRecords(
+    PdnsClient $pdns,
+    string $query,
+    ?string $typeFilter = null,
+    array $allowedZones = []
+): array {
+    $query = trim($query);
+    if ($query === '') {
+        return [];
+    }
+
+    $allZones = $pdns->zones();
+    $matches = [];
+    $typeFilter = $typeFilter !== null && trim($typeFilter) !== '' ? strtoupper(trim($typeFilter)) : null;
+
+    foreach ($allZones as $z) {
+        $zoneName = dnsCanonical((string) $z['name']);
+        if (!empty($allowedZones) && !in_array($zoneName, $allowedZones, true)) {
+            continue;
+        }
+
+        $zoneMatches = searchZoneRrsets($pdns, $zoneName, $query, $typeFilter);
+        if (!empty($zoneMatches)) {
+            array_push($matches, ...$zoneMatches);
+        }
+    }
+
+    return $matches;
+}
+
+/**
+ * Build patched RRset list for a single zone.
+ *
+ * @param array<int, array<string, mixed>> $rrsets
+ * @return array{patch: list<array<string, mixed>>, replaced: int}
+ */
+/**
+ * Patch a single DNS record if its content matches target.
+ *
+ * @param array<string, mixed> $rec
+ * @return array{record: array<string, mixed>, replaced: bool}
+ */
+function patchSingleRecord(array $rec, string $target, string $replacement): array
+{
+    $c = (string) ($rec['content'] ?? '');
+    if ($c === $target || stripos($c, $target) !== false) {
+        $newC = str_ireplace($target, $replacement, $c);
+        return [
+            'record' => [
+                'content' => $newC,
+                'disabled' => !empty($rec['disabled']),
+            ],
+            'replaced' => true,
+        ];
+    }
+    return ['record' => $rec, 'replaced' => false];
+}
+
+/**
+ * Patch records inside a single RRset.
+ *
+ * @param array<string, mixed> $rr
+ * @return array{patch: ?array<string, mixed>, replaced: int}
+ */
+function patchSingleRrset(array $rr, string $targetContent, string $replacementContent): array
+{
+    $rrModified = false;
+    $newRecords = [];
+    $count = 0;
+
+    foreach ($rr['records'] ?? [] as $rec) {
+        $res = patchSingleRecord($rec, $targetContent, $replacementContent);
+        $newRecords[] = $res['record'];
+        if ($res['replaced']) {
+            $rrModified = true;
+            $count++;
+        }
+    }
+
+    if (!$rrModified) {
+        return ['patch' => null, 'replaced' => 0];
+    }
+
+    return [
+        'patch' => [
+            'name' => $rr['name'],
+            'type' => $rr['type'],
+            'ttl' => (int) ($rr['ttl'] ?? 300),
+            'changetype' => 'REPLACE',
+            'records' => $newRecords,
+        ],
+        'replaced' => $count,
+    ];
+}
+
+/**
+ * Build patched RRset list for a single zone.
+ *
+ * @param array<int, array<string, mixed>> $rrsets
+ * @return array{patch: list<array<string, mixed>>, replaced: int}
+ */
+function buildPatchedZoneRrsets(
+    array $rrsets,
+    string $targetContent,
+    string $replacementContent,
+    ?string $typeFilter
+): array {
+    $patchRrsets = [];
+    $modifiedInZone = 0;
+
+    foreach ($rrsets as $rr) {
+        if ($typeFilter !== null && strtoupper((string) $rr['type']) !== $typeFilter) {
+            continue;
+        }
+
+        $res = patchSingleRrset($rr, $targetContent, $replacementContent);
+        if ($res['patch'] !== null) {
+            $patchRrsets[] = $res['patch'];
+            $modifiedInZone += $res['replaced'];
+        }
+    }
+
+    return ['patch' => $patchRrsets, 'replaced' => $modifiedInZone];
+}
+
+/**
+ * Apply patched RRsets to a single zone with snapshot, cache invalidation, and auditing.
+ *
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $currentData
+ * @param list<array<string, mixed>> $patchRrsets
+ * @param array{from: string, to: string} $replacePair
+ */
+function applyZoneBulkPatch(
+    PdnsClient $pdns,
+    array $user,
+    string $zoneName,
+    array $currentData,
+    array $patchRrsets,
+    int $modifiedInZone,
+    array $replacePair
+): void {
+    $desc = 'Bulk Search & Replace: ' . $replacePair['from'] . ' -> ' . $replacePair['to'];
+    saveZoneSnapshot($zoneName, $currentData, $user, $desc);
+    $pdns->patchRrsets($zoneName, $patchRrsets);
+
+    if (class_exists('AppCache')) {
+        AppCache::invalidateZone($zoneName);
+    }
+    $auditMsg = "Mengganti {$modifiedInZone} record '{$replacePair['from']}' -> '{$replacePair['to']}'";
+    audit($user, 'bulk_replace_records', $zoneName, $auditMsg);
+    if (function_exists('dispatchWebhookEvent')) {
+        dispatchWebhookEvent('record.updated', [
+            'zone' => $zoneName,
+            'action' => 'bulk_replace',
+            'replaced' => $modifiedInZone,
+        ]);
+    }
+}
+
+/**
+ * Process replace for a single zone.
+ *
+ * @param array<string, mixed> $user
+ * @return array{modified: int, replaced: int, error: ?string}
+ */
+function processZoneBulkReplace(
+    PdnsClient $pdns,
+    array $user,
+    string $zoneName,
+    string $targetContent,
+    string $replacementContent,
+    ?string $typeFilter
+): array {
+    try {
+        $currentData = $pdns->zone($zoneName);
+        $rrsets = is_array($currentData['rrsets'] ?? null) ? $currentData['rrsets'] : [];
+        $res = buildPatchedZoneRrsets($rrsets, $targetContent, $replacementContent, $typeFilter);
+        if (!empty($res['patch'])) {
+            applyZoneBulkPatch(
+                $pdns,
+                $user,
+                $zoneName,
+                $currentData,
+                $res['patch'],
+                $res['replaced'],
+                ['from' => $targetContent, 'to' => $replacementContent]
+            );
+            return ['modified' => 1, 'replaced' => $res['replaced'], 'error' => null];
+        }
+        return ['modified' => 0, 'replaced' => 0, 'error' => null];
+    } catch (Throwable $e) {
+        return ['modified' => 0, 'replaced' => 0, 'error' => "Zona {$zoneName}: " . $e->getMessage()];
+    }
+}
+
+/**
+ * Execute mass atomic search and replace across specified or all managed zones.
+ * Automatically saves zone snapshots prior to mutation for instant rollback.
+ *
+ * @param array<string, mixed> $user
+ * @param array<int, string> $targetZones
+ * @return array{zones_modified: int, records_replaced: int, errors: array<int, string>}
+ */
+function bulkReplaceRecords(
+    PdnsClient $pdns,
+    array $user,
+    string $targetContent,
+    string $replacementContent,
+    ?string $typeFilter = null,
+    array $targetZones = []
+): array {
+    $targetContent = trim($targetContent);
+    $replacementContent = trim($replacementContent);
+    if ($targetContent === '') {
+        return ['zones_modified' => 0, 'records_replaced' => 0, 'errors' => ['Target konten pencarian kosong']];
+    }
+
+    $typeFilter = $typeFilter !== null && trim($typeFilter) !== '' ? strtoupper(trim($typeFilter)) : null;
+    $allZones = $pdns->zones();
+    $zonesModified = 0;
+    $recordsReplaced = 0;
+    $errors = [];
+
+    foreach ($allZones as $z) {
+        $zoneName = dnsCanonical((string) $z['name']);
+        if (!empty($targetZones) && !in_array($zoneName, $targetZones, true)) {
+            continue;
+        }
+
+        $res = processZoneBulkReplace($pdns, $user, $zoneName, $targetContent, $replacementContent, $typeFilter);
+        $zonesModified += $res['modified'];
+        $recordsReplaced += $res['replaced'];
+        if ($res['error'] !== null) {
+            $errors[] = $res['error'];
+        }
+    }
+
+    return [
+        'zones_modified' => $zonesModified,
+        'records_replaced' => $recordsReplaced,
+        'errors' => $errors,
+    ];
 }

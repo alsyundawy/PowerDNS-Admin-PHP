@@ -7,6 +7,9 @@ const PATH_ZONES = '/zones/';
 const PATH_TOOLS_RDNS = '/tools/rdns';
 const PATH_SETTINGS = '/settings';
 const PATH_PROFILE = '/profile';
+const PATH_LOGIN = '/login';
+const PATH_SERVERS = '/servers';
+const PATH_WEBHOOKS = '/webhooks';
 const PATH_BACKUP = '/backup';
 const PATH_PUBLIC = '/public';
 const SQLSTATE_DUPLICATE = '23000';
@@ -120,7 +123,7 @@ function handleInstall(): void
                     ['user' => $admin, 'pass' => $adminPass],
                     ['url' => $pdnsUrl, 'key' => $pdnsKey]
                 );
-                redirect('/login');
+                redirect(PATH_LOGIN);
             } catch (Throwable $ex) {
                 $error = 'Instalasi gagal: ' . $ex->getMessage();
             }
@@ -161,35 +164,102 @@ function loginUserSession(array $user, string $password): void
     redirect('/');
 }
 
+function executeLoginAttempt(string $username, string $password, string $ip): string
+{
+    if (isLoginThrottled($ip, $username)) {
+        return 'Terlalu banyak percobaan. Tunggu 15 menit.';
+    }
+
+    $st = db()->prepare('SELECT * FROM users WHERE username = ?');
+    $st->execute([$username]);
+    $user = $st->fetch();
+    $ok = $user && (int) $user['active'] === 1 && password_verify($password, (string) $user['password_hash']);
+    db()->prepare('INSERT INTO login_attempts (username, ip, success) VALUES (?, ?, ?)')
+        ->execute([$username, $ip, $ok ? 1 : 0]);
+
+    if (!$ok) {
+        return 'Username atau sandi salah.';
+    }
+
+    if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
+        $_SESSION['pending_2fa_user_id'] = (int) $user['id'];
+        $_SESSION['pending_2fa_pw'] = $password;
+        redirect('/login?2fa=1');
+    }
+
+    loginUserSession($user, $password);
+    return '';
+}
+
 function handleLogin(): void
 {
     if (currentUser()) {
         redirect('/');
+    }
+    if (!empty($_SESSION['pending_2fa_user_id']) && isset($_GET['2fa'])) {
+        handleLogin2Fa();
+        return;
     }
     $error = '';
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         csrfCheck();
         $username = trim((string) ($_POST['username'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
-        $ip = clientIp();
-
-        if (isLoginThrottled($ip, $username)) {
-            $error = 'Terlalu banyak percobaan. Tunggu 15 menit.';
-        } else {
-            $st = db()->prepare('SELECT * FROM users WHERE username = ?');
-            $st->execute([$username]);
-            $user = $st->fetch();
-            $ok = $user && (int) $user['active'] === 1 && password_verify($password, (string) $user['password_hash']);
-            db()->prepare('INSERT INTO login_attempts (username, ip, success) VALUES (?, ?, ?)')
-                ->execute([$username, $ip, $ok ? 1 : 0]);
-            if ($ok) {
-                loginUserSession($user, $password);
-                return;
-            }
-            $error = 'Username atau sandi salah.';
-        }
+        $error = executeLoginAttempt($username, $password, clientIp());
     }
     view('login', ['title' => 'Masuk', 'error' => $error]);
+}
+
+function handleLogin2Fa(): void
+{
+    $pendingId = $_SESSION['pending_2fa_user_id'] ?? null;
+    if (!$pendingId) {
+        redirect(PATH_LOGIN);
+    }
+    $st = db()->prepare('SELECT * FROM users WHERE id = ? AND active = 1');
+    $st->execute([(int) $pendingId]);
+    $user = $st->fetch();
+    if (!$user) {
+        unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_pw']);
+        redirect(PATH_LOGIN);
+    }
+
+    $error = '';
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        csrfCheck();
+        $code = trim((string) ($_POST['totp_code'] ?? ''));
+        $secret = (string) ($user['totp_secret'] ?? '');
+
+        $valid = totpVerify($secret, $code);
+        if (!$valid && !empty($user['totp_backup_codes'])) {
+            $backupList = json_decode((string) $user['totp_backup_codes'], true);
+            if (is_array($backupList) && totpVerifyBackupCode($code, $backupList)) {
+                $valid = true;
+                db()->prepare('UPDATE users SET totp_backup_codes = ? WHERE id = ?')
+                    ->execute([json_encode($backupList), (int) $user['id']]);
+            }
+        }
+
+        if ($valid) {
+            $password = (string) ($_SESSION['pending_2fa_pw'] ?? '');
+            unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_pw']);
+            loginUserSession($user, $password);
+            return;
+        }
+        $error = 'Kode verifikasi 2FA atau kode cadangan tidak valid.';
+    }
+
+    view('login', [
+        'title' => 'Verifikasi 2FA',
+        'error' => $error,
+        'is2FaChallenge' => true,
+    ]);
+}
+
+function handleCancel2Fa(): void
+{
+    unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_pw']);
+    redirect(PATH_LOGIN);
 }
 
 function handleLogout(): void
@@ -197,7 +267,7 @@ function handleLogout(): void
     csrfCheck();
     $_SESSION = [];
     session_destroy();
-    redirect('/login');
+    redirect(PATH_LOGIN);
 }
 
 /**
@@ -360,6 +430,13 @@ function executeZoneCreation(
         applyTemplate($pdns, $name, $tpl);
     }
     audit($user, 'create-zone', $name, $kind);
+    dispatchWebhookEvent('zone.created', [
+        'zone' => $name,
+        'kind' => $kind,
+        'user' => $user['username'] ?? 'system',
+        'timestamp' => time(),
+    ]);
+    AppCache::invalidateZone($name);
     $msg = 'Zona ' . dnsDisplay($name) . ' dibuat.';
     if (!empty($initialRrsets)) {
         $msg .= ' (' . count($initialRrsets) . ' RRset diimpor dari berkas BIND).';
@@ -506,8 +583,11 @@ function handleZoneShow(array $user, string $zoneRaw): void
     requireZoneAccess($user, $zone, false);
     $error = '';
     try {
-        $pdns = PdnsClient::fromSettings();
-        $data = $pdns->zone($zone);
+        /** @var array<string, mixed> $data */
+        $data = AppCache::rememberZone($zone, function () use ($zone): array {
+            $pdns = PdnsClient::fromSettings();
+            return $pdns->zone($zone);
+        }, 30);
     } catch (Throwable $ex) {
         view('error', ['title' => 'Zona', 'message' => $ex->getMessage(), 'user' => $user]);
         return;
@@ -594,6 +674,13 @@ function handleZoneSave(array $user, string $zoneRaw): void
         if ($diff) {
             saveZoneSnapshot($zone, $current, $user, 'Pembaruan record zona');
             $pdns->patchRrsets($zone, $diff);
+            dispatchWebhookEvent('record.updated', [
+                'zone' => $zone,
+                'user' => $user['username'] ?? 'system',
+                'diff_count' => count($diff),
+                'timestamp' => time(),
+            ]);
+            AppCache::invalidateZone($zone);
         }
 
         $ptrSynced = 0;
@@ -632,6 +719,12 @@ function handleZoneDelete(array $user, string $zoneRaw): void
         PdnsClient::fromSettings()->deleteZone($zone);
         db()->prepare('DELETE FROM zones WHERE name = ?')->execute([$zone]);
         audit($user, 'delete-zone', $zone, '');
+        dispatchWebhookEvent('zone.deleted', [
+            'zone' => $zone,
+            'user' => $user['username'] ?? 'system',
+            'timestamp' => time(),
+        ]);
+        AppCache::invalidateZone($zone);
         flash('success', 'Zona dihapus dari PowerDNS.');
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
@@ -2104,6 +2197,101 @@ function deleteProfileAvatar(int $userId, array $user, array $freshUser): void
 }
 
 /**
+ * Verify submitted TOTP token during profile 2FA enrollment.
+ *
+ * @param array<string, mixed> $user
+ */
+function verifyProfile2fa(int $userId, array $user): void
+{
+    $setup = $_SESSION['pending_totp_setup'] ?? null;
+    if (!$setup || empty($setup['secret'])) {
+        flash('danger', 'Sesi setup 2FA telah berakhir.');
+        return;
+    }
+    $code = trim((string) ($_POST['code'] ?? ''));
+    if (totpVerify((string) $setup['secret'], $code)) {
+        $stUp = db()->prepare(
+            'UPDATE users SET totp_secret = ?, totp_enabled = 1, totp_backup_codes = ? WHERE id = ?'
+        );
+        $stUp->execute([
+            $setup['secret'],
+            json_encode($setup['backup']['hashed']),
+            $userId,
+        ]);
+        unset($_SESSION['pending_totp_setup']);
+        audit($user, 'profile', '', 'Mengaktifkan Autentikasi Dua Faktor (2FA TOTP)');
+        flash('success', 'Autentikasi Dua Faktor (2FA) berhasil diaktifkan!');
+        return;
+    }
+    flash('danger', 'Kode 6-digit tidak valid. Pastikan waktu jam perangkat Anda akurat.');
+}
+
+/**
+ * Disable TOTP 2FA for user profile after password verification.
+ *
+ * @param array<string, mixed> $user
+ */
+function disableProfile2fa(int $userId, array $user, string $passwordHash): void
+{
+    $pw = (string) ($_POST['current_password'] ?? '');
+    if (password_verify($pw, $passwordHash)) {
+        $stUp = db()->prepare(
+            'UPDATE users SET totp_secret = NULL, totp_enabled = 0, totp_backup_codes = NULL WHERE id = ?'
+        );
+        $stUp->execute([$userId]);
+        audit($user, 'profile', '', 'Menonaktifkan Autentikasi Dua Faktor (2FA)');
+        flash('success', 'Autentikasi Dua Faktor (2FA) telah dinonaktifkan.');
+        return;
+    }
+    flash('danger', 'Kata sandi saat ini salah.');
+}
+
+/**
+ * Handle 2FA enrollment and disabling actions.
+ *
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $freshUser
+ */
+function handleProfile2faActions(int $userId, array $user, array $freshUser, string $path): void
+{
+    csrfCheck();
+    if ($path === '/profile/2fa/setup') {
+        $secret = totpGenerateSecret(20);
+        $backup = totpGenerateBackupCodes(10, 8);
+        $_SESSION['pending_totp_setup'] = [
+            'secret' => $secret,
+            'backup' => $backup,
+        ];
+    } elseif ($path === '/profile/2fa/verify') {
+        verifyProfile2fa($userId, $user);
+    } elseif ($path === '/profile/2fa/disable') {
+        disableProfile2fa($userId, $user, (string) $freshUser['password_hash']);
+    }
+    redirect(PATH_PROFILE);
+}
+
+/**
+ * Dispatch POST actions for user profile management.
+ *
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $freshUser
+ */
+function handleProfilePostActions(int $userId, array $user, array $freshUser, string $path): void
+{
+    if ($path === '/profile/update') {
+        updateProfileInfo($userId, $user);
+    } elseif ($path === '/profile/password') {
+        updateProfilePassword($userId, $user);
+    } elseif ($path === '/profile/avatar') {
+        updateProfileAvatar($userId, $user, $freshUser);
+    } elseif ($path === '/profile/avatar/delete') {
+        deleteProfileAvatar($userId, $user, $freshUser);
+    } elseif (str_starts_with($path, '/profile/2fa/')) {
+        handleProfile2faActions($userId, $user, $freshUser, $path);
+    }
+}
+
+/**
  * Handler for User Profile management (display name, email, password, and avatar).
  *
  * @param array<string, mixed> $user
@@ -2111,8 +2299,11 @@ function deleteProfileAvatar(int $userId, array $user, array $freshUser): void
 function handleProfile(array $user, string $path, string $method): void
 {
     $userId = (int) ($user['id'] ?? 0);
+    ensureEnterpriseSchema();
     $st = db()->prepare(
-        'SELECT id, username, display_name, email, avatar_url, role, active, last_login_at, created_at ' .
+        'SELECT id, username, display_name, email, avatar_url, role, active, ' .
+        'password_hash, last_login_at, created_at, ' .
+        'totp_secret, totp_enabled, totp_backup_codes ' .
         'FROM users WHERE id = ?'
     );
     $st->execute([$userId]);
@@ -2124,21 +2315,26 @@ function handleProfile(array $user, string $path, string $method): void
     }
 
     if ($method === 'POST') {
-        if ($path === '/profile/update') {
-            updateProfileInfo($userId, $user);
-        } elseif ($path === '/profile/password') {
-            updateProfilePassword($userId, $user);
-        } elseif ($path === '/profile/avatar') {
-            updateProfileAvatar($userId, $user, $freshUser);
-        } elseif ($path === '/profile/avatar/delete') {
-            deleteProfileAvatar($userId, $user, $freshUser);
-        }
+        handleProfilePostActions($userId, $user, $freshUser, $path);
+    }
+
+    $totpSetup = null;
+    if (!empty($_SESSION['pending_totp_setup'])) {
+        $setupData = $_SESSION['pending_totp_setup'];
+        $uri = totpGetProvisioningUri((string) $setupData['secret'], (string) $freshUser['username'], appName());
+        $totpSetup = [
+            'secret' => $setupData['secret'],
+            'uri' => $uri,
+            'qrSvg' => totpGenerateQrSvg($uri, 180),
+            'backup' => $setupData['backup'],
+        ];
     }
 
     view('profile', [
         'title' => 'Profil Pengguna',
         'user' => $user,
         'profile' => $freshUser,
+        'totpSetup' => $totpSetup,
     ]);
 }
 
@@ -2352,4 +2548,341 @@ function handleBackup(array $user, string $path, string $method): void
         'title' => 'Cadangan & Pemulihan',
         'user' => $user,
     ], $overview));
+}
+
+/**
+ * Dispatch POST actions for PowerDNS cluster node management.
+ */
+function handleServersPost(string $path): void
+{
+    if ($path === '/servers/add') {
+        $name = trim((string) ($_POST['name'] ?? ''));
+        $apiUrl = trim((string) ($_POST['api_url'] ?? ''));
+        $apiKey = (string) ($_POST['api_key'] ?? '');
+        $serverId = trim((string) ($_POST['server_id'] ?? 'localhost'));
+        $isDefault = !empty($_POST['is_default']);
+        $isActive = !empty($_POST['is_active']);
+
+        if ($name === '' || $apiUrl === '' || $apiKey === '') {
+            flash('danger', 'Nama, API URL, dan API Key wajib diisi.');
+        } else {
+            PdnsCluster::addServer(
+                $name,
+                $apiUrl,
+                $apiKey,
+                $serverId !== '' ? $serverId : 'localhost',
+                $isDefault,
+                $isActive
+            );
+            flash('success', 'Node server ' . $name . ' berhasil ditambahkan ke cluster.');
+        }
+    } elseif ($path === '/servers/update') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $name = trim((string) ($_POST['name'] ?? ''));
+        $apiUrl = trim((string) ($_POST['api_url'] ?? ''));
+        $serverId = trim((string) ($_POST['server_id'] ?? 'localhost'));
+        $isDefault = !empty($_POST['is_default']);
+        $isActive = !empty($_POST['is_active']);
+        $apiKey = trim((string) ($_POST['api_key'] ?? ''));
+
+        PdnsCluster::updateServer(
+            $id,
+            $name,
+            $apiUrl,
+            $apiKey !== '' ? $apiKey : null,
+            $serverId !== '' ? $serverId : 'localhost',
+            $isDefault,
+            $isActive
+        );
+        flash('success', 'Pengaturan node server berhasil diperbarui.');
+    } elseif ($path === '/servers/delete') {
+        $id = (int) ($_POST['id'] ?? 0);
+        PdnsCluster::deleteServer($id);
+        flash('success', 'Node server berhasil dihapus.');
+    }
+}
+
+/**
+ * Dispatch GET actions for PowerDNS cluster node management.
+ */
+function handleServersGet(string $path): void
+{
+    if ($path === '/servers/switch') {
+        $id = (int) ($_GET['id'] ?? 0);
+        PdnsCluster::setActiveServerId($id);
+        flash('success', 'Target node cluster aktif dialihkan.');
+    } elseif ($path === '/servers/ping') {
+        $id = (int) ($_GET['id'] ?? 0);
+        $res = PdnsCluster::pingServer($id);
+        if ($res['success']) {
+            flash('success', "Koneksi node server berhasil diuji. Latensi: {$res['latency_ms']} ms.");
+        } else {
+            flash('danger', 'Gagal menghubungi node server: ' . $res['message']);
+        }
+    }
+}
+
+/**
+ * Multi-Server PowerDNS Node Clustering Management Handler.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleServers(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin']);
+
+    if ($method === 'POST') {
+        csrfCheck();
+        handleServersPost($path);
+        redirect(PATH_SERVERS);
+    }
+
+    if ($method === 'GET' && ($path === '/servers/switch' || $path === '/servers/ping')) {
+        handleServersGet($path);
+        redirect(PATH_SERVERS);
+    }
+
+    view('servers', [
+        'title' => 'Node PowerDNS Cluster',
+        'user' => $user,
+        'servers' => PdnsCluster::listServers(),
+        'activeServer' => PdnsCluster::getActiveServer(),
+    ]);
+}
+
+/**
+ * Handle creation of new webhook endpoint.
+ */
+function handleWebhookAdd(): void
+{
+    $name = trim((string) ($_POST['name'] ?? ''));
+    $url = trim((string) ($_POST['url'] ?? ''));
+    $secret = trim((string) ($_POST['secret'] ?? ''));
+    $rawEvents = $_POST['events'] ?? [];
+    $events = is_array($rawEvents)
+        ? implode(',', array_map('trim', $rawEvents))
+        : 'zone.created,zone.deleted,record.updated';
+    $isActive = !empty($_POST['is_active']);
+
+    if ($name === '' || $url === '') {
+        flash('danger', 'Nama dan URL webhook wajib diisi.');
+        return;
+    }
+
+    createWebhook(
+        $name,
+        $url,
+        $secret !== '' ? $secret : bin2hex(random_bytes(16)),
+        $events,
+        $isActive
+    );
+    flash('success', 'Webhook baru berhasil didaftarkan.');
+}
+
+/**
+ * Handle updating an existing webhook endpoint.
+ */
+function handleWebhookUpdate(): void
+{
+    $id = (int) ($_POST['id'] ?? 0);
+    $name = trim((string) ($_POST['name'] ?? ''));
+    $url = trim((string) ($_POST['url'] ?? ''));
+    $secret = trim((string) ($_POST['secret'] ?? ''));
+    $rawEvents = $_POST['events'] ?? [];
+    $events = is_array($rawEvents) ? implode(',', array_map('trim', $rawEvents)) : '';
+    $isActive = !empty($_POST['is_active']);
+
+    updateWebhook(
+        $id,
+        $name,
+        $url,
+        $secret !== '' ? $secret : null,
+        $events,
+        $isActive
+    );
+    flash('success', 'Pengaturan webhook diperbarui.');
+}
+
+/**
+ * Handle deletion of a webhook endpoint.
+ */
+function handleWebhookDelete(): void
+{
+    $id = (int) ($_POST['id'] ?? 0);
+    deleteWebhook($id);
+    flash('success', 'Webhook berhasil dihapus.');
+}
+
+/**
+ * Dispatch POST actions for webhooks management.
+ */
+function handleWebhooksPost(string $path): void
+{
+    if ($path === '/webhooks/add') {
+        handleWebhookAdd();
+    } elseif ($path === '/webhooks/update') {
+        handleWebhookUpdate();
+    } elseif ($path === '/webhooks/delete') {
+        handleWebhookDelete();
+    }
+}
+
+/**
+ * Webhooks Management Handler.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleWebhooks(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin']);
+
+    if ($method === 'POST') {
+        csrfCheck();
+        handleWebhooksPost($path);
+        redirect(PATH_WEBHOOKS);
+    }
+
+    if ($method === 'GET' && $path === '/webhooks/test') {
+        $id = (int) ($_GET['id'] ?? 0);
+        $res = testWebhookDelivery($id);
+        if ($res['success']) {
+            flash('success', 'Uji coba payload webhook berhasil dikirim (' . $res['message'] . ').');
+        } else {
+            flash('danger', 'Gagal mengirim uji coba webhook: ' . $res['message']);
+        }
+        redirect(PATH_WEBHOOKS);
+    }
+
+    view('webhooks', [
+        'title' => 'Webhooks CI/CD & Integrasi',
+        'user' => $user,
+        'webhooks' => listWebhooks(),
+    ]);
+}
+
+/**
+ * Cross-Zone Bulk Record Operations Handler.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleBulkRecords(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin', 'operator']);
+
+    $replaceResult = null;
+    $query = trim((string) ($_REQUEST['q'] ?? ''));
+    $typeFilter = trim((string) ($_REQUEST['type'] ?? ''));
+    $results = [];
+
+    if ($method === 'POST' && $path === '/bulk-records/replace') {
+        csrfCheck();
+        $target = trim((string) ($_POST['target'] ?? ''));
+        $replacement = trim((string) ($_POST['replacement'] ?? ''));
+        $type = trim((string) ($_POST['type'] ?? ''));
+
+        if ($target === '') {
+            flash('danger', 'Konten target penggantian tidak boleh kosong.');
+            redirect('/bulk-records');
+        }
+
+        try {
+            $pdns = PdnsClient::fromSettings();
+            $replaceResult = bulkReplaceRecords(
+                $pdns,
+                $user,
+                $target,
+                $replacement,
+                $type !== '' ? $type : null
+            );
+            $query = $replacement;
+            $results = bulkSearchRecords($pdns, $replacement, $type !== '' ? $type : null);
+        } catch (Throwable $e) {
+            flash('danger', 'Gagal menjalankan penggantian massal: ' . $e->getMessage());
+        }
+    } elseif ($query !== '') {
+        try {
+            $pdns = PdnsClient::fromSettings();
+            $results = bulkSearchRecords($pdns, $query, $typeFilter !== '' ? $typeFilter : null);
+        } catch (Throwable $e) {
+            flash('danger', 'Gagal mencari record DNS: ' . $e->getMessage());
+        }
+    }
+
+    view('bulk_records', [
+        'title' => 'Operasi Rekam Massal (Bulk Records)',
+        'user' => $user,
+        'query' => $query,
+        'typeFilter' => $typeFilter,
+        'results' => $results,
+        'replaceResult' => $replaceResult,
+    ]);
+}
+
+/**
+ * Advanced DNS Telemetry & Visual Analytics Handler.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleAnalytics(array $user, string $path): void
+{
+    requireRole($user, ['admin', 'operator']);
+
+    if ($path === '/analytics/export') {
+        try {
+            $pdns = PdnsClient::fromSettings();
+            $raw = $pdns->statistics(true);
+            $active = PdnsCluster::getActiveServer();
+            $exportData = [
+                'exported_at' => date('c'),
+                'server' => $active['name'] ?? 'Local PowerDNS Daemon',
+                'statistics' => $raw,
+            ];
+            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Disposition: attachment; filename="pdns_telemetry_' . date('Ymd_His') . '.json"');
+            echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            exit;
+        } catch (Throwable $e) {
+            flash('danger', 'Gagal mengekspor data telemetri: ' . $e->getMessage());
+            redirect('/analytics');
+        }
+    }
+
+    $refresh = (int) ($_GET['refresh'] ?? 0);
+    $mask = !empty($_GET['mask']);
+    $metrics = [];
+    $topQueries = [];
+    $topRemotes = [];
+
+    $active = PdnsCluster::getActiveServer();
+    $serverName = $active['name'] ?? 'Local PowerDNS Daemon';
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $raw = $pdns->statistics(true);
+        foreach ($raw as $item) {
+            if (is_array($item) && isset($item['name'], $item['value'])) {
+                $metrics[(string) $item['name']] = $item['value'];
+            }
+        }
+
+        if (isset($metrics['queries']) && is_array($metrics['queries'])) {
+            $topQueries = parseRingBuffer($metrics['queries'], 10);
+        }
+        if (isset($metrics['remotes']) && is_array($metrics['remotes'])) {
+            $topRemotes = parseRingBuffer($metrics['remotes'], 10, $mask);
+        }
+    } catch (Throwable $e) {
+        flash('warning', 'Gagal memuat telemetri PowerDNS: ' . $e->getMessage());
+    }
+
+    view('analytics', [
+        'title' => 'Telemetri & Analitik DNS',
+        'user' => $user,
+        'metrics' => $metrics,
+        'topQueries' => $topQueries,
+        'topRemotes' => $topRemotes,
+        'serverName' => $serverName,
+        'refreshSeconds' => $refresh,
+        'anonymizeIp' => $mask,
+    ]);
 }

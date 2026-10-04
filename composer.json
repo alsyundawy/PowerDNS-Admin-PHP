@@ -1,7 +1,7 @@
 {
   "name": "alsyundawy/powerdns-admin-php",
   "description": "Lightweight PowerDNS Web Administration in Native PHP PDO",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "project",
   "license": "MIT",
   "require": {
@@ -16,9 +16,20 @@
       "app/PdnsDnssecTrait.php",
       "app/PdnsMetadataTrait.php",
       "app/PdnsClient.php",
+      "app/totp.php",
+      "app/PdnsCluster.php",
+      "app/cache.php",
+      "app/webhook_services.php",
+      "app/zone_linter.php",
+      "app/analytics.php",
       "app/services.php",
       "app/backup_services.php",
       "app/handlers.php"
     ]
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.2",
+    "friendsofphp/php-cs-fixer": "^3.95",
+    "vimeo/psalm": "^6.19"
   }
 }

@@ -68,13 +68,13 @@ PHP_VER=""
 if command -v php &>/dev/null; then
 	PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
 fi
-if [[ -z "${PHP_VER:-}" && -d "/etc/php" ]]; then
+if [[ -z ${PHP_VER:-} && -d "/etc/php" ]]; then
 	LATEST_FPM="$(find /etc/php -maxdepth 2 -type d -name "fpm" 2>/dev/null | sort -V | tail -n1)"
-	if [[ -n "${LATEST_FPM}" ]]; then
+	if [[ -n ${LATEST_FPM} ]]; then
 		PHP_VER="$(basename "$(dirname "${LATEST_FPM}")")"
 	fi
 fi
-if [[ -z "${PHP_VER:-}" ]]; then
+if [[ -z ${PHP_VER:-} ]]; then
 	PHP_VER="8.2"
 fi
 echo -e "${GREEN}PHP terdeteksi: versi ${PHP_VER}${NC}"

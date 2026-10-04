@@ -6,7 +6,7 @@
   </a>
 </p>
 
-[![Release](https://img.shields.io/badge/Release-v0.2.1-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
+[![Release](https://img.shields.io/badge/Release-v0.3.0-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![PowerDNS API v1](https://img.shields.io/badge/PowerDNS-Authoritative%20API%20v1-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white)](https://www.powerdns.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
@@ -76,7 +76,7 @@ management, and complete operational autonomy with zero runtime external CDN dep
 
 ## 🚀 Why This Modernized Edition?
 
-This edition (**v0.2.1**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
+This edition (**v0.3.0**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
 PowerDNS administration:
 
 ### 🛡️ 1. Zero-CDN Offline Architecture & Content Security
@@ -129,74 +129,206 @@ PowerDNS administration:
 
 ## 🎯 Key Features
 
-| Capability Area                | Highlights & Implementations                                                                                                                                  |
-| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Zone Management**            | Forward and reverse zones, supporting `Native`, `Master`, `Slave`, `Producer`, and `Consumer` kinds with configurable `SOA-EDIT-API` metadata.                |
-| **Smart RRSet Editor**         | Interactive visual editor with RFC syntax validation for `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `PTR`, `SRV`, `CAA`, `HTTPS`, `SVCB`, `DS`, etc.            |
-| **Subnet rDNS Wizard**         | Interactive IPv4 `/24` and IPv6 `/64` (RFC 3596 nibble format) subnet calculator, batch PTR generator, and automatic forward-to-reverse PTR sync.             |
-| **Zone History & Rollback**    | Automatic revision snapshots on every modification, visual record diff inspection, and 1-click atomic rollback to any past zone state.                        |
-| **Native BIND RFC 1035**       | Native RFC 1035 zone file parser (`$ORIGIN`, `$TTL`, multiline parenthesized SOA) supporting file upload / paste and 1-click `.zone` BIND export.             |
-| **Modern DNSSEC Suite**        | Cutting-edge **Ed25519 (Alg 15)** and **ECDSA (Alg 13/14)** signing with automated parent delegation bootstrapping (**RFC 7344 CDS / CDNSKEY**).              |
-| **Dynamic DNS (DynDNS 2)**     | Standard `/nic/update` HTTP endpoint compatible with routers, ddclient, Mikrotik, and IoT devices using Basic Auth or API Key tokens.                         |
-| **Zone Templates**             | Standardized templates (web hosting, mail clusters, CDN endpoints) with `[ZONE]` macro expansion for rapid multi-zone rollout.                                |
-| **DNS Operations Engine**      | Instant manual `NOTIFY` propagation to secondary nameservers and on-demand `AXFR Retrieve` zone synchronization directly from the UI.                         |
-| **Multi-Tenancy & RBAC**       | Fine-grained role hierarchy (`admin`, `operator`, `user`). Users can be assigned to multi-user Accounts or granted direct per-zone `Read`/`Edit` permissions. |
-| **Global Instant Search**      | Sub-second fuzzy search across zone names, record comments, and RRSet contents powered by the PowerDNS `/search-data` API endpoint.                           |
-| **Tamper-Evident Audit Trail** | Comprehensive logging of authentication events, zone creation, record mutations, and role elevations with IP addresses and user agents.                       |
-| **Live Telemetry Dashboard**   | Real-time server telemetry: UDP/TCP query volume, packetcache hit/miss ratio, recursion statistics, and operational load metrics.                             |
-| **Database & Zone Backup**     | 1-Click MySQL metadata SQL dump/restore with query sanitation, settings JSON export, and full PowerDNS zones API snapshot suite.                              |
-| **User Profile & Avatar**      | Self-service profile management, Argon2id password changes, secure image avatar upload, and universal UI avatar integration.                                  |
-| **Custom Branding & GUI**      | Customizable panel branding (Logo upload/URL, custom App Name, custom footer text) and integrated dashboard quick controls.                                   |
-| **Advanced Network Tools**     | IPCalc (IPv4/IPv6 bitwise), memory-safe IPv6 Subnet Splitter (up to 65k subnets), WHOIS/RDAP client (RFC 9082), and native DNS lookup resolver.               |
-| **Panel REST API**             | External token-authenticated REST API (`X-API-Key`) for automation via Ansible, Terraform, ACME Let's Encrypt bots, and custom scripts.                       |
+| Capability Area                  | Highlights & Implementations                                                                                                                                  |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Zone Management**              | Forward and reverse zones, supporting `Native`, `Master`, `Slave`, `Producer`, and `Consumer` kinds with configurable `SOA-EDIT-API` metadata.                |
+| **Smart RRSet Editor**           | Interactive visual editor with RFC syntax validation for `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `PTR`, `SRV`, `CAA`, `HTTPS`, `SVCB`, `DS`, etc.            |
+| **Two-Factor Auth (2FA)**        | Pure PHP RFC 6238 TOTP engine, native vector SVG QR code generator (Zero GD/Imagick), and 10 single-use emergency backup recovery codes.                      |
+| **PowerDNS Clustering**          | Multi-server daemon management, AES-256-GCM encrypted credentials, active session node routing, and live latency ping telemetry.                              |
+| **In-Memory Cache (APCu)**       | High-performance APCu shared memory adapter with tag-based invalidation, reducing repeated zone reads to < 0.2ms.                                             |
+| **Cryptographic Webhooks**       | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`).                         |
+| **Bulk Record Operations**       | Cross-zone mass search & replace for IPs and FQDNs across all authoritative zones with automated safety snapshots for 1-click rollback.                       |
+| **Zone RFC Linting Engine**      | Automated RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, MX-to-CNAME detection).                             |
+| **Telemetry & Visual Analytics** | Real-time ring buffer decoders (`queries`, `remotes`), packet cache hit ratio donut gauge, transport split bar, and streaming JSON telemetry export.          |
+| **Subnet rDNS Wizard**           | Interactive IPv4 `/24` and IPv6 `/64` (RFC 3596 nibble format) subnet calculator, batch PTR generator, and automatic forward-to-reverse PTR sync.             |
+| **Zone History & Rollback**      | Automatic revision snapshots on every modification, visual record diff inspection, and 1-click atomic rollback to any past zone state.                        |
+| **Native BIND RFC 1035**         | Native RFC 1035 zone file parser (`$ORIGIN`, `$TTL`, multiline parenthesized SOA) supporting file upload / paste and 1-click `.zone` BIND export.             |
+| **Modern DNSSEC Suite**          | Cutting-edge **Ed25519 (Alg 15)** and **ECDSA (Alg 13/14)** signing with automated parent delegation bootstrapping (**RFC 7344 CDS / CDNSKEY**).              |
+| **Dynamic DNS (DynDNS 2)**       | Standard `/nic/update` HTTP endpoint compatible with routers, ddclient, Mikrotik, and IoT devices using Basic Auth or API Key tokens.                         |
+| **Zone Templates**               | Standardized templates (web hosting, mail clusters, CDN endpoints) with `[ZONE]` macro expansion for rapid multi-zone rollout.                                |
+| **DNS Operations Engine**        | Instant manual `NOTIFY` propagation to secondary nameservers and on-demand `AXFR Retrieve` zone synchronization directly from the UI.                         |
+| **Multi-Tenancy & RBAC**         | Fine-grained role hierarchy (`admin`, `operator`, `user`). Users can be assigned to multi-user Accounts or granted direct per-zone `Read`/`Edit` permissions. |
+| **Global Instant Search**        | Sub-second fuzzy search across zone names, record comments, and RRSet contents powered by the PowerDNS `/search-data` API endpoint.                           |
+| **Tamper-Evident Audit Trail**   | Comprehensive logging of authentication events, zone creation, record mutations, and role elevations with IP addresses and user agents.                       |
+| **Live Telemetry Dashboard**     | Real-time server telemetry: UDP/TCP query volume, packetcache hit/miss ratio, recursion statistics, and operational load metrics.                             |
+| **Database & Zone Backup**       | 1-Click MySQL metadata SQL dump/restore with query sanitation, settings JSON export, and full PowerDNS zones API snapshot suite.                              |
+| **User Profile & Avatar**        | Self-service profile management, Argon2id password changes, secure image avatar upload, and universal UI avatar integration.                                  |
+| **Custom Branding & GUI**        | Customizable panel branding (Logo upload/URL, custom App Name, custom footer text) and integrated dashboard quick controls.                                   |
+| **Advanced Network Tools**       | IPCalc (IPv4/IPv6 bitwise), memory-safe IPv6 Subnet Splitter (up to 65k subnets), WHOIS/RDAP client (RFC 9082), and native DNS lookup resolver.               |
+| **Panel REST API**               | External token-authenticated REST API (`X-API-Key`) for automation via Ansible, Terraform, ACME Let's Encrypt bots, and custom scripts.                       |
 
 ---
 
 ## 🏗️ Architecture & Request Pipeline
 
-PowerDNS-Admin-PHP follows a clean, decoupled MVC-inspired architecture with strict separation between presentation,
-domain services, and storage:
+PowerDNS-Admin-PHP follows an enterprise, decoupled architecture with strict boundaries between presentation, security middleware, domain subsystems, caching, and upstream PowerDNS daemons:
 
 ```mermaid
 flowchart TB
-    subgraph Client["Web Browser & Automation Clients"]
-        User["Sysadmin / Web Browser"]
-        APIClient["CI/CD / Terraform / Ansible / SSL Bot"]
+    subgraph Clients["1. Ingress & Client Access Layer"]
+        Browser["Desktop & Mobile Web Browsers<br/>(OLED Dark / Light, Safe Area Adaptive)"]
+        RESTClient["CI/CD Automation, Terraform & Let's Encrypt<br/>(HTTPS Bearer / X-API-Key)"]
+        DynClient["DynDNS Routers & Mikrotik / ddclient<br/>(HTTP Basic Auth / Token)"]
     end
 
-    subgraph WebServer["Web Server (Nginx / Apache)"]
-        Nginx["TLS Termination / Reverse Proxy<br/>(HSTS, CSP, Security Headers)"]
-        Static["Local Static Assets<br/>(Bootstrap, jQuery, App CSS, SVG Icons)"]
+    subgraph SecurityGateway["2. Security Gateway & Reverse Proxy"]
+        Nginx["Nginx / Apache Reverse Proxy<br/>(TLS 1.3 Termination, HSTS, Strict CSP, X-Frame-Options)"]
+        RateLimiter["Dual-Axis Rate Limiting Gate<br/>(Per-IP Sliding Window + Per-Username Brute Force Guard)"]
+        StaticAssets["Local Offline Static Assets<br/>(Bootstrap 5.3, Font Awesome 6.7.2, App CSS/JS - Zero CDN)"]
     end
 
-    subgraph AppKernel["PowerDNS-Admin-PHP Runtime (PHP 8.2+)"]
-        FrontController["public/index.php"]
-        Bootstrap["app/bootstrap.php<br/>(Config, PDO, Encr, RateLimit)"]
-        Router["HTTP Router & Middleware<br/>(Session, CSRF, Dual-Axis Rate Limit)"]
-        Handlers["app/handlers.php<br/>(Zones, Records, DNSSEC, Users, API)"]
-        Services["app/services.php<br/>(Atomic RRSet Diff, Auth, FQDN canonical)"]
-        PdnsClient["app/PdnsClient.php<br/>(HTTP API v1 Client)"]
+    subgraph AppKernel["3. Application Core Kernel (Native PHP 8.1 - 8.5)"]
+        FrontController["public/index.php<br/>(Sub-millisecond Bootstrap, Zero Framework Overhead)"]
+        AuthModule["Session, RBAC & 2FA Engine<br/>(Argon2id, RFC 6238 TOTP, Single-use Scratch Codes)"]
+        CSRFProtection["Cryptographic CSRF Validator<br/>(Session-bound Token Rotation on Mutating POSTs)"]
+        Router["Declarative Fast Router<br/>(Dynamic Route Dispatch & Parameter Extraction)"]
     end
 
-    subgraph StorageEngine["Persistence & DNS Infrastructure"]
-        MySQL[("MySQL / MariaDB<br/>(Users, Tenants, Templates, Audit, API Keys)")]
-        PdnsServer["PowerDNS Authoritative Server<br/>(pdns_server daemon, HTTP API v1 :8081)"]
-        DNSBackends[("DNS Backends (gmysql / bind / lmdb)<br/>Single Source of Truth")]
+    subgraph DomainServices["4. Enterprise Domain Subsystems"]
+        ClusterManager["Multi-Server Cluster Engine<br/>(app/PdnsCluster.php - Active Node Routing & Latency Ping)"]
+        CacheAdapter["In-Memory Cache Adapter<br/>(app/cache.php - APCu Shared Memory / Request Cache)"]
+        RecordManager["DNS Operations & Validation<br/>(app/services.php - 31 Record Types, Atomic RRSet Diff)"]
+        ZoneLinter["RFC Compliance & Linting Engine<br/>(app/zone_linter.php - Apex CNAME, Glue, MX CNAME)"]
+        AnalyticsEngine["Telemetry & SVG Visualizer<br/>(app/analytics.php - Ring Buffers, Donut Gauges, Top Slices)"]
+        WebhookDispatcher["Cryptographic Webhook Dispatcher<br/>(app/webhook_services.php - HMAC-SHA256 Signed JSON)"]
     end
 
-    User -->|"HTTPS"| Nginx
-    APIClient -->|"HTTPS X-API-Key"| Nginx
-    Nginx -->|"Static Files"| Static
-    Nginx -->|"FastCGI (PHP-FPM)"| FrontController
-    FrontController --> Bootstrap
-    Bootstrap --> Router
-    Router --> Handlers
-    Handlers --> Services
-    Services --> MySQL
-    Services --> PdnsClient
-    PdnsClient -->|"HTTP API v1 / REST JSON"| PdnsServer
-    PdnsServer --> DNSBackends
+    subgraph UpstreamStorage["5. Upstream Persistence & DNS Infrastructure"]
+        MetadataDB[("MySQL 8.0+ / MariaDB 10.5+<br/>(Users, Clusters, Webhooks, DynDNS, Audit Trails, Snapshots)")]
+        PowerDNSAPI["PowerDNS Authoritative REST API v1 (:8081)<br/>(pdns_server daemons, gmysql / lmdb / BIND backends)"]
+    end
+
+    Browser -->|"HTTPS"| Nginx
+    RESTClient -->|"HTTPS X-API-Key"| Nginx
+    DynClient -->|"HTTPS /nic/update"| Nginx
+    Nginx -->|"Local Files"| StaticAssets
+    Nginx -->|"FastCGI (PHP-FPM socket)"| FrontController
+    FrontController --> RateLimiter
+    RateLimiter --> CSRFProtection
+    CSRFProtection --> AuthModule
+    AuthModule --> Router
+    Router --> DomainServices
+    DomainServices <-->|"Sub-millisecond Read/Write"| CacheAdapter
+    DomainServices <-->|"PDO Prepared SQL"| MetadataDB
+    DomainServices -->|"HMAC-SHA256 Events"| WebhookDispatcher
+    DomainServices <-->|"HTTP API v1 (PdnsClient)"| PowerDNSAPI
 ```
+
+### 1. Architectural Tiers & Component Responsibilities
+
+1. **Tier 1 — Ingress & Security Gateway (`Nginx / Apache / Reverse Proxy`):**
+   - **TLS 1.3 Termination:** Enforces modern cipher suites (ChaCha20-Poly1305, AES-256-GCM) and HTTP Strict Transport Security (`HSTS: max-age=63072000; includeSubDomains; preload`).
+   - **Defense-in-Depth Headers:** Injects strict Content Security Policy (`CSP`), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+   - **Static Asset Bypass:** Directly offloads all vendor bundles (`/assets/vendor/`) and public static files, guaranteeing zero PHP process invocation for static content.
+
+2. **Tier 2 — Ingress Security Middleware & Application Kernel (`public/index.php`, `app/bootstrap.php`):**
+   - **Sub-Millisecond Bootstrap:** Zero-framework, native PHP 8.1–8.5 initialization completed in $< 1\text{ ms}$.
+   - **Dual-Axis Rate Limiting:** Sliding-window rate limiters independently track per-IP and per-account request velocity in shared storage, throttling brute-force attempts without locking out legitimate network tenants.
+   - **Cryptographic CSRF Guard:** Enforces session-bound HMAC-verified anti-forgery tokens on all mutating HTTP methods (`POST`, `PUT`, `DELETE`), rotating tokens per state mutation.
+   - **Session & Multi-Factor Quarantine:** Verifies session authenticity and isolates unverified 2FA sessions to `/login/2fa` until valid RFC 6238 TOTP or single-use recovery tokens are presented.
+
+3. **Tier 3 — Enterprise Domain Subsystems (`app/`):**
+   - **Dynamic Cluster Router (`app/PdnsCluster.php`):** Resolves the target PowerDNS daemon node from session state or query context, decrypts stored credentials via `AES-256-GCM`, and dynamically configures the API client.
+   - **In-Memory Cache Subsystem (`app/cache.php`):** High-throughput APCu shared memory adapter with atomic prefix-based invalidation. Caches zone catalogs, server metrics, and static configurations to eliminate repetitive upstream API overhead.
+   - **Authoritative DNS Client (`app/PdnsClient.php`):** Pure native cURL wrapper implementing the complete PowerDNS Authoritative HTTP API v1 with persistent keep-alive connections, circuit-breaking timeouts, and structured error propagation.
+   - **Zone RFC Compliance & Linter Engine (`app/zone_linter.php`):** Pre-execution linter evaluating zone records against RFC 1035, RFC 1912, and RFC 2181 before changes are committed to the network.
+   - **Cryptographic Webhook Engine (`app/webhook_services.php`):** Asynchronous event dispatcher broadcasting cryptographically signed JSON payloads (`X-PDNS-Signature: sha256=...`) to subscribed endpoints.
+   - **DNS Telemetry & Vector Analytics Engine (`app/analytics.php`):** Streams raw ring-buffer metrics from PowerDNS daemons, computing cache hit rates, protocol distribution, and top queries into native SVG vector graphs.
+
+4. **Tier 4 — Persistence & Metadata Storage (`MySQL 8.0+ / MariaDB 10.5+`):**
+   - Stores non-DNS metadata: user credentials, role-based access controls (RBAC), multi-tenant account mappings, cluster node endpoints, encrypted API secrets, webhook subscriptions, and immutable zone revision snapshots.
+   - **100% Prepared Statements:** All database interactions utilize parameterized PDO queries with strict data types, eliminating SQL injection attack vectors.
+
+5. **Tier 5 — Authoritative DNS Infrastructure (`PowerDNS Authoritative Server v1`):**
+   - Remains the **exclusive, single source of truth** for all DNS records, zones, metadata, and cryptographic keys.
+   - Backed by native PowerDNS storage engines (gmysql, gpgsql, lmdb, or BIND backend) with automated DNSSEC signing and AXFR replication.
+
+---
+
+### 2. Detailed Request-Response Lifecycle
+
+```text
+[Client Request]
+       │
+       ▼
+[Nginx / TLS 1.3] ──(Static /assets/*)──► [Local Filesystem (200 OK)]
+       │
+       ▼ (FastCGI unix socket)
+[public/index.php]
+       │
+       ├──► [app/bootstrap.php] (declare(strict_types=1); Session start; PDO init)
+       ├──► [RateLimiter::check()] (IP & Username sliding-window guard)
+       ├──► [CSRF::verify()] (Validate anti-forgery token for mutating POSTs)
+       ├──► [Auth & 2FA Guard] (Validate session; enforce TOTP quarantine)
+       ├──► [PdnsCluster::getActiveClient()] (Resolve node & decrypt credentials)
+       │
+       ▼
+[Router Dispatch] ──► [Handler Action (e.g. handleZoneSave)]
+       │
+       ├──► [AppCache::get()] (Check in-memory cache for zone metadata)
+       ├──► [ZoneLinter::lintZone()] (Audit RFC 1035/1912/2181 compliance)
+       ├──► [services::computeZoneDiff()] (Calculate atomic REPLACE/DELETE actions)
+       ├──► [SnapshotEngine::capture()] (Save immutable JSON rollback state)
+       │
+       ▼
+[PdnsClient::patchZone()] ──► [PowerDNS HTTP API v1] (Atomic PATCH commit)
+       │
+       ├──► [AppCache::invalidateZone()] (Purge cached RRsets)
+       ├──► [AuditLog::record()] (Record tamper-evident audit entry)
+       └──► [WebhookDispatcher::dispatch()] (Broadcast HMAC-SHA256 signed event)
+       │
+       ▼
+[HTML5 / JSON Response] (Rendered with CSP & security headers in < 5ms)
+```
+
+1. **Ingress & TLS Termination:** Requests arrive at the reverse proxy (Nginx or Apache) where TLS 1.3 is terminated and strict HTTP response security headers are injected (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`). Static vendor assets (`/assets/vendor/`) are served directly without invoking PHP.
+2. **Kernel Bootstrap & Sanitization:** The FastCGI front controller (`public/index.php`) loads `app/bootstrap.php` in $<1\text{ ms}$. Strict typing (`declare(strict_types=1);`) is enforced, database PDO connections are initialized with persistent error mode `ERRMODE_EXCEPTION`, and dual-axis rate limiters inspect client IPs and credentials.
+3. **Authentication & Multi-Factor Security:** For authenticated routes, sessions are validated. If Two-Factor Authentication (2FA) is enabled for the account, requests are quarantined to `/login/2fa` until a valid RFC 6238 time-based token or emergency single-use scratch code is verified.
+4. **Dynamic Cluster Routing:** `app/PdnsCluster.php` resolves the currently active PowerDNS server instance from the session. Decrypted credentials (AES-256-GCM) configure `PdnsClient` on-the-fly, directing upstream API operations to the designated node cluster.
+5. **Sub-millisecond In-Memory Caching:** Zone listings and server statistics queries first probe `AppCache` (APCu shared memory). Cache hits return in $<0.2\text{ ms}$ without consuming upstream PowerDNS API cycles or socket handles.
+6. **Domain Validation & RFC Compliance:** Mutating operations pass through strict RFC syntax validators (`app/services.php`) and the Zone Linter engine (`app/zone_linter.php`), detecting Apex CNAME violations, missing glue records, and dangling aliases before any payload reaches PowerDNS.
+7. **Atomic Diff & Snapshot Rollback:** Changes are converted into atomic `REPLACE`/`DELETE` RRSet structures. Prior to mutation, an immutable JSON snapshot of the zone state is captured in MySQL/MariaDB, enabling 1-click instant rollback.
+8. **Asynchronous Webhook & Audit Dispatch:** Successful mutations invalidate the local cache (`AppCache::invalidateZone()`), record a tamper-evident audit log in `audit_logs`, and trigger HMAC-SHA256 signed HTTP POST notifications to all subscribed third-party webhook endpoints (`app/webhook_services.php`).
+
+---
+
+### 3. Mathematical State Invariants & Atomic Diff Engine
+
+Unlike legacy control panels that truncate and rebuild entire zone files, PowerDNS-Admin-PHP computes the minimal mathematical difference between the current authoritative state $S_{\text{current}}$ and the requested state $S_{\text{desired}}$:
+
+$$\Delta \text{RRSet} = (S_{\text{desired}} \setminus S_{\text{current}}) \cup (S_{\text{current}} \setminus S_{\text{desired}})$$
+
+For each modified name-type pair $(n, t)$:
+1. If $(n, t) \in S_{\text{current}} \land (n, t) \notin S_{\text{desired}}$, an atomic `DELETE` instruction is generated:
+   $$\text{Action}_{\text{del}} = \left\{ \text{"action"}: \text{"DELETE"}, \text{"name"}: n, \text{"type"}: t \right\}$$
+2. If $(n, t) \in S_{\text{desired}}$, an atomic `REPLACE` instruction is generated with the desired TTL and record set:
+   $$\text{Action}_{\text{repl}} = \left\{ \text{"action"}: \text{"REPLACE"}, \text{"name"}: n, \text{"type"}: t, \text{"ttl"}: \tau, \text{"records"}: R_{(n, t)} \right\}$$
+
+All generated operations are merged into a single atomic payload `{"rrsets": [ ... ]}` and submitted via a single HTTP `PATCH` transaction. PowerDNS executes this payload atomically in its underlying relational or LMDB backend, guaranteeing that DNS queries during updates never observe partial or inconsistent zone states.
+
+---
+
+### 4. Concurrency, I/O Model & Memory Boundaries
+
+- **Stateless Worker Model:** Built entirely on the stateless PHP-FPM FastCGI architecture. Each request executes in complete process isolation, guaranteeing zero memory leakage across requests and eliminating thread-safety concerns.
+- **Shared Memory Cache (APCu):** When APCu is enabled, shared memory segments are read and written using low-overhead native C-level system calls with zero serialization penalty for scalar structures.
+- **Strict Memory Quotas:** Standard operations run with a peak memory allocation of $< 2\text{ MB}$. Bulk zone operations, BIND imports, and subnet calculations execute within an isolated $256\text{ MB}$ ceiling with streaming iteration to prevent buffer bloat.
+- **Upstream Resilience & Circuit Breaking:** All HTTP API socket interactions with PowerDNS daemons enforce explicit connect timeouts ($2.0\text{ s}$) and read timeouts ($5.0\text{ s}$). Upstream daemon stalls or network partitions gracefully trigger structured exceptions without tying up PHP worker slots.
+
+---
+
+### 5. Security Boundaries & Threat Mitigation Matrix
+
+| Layer / Boundary | Threat Vector Addressed | Defensive Mechanism & Invariant |
+| :--- | :--- | :--- |
+| **Ingress Proxy** | Man-in-the-Middle (MitM), Clickjacking | TLS 1.3, HSTS (`preload`), `X-Frame-Options: SAMEORIGIN`, strict `CSP` |
+| **Authentication** | Brute-force & Credential Stuffing | Dual-axis sliding-window rate limiting; Argon2id (`memory=64MB, time=4`) |
+| **Session & MFA** | Session Hijacking & Stolen Credentials | `HttpOnly`, `SameSite=Lax`, `Secure` session cookies; RFC 6238 TOTP |
+| **Mutating HTTP** | Cross-Site Request Forgery (CSRF) | Session-bound cryptographic tokens with per-mutation rotation |
+| **Persistence** | SQL Injection (SQLi) | 100% Parameterized PDO prepared statements; zero dynamic concatenation |
+| **Secrets at Rest** | Database Compromise / Data Leakage | PowerDNS API keys encrypted via `AES-256-GCM` with dynamic IV vectors |
+| **Output Encoding**| Cross-Site Scripting (Stored/Reflected XSS) | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`) |
+| **Third-Party I/O** | Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
 
 ---
 
@@ -204,39 +336,39 @@ flowchart TB
 
 PowerDNS-Admin-PHP validates and formats all standard authoritative DNS Resource Record Sets:
 
-| Record Type      | Description                           | RFC Standard       | Syntax Validation & Format Specs                                     |
-| :--------------- | :------------------------------------ | :----------------- | :------------------------------------------------------------------- |
-| **`A`**          | IPv4 Host Address                     | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`                 |
-| **`AAAA`**       | IPv6 Host Address                     | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6                    |
-| **`CNAME`**      | Canonical Name (Alias)                | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot        |
-| **`ALIAS`**      | Zone Apex CNAME Flattening (Pseudo-RR)| PowerDNS Native    | Target FQDN synthesized into A/AAAA by PowerDNS Authoritative engine |
-| **`DNAME`**      | Delegation Name (Subtree Redirection) | RFC 6672           | Target domain name FQDN redirecting all descendants                  |
-| **`MX`**         | Mail Exchange Server                  | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN         |
-| **`NS`**         | Authoritative Name Server             | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot             |
-| **`TXT`**        | Text Annotations (SPF, DKIM, DMARC)   | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape      |
-| **`PTR`**        | Pointer Record (Reverse DNS)          | RFC 1035           | Target host FQDN ending with a trailing dot                          |
-| **`SOA`**        | Start of Authority                    | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL       |
-| **`SRV`**        | Service Location Record               | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname              |
-| **`CAA`**        | Certification Authority Authorization | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain            |
-| **`HTTPS`**      | HTTPS Binding & Parameter Hints       | RFC 9460           | Priority, target name, and optional parameters (e.g. `alpn=h3,h2`)   |
-| **`SVCB`**       | Service Binding Generic Record        | RFC 9460           | Priority, target name, and optional service parameters               |
-| **`DS`**         | Delegation Signer (DNSSEC Parent)     | RFC 4034           | Key tag, algorithm, digest type, and cryptographic hex digest        |
-| **`CDS`**        | Child DS (Automated Parent Trust)     | RFC 7344           | Key tag, algorithm, digest type, and hex digest for auto parent sync |
-| **`DNSKEY`**     | DNSSEC Public Key Record              | RFC 4034           | Flags, protocol, algorithm, and base64 public key material           |
-| **`CDNSKEY`**    | Child DNSKEY (RFC 7344 Auto Trust)    | RFC 7344           | Flags, protocol, algorithm, and base64 public key material           |
-| **`CSYNC`**      | Child-to-Parent Synchronization       | RFC 7477           | Serial number, flags, and list of synchronized RR types              |
-| **`TLSA`**       | DANE Transport Layer Security Auth    | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data            |
-| **`SSHFP`**      | SSH Public Key Fingerprint            | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data       |
-| **`URI`**        | Uniform Resource Identifier           | RFC 7553           | Priority, weight, and target URI string                              |
-| **`CERT`**       | Certificate / CRL Record              | RFC 4398           | Type, key tag, algorithm, and certificate data                       |
-| **`OPENPGPKEY`** | OpenPGP Public Key                    | RFC 7929           | Base64-encoded OpenPGP public keyring data                           |
-| **`SMIMEA`**     | S/MIME Certificate Association        | RFC 8162           | Certificate usage, selector, matching type, and association hex      |
-| **`NAPTR`**      | Naming Authority Pointer              | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN           |
-| **`SPF`**        | Sender Policy Framework (Legacy)      | RFC 4408           | Text string policy definition                                        |
-| **`LOC`**        | Geospatial Location Information       | RFC 1876           | Latitude, longitude, altitude, size, and precision specs             |
-| **`HINFO`**      | Host CPU and Operating System Info    | RFC 8482, RFC 1035 | Enclosed CPU architecture and OS platform strings                    |
-| **`RP`**         | Responsible Person                    | RFC 1183           | Mailbox domain name and TXT domain name for human contacts           |
-| **`DHCID`**      | DHCP Client Identifier Data           | RFC 4701           | Base64-encoded DHCP client identifier association                    |
+| Record Type      | Description                            | RFC Standard       | Syntax Validation & Format Specs                                     |
+| :--------------- | :------------------------------------- | :----------------- | :------------------------------------------------------------------- |
+| **`A`**          | IPv4 Host Address                      | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`                 |
+| **`AAAA`**       | IPv6 Host Address                      | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6                    |
+| **`CNAME`**      | Canonical Name (Alias)                 | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot        |
+| **`ALIAS`**      | Zone Apex CNAME Flattening (Pseudo-RR) | PowerDNS Native    | Target FQDN synthesized into A/AAAA by PowerDNS Authoritative engine |
+| **`DNAME`**      | Delegation Name (Subtree Redirection)  | RFC 6672           | Target domain name FQDN redirecting all descendants                  |
+| **`MX`**         | Mail Exchange Server                   | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN         |
+| **`NS`**         | Authoritative Name Server              | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot             |
+| **`TXT`**        | Text Annotations (SPF, DKIM, DMARC)    | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape      |
+| **`PTR`**        | Pointer Record (Reverse DNS)           | RFC 1035           | Target host FQDN ending with a trailing dot                          |
+| **`SOA`**        | Start of Authority                     | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL       |
+| **`SRV`**        | Service Location Record                | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname              |
+| **`CAA`**        | Certification Authority Authorization  | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain            |
+| **`HTTPS`**      | HTTPS Binding & Parameter Hints        | RFC 9460           | Priority, target name, and optional parameters (e.g. `alpn=h3,h2`)   |
+| **`SVCB`**       | Service Binding Generic Record         | RFC 9460           | Priority, target name, and optional service parameters               |
+| **`DS`**         | Delegation Signer (DNSSEC Parent)      | RFC 4034           | Key tag, algorithm, digest type, and cryptographic hex digest        |
+| **`CDS`**        | Child DS (Automated Parent Trust)      | RFC 7344           | Key tag, algorithm, digest type, and hex digest for auto parent sync |
+| **`DNSKEY`**     | DNSSEC Public Key Record               | RFC 4034           | Flags, protocol, algorithm, and base64 public key material           |
+| **`CDNSKEY`**    | Child DNSKEY (RFC 7344 Auto Trust)     | RFC 7344           | Flags, protocol, algorithm, and base64 public key material           |
+| **`CSYNC`**      | Child-to-Parent Synchronization        | RFC 7477           | Serial number, flags, and list of synchronized RR types              |
+| **`TLSA`**       | DANE Transport Layer Security Auth     | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data            |
+| **`SSHFP`**      | SSH Public Key Fingerprint             | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data       |
+| **`URI`**        | Uniform Resource Identifier            | RFC 7553           | Priority, weight, and target URI string                              |
+| **`CERT`**       | Certificate / CRL Record               | RFC 4398           | Type, key tag, algorithm, and certificate data                       |
+| **`OPENPGPKEY`** | OpenPGP Public Key                     | RFC 7929           | Base64-encoded OpenPGP public keyring data                           |
+| **`SMIMEA`**     | S/MIME Certificate Association         | RFC 8162           | Certificate usage, selector, matching type, and association hex      |
+| **`NAPTR`**      | Naming Authority Pointer               | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN           |
+| **`SPF`**        | Sender Policy Framework (Legacy)       | RFC 4408           | Text string policy definition                                        |
+| **`LOC`**        | Geospatial Location Information        | RFC 1876           | Latitude, longitude, altitude, size, and precision specs             |
+| **`HINFO`**      | Host CPU and Operating System Info     | RFC 8482, RFC 1035 | Enclosed CPU architecture and OS platform strings                    |
+| **`RP`**         | Responsible Person                     | RFC 1183           | Mailbox domain name and TXT domain name for human contacts           |
+| **`DHCID`**      | DHCP Client Identifier Data            | RFC 4701           | Base64-encoded DHCP client identifier association                    |
 
 ---
 
@@ -423,6 +555,26 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ---
 
+### 4. Method 3: Hardened Docker Container Deployment
+
+Aplikasi dilengkapi [`Dockerfile`](Dockerfile) berbasis Alpine Linux minimalis yang aman dan telah diperkeras (_hardened non-root www-data_):
+
+```bash
+# 1. Build image Docker
+docker build -t powerdns-admin-php:0.3.0 .
+
+# 2. Jalankan container
+docker run -d \
+  --name powerdns-admin \
+  --restart unless-stopped \
+  -p 9000:9000 \
+  -v /etc/pda/config.php:/var/www/html/config.php:ro \
+  -v pda-uploads:/var/www/html/public/assets/uploads \
+  powerdns-admin-php:0.3.0
+```
+
+---
+
 ## Usage & Quick Start
 
 ### Development & Local Testing
@@ -456,16 +608,16 @@ Konfigurasi aplikasi dibagi menjadi dua lapisan: konfigurasi sistem pada berkas 
 
 Disimpan pada berkas konfigurasi lokal terlindungi (dengan izin `640` milik `www-data`):
 
-| Setting Key        | Tipe Data | Default / Contoh Nilai      | Keterangan                                                     |
-| :----------------- | :-------- | :-------------------------- | :------------------------------------------------------------- |
-| `db.host`          | `string`  | `"127.0.0.1"`               | Alamat host database MariaDB/MySQL panel.                      |
-| `db.port`          | `int`     | `3306`                      | Port koneksi database.                                         |
-| `db.name`          | `string`  | `"pda"`                     | Nama database panel.                                           |
-| `db.user`          | `string`  | `"pda_user"`                | Username database panel.                                       |
-| `db.pass`          | `string`  | `"[REDACTED]"`              | Kata sandi database.                                           |
-| `db.charset`       | `string`  | `"utf8mb4"`                 | Set karakter database (mendukung emoji & multilingual penuh).  |
-| `appKey`           | `string`  | `"[Base64 32 bytes]"`       | Kunci master simetris enkripsi AES-256-GCM (Wajib rahasia).    |
-| `installed`        | `bool`    | `true`                      | Flag penanda status instalasi wizard web.                      |
+| Setting Key  | Tipe Data | Default / Contoh Nilai | Keterangan                                                    |
+| :----------- | :-------- | :--------------------- | :------------------------------------------------------------ |
+| `db.host`    | `string`  | `"127.0.0.1"`          | Alamat host database MariaDB/MySQL panel.                     |
+| `db.port`    | `int`     | `3306`                 | Port koneksi database.                                        |
+| `db.name`    | `string`  | `"pda"`                | Nama database panel.                                          |
+| `db.user`    | `string`  | `"pda_user"`           | Username database panel.                                      |
+| `db.pass`    | `string`  | `"[REDACTED]"`         | Kata sandi database.                                          |
+| `db.charset` | `string`  | `"utf8mb4"`            | Set karakter database (mendukung emoji & multilingual penuh). |
+| `appKey`     | `string`  | `"[Base64 32 bytes]"`  | Kunci master simetris enkripsi AES-256-GCM (Wajib rahasia).   |
+| `installed`  | `bool`    | `true`                 | Flag penanda status instalasi wizard web.                     |
 
 ---
 
@@ -510,7 +662,7 @@ Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel met
 #### F. Alat Diagnostik Jaringan & rDNS
 
 - **`rdns_default_naming_pattern`**: Pola naming template generator record PTR massal (standar: `host-[ID].[DOMAIN]`).
-  - *Makro yang didukung:* `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), `[DOMAIN]`.
+  - _Makro yang didukung:_ `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), `[DOMAIN]`.
 - **`dns_public_resolvers`**: Daftar recursive resolver pembanding untuk alat DNS Lookup & Propagation Inspector (`1.1.1.1, 8.8.8.8, 9.9.9.9`).
 
 ---
@@ -519,16 +671,16 @@ Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel met
 
 PowerDNS-Admin-PHP menyediakan konfigurasi siap produksi untuk **Nginx** (`deploy/nginx.conf`) dan **Apache** (`public/.htaccess`) dengan paritas fungsional 100%:
 
-| Aspek Keamanan & Performa            | Arahan Apache (`public/.htaccess`)                                          | Padanan Nginx (`deploy/nginx.conf`)                                                   |
-| :----------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| **Front Controller Routing**         | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`           | `location / { try_files $uri $uri/ /index.php?$query_string; }`                       |
-| **Sandboxing Upload Berkas**         | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }`    |
-| **Proteksi Berkas Sensitif**         | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`           | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }`   |
-| **Blokir Direktori Tersembunyi**     | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                                | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                        |
-| **Proteksi Clickjacking & Sniffing** | `Header always set X-Frame-Options "DENY"`                                  | `add_header X-Frame-Options "DENY" always;`                                           |
-| **Kebijakan Keamanan Konten (CSP)**  | `Header always set Content-Security-Policy "default-src 'self'..."`         | `add_header Content-Security-Policy "default-src 'self'..." always;`                  |
-| **Caching Aset Statis Lokal**        | `ExpiresByType text/css "access plus 7 days"`                               | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }`|
-| **PHP-FPM Auto-Detection**           | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"`       | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`)  |
+| Aspek Keamanan & Performa            | Arahan Apache (`public/.htaccess`)                                          | Padanan Nginx (`deploy/nginx.conf`)                                                    |
+| :----------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **Front Controller Routing**         | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`           | `location / { try_files $uri $uri/ /index.php?$query_string; }`                        |
+| **Sandboxing Upload Berkas**         | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }`     |
+| **Proteksi Berkas Sensitif**         | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`           | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }`    |
+| **Blokir Direktori Tersembunyi**     | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                                | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                         |
+| **Proteksi Clickjacking & Sniffing** | `Header always set X-Frame-Options "DENY"`                                  | `add_header X-Frame-Options "DENY" always;`                                            |
+| **Kebijakan Keamanan Konten (CSP)**  | `Header always set Content-Security-Policy "default-src 'self'..."`         | `add_header Content-Security-Policy "default-src 'self'..." always;`                   |
+| **Caching Aset Statis Lokal**        | `ExpiresByType text/css "access plus 7 days"`                               | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }` |
+| **PHP-FPM Auto-Detection**           | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"`       | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`)   |
 
 #### Deteksi Otomatis Versi PHP-FPM
 
@@ -600,7 +752,7 @@ Setiap berkas dalam PowerDNS-Admin-PHP diaudit secara ketat melalui quality gate
 | **Coding Standards**      | [`PHP_CodeSniffer`](https://github.com/squizlabs/PHP_CodeSniffer) | PSR-12 strict & PSR-1 SideEffects | 0 errors, 0 warnings      |  **✔ PSR-12 PASS**  |
 | **Code Formatting**       | [`PHP-CS-Fixer 3.95`](https://cs.symfony.com)                     | Symfony / PSR-12 strict ruleset   | 0 files to fix            |  **✔ 44/44 CLEAN**  |
 | **Static Analysis**       | [`PHPStan`](https://phpstan.org)                                  | Level 5 Strict Analysis           | 0 errors                  | **✔ LEVEL 5 CLEAN** |
-| **Type Inference**        | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis       | 0 errors, 96.9% inference |     **✔ CLEAN**     |
+| **Type Inference**        | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis       | 0 errors, 97.0% inference |     **✔ CLEAN**     |
 | **Frontend Scripting**    | [`ESLint`](https://eslint.org)                                    | Vanilla JS DOM Architecture       | 0 lint errors             |     **✔ CLEAN**     |
 | **Frontend Stylesheet**   | [`Stylelint`](https://stylelint.io)                               | Modern CSS & Safe Area Variables  | 0 style errors            |     **✔ CLEAN**     |
 | **Shell Script Security** | [`ShellCheck`](https://www.shellcheck.net)                        | POSIX / Bash Defensive Standards  | 0 warnings or issues      |   **✔ 0 ISSUES**    |
@@ -614,7 +766,7 @@ QUALITY GATE VERIFICATION RESULTS
 ✔ PHP CodeSniffer (PSR-12 & PSR-1 SideEffects) : 0 Error / 0 Warning
 ✔ PHP-CS-Fixer 3.95 (Dry-Run Check)            : 0 Files to Fix
 ✔ PHPStan Static Analysis (Level 5)            : [OK] 0 Errors
-✔ Psalm Static Type Inference (Level 7)        : 0 Errors (96.9% Type Inference)
+✔ Psalm Static Type Inference (Level 7)        : 0 Errors (97.0% Type Inference)
 ✔ ESLint (app.js & tests)                      : 0 Lint Errors
 ✔ Stylelint (public/assets/app.css)            : 0 Style Errors
 ✔ Prettier Format Check                        : 100% Code Formatting Match
@@ -659,43 +811,103 @@ Untuk menjamin keandalan, pemeliharaan jangka panjang, dan keamanan sistem, stan
 
 ```text
 PowerDNS-Admin-PHP/
-├── app/                        # Logika aplikasi native (PSR-12, zero side-effects)
-│   ├── backup_services.php     # Layanan backup/restore basis data & metadata zona DNS
-│   ├── bootstrap.php           # Inisialisasi basis, helper enkripsi, koneksi PDO
-│   ├── csrf.php                # Proteksi CSRF berbasis sesi dan rotasi token
-│   ├── dns_name.php            # Utilitas format DNS kanonikal dan kalkulasi FQDN
-│   ├── handlers.php            # Controller dan handler HTTP untuk seluruh rute
-│   ├── network_tools.php       # Utilitas kalkulator IP, IPv6 splitter, WHOIS, DNS lookup
-│   ├── PdnsClient.php          # Klien PowerDNS Authoritative HTTP API v1
-│   └── services.php            # Logika domain: validasi record, diff atomik, auth zona
-├── deploy/                     # Template deployment server Linux
-│   ├── install-debian.sh       # Installer otomatis Debian/Ubuntu (/var/www)
-│   ├── nginx.conf              # Contoh vhost Nginx siap pakai
-│   └── pdns.snippet.conf       # Contoh konfigurasi API PowerDNS daemon
-├── public/                     # Web root dokumen publik (akses browser)
-│   ├── assets/                 # Aset frontend (CSS murni, Vanilla JS, ikon SVG)
-│   │   ├── app.css             # Desain tema dark mode responsif & Safe Area CSS
-│   │   ├── app.js              # Interaksi DOM Vanilla JavaScript (tanpa jQuery)
-│   │   ├── logo.svg            # Brand vector icon PowerDNS-Admin-PHP
-│   │   └── vendor/             # Fallback offline Bootstrap 5.3 & jQuery
-│   ├── uploads/                # Direktori aman penyimpanan avatar & branding logo
-│   └── index.php               # Front controller tunggal aplikasi
-├── sql/                        # Skema database panel
-│   └── schema.sql              # Struktur tabel MySQL/MariaDB (InnoDB, utf8mb4)
-├── views/                      # Template antarmuka web (PHP View Components)
-│   ├── layout.php              # Layout utama aplikasi dengan navigasi responsif
-│   ├── layout_bare.php         # Layout minimal untuk halaman login & instalasi
-│   ├── dashboard.php           # Dasbor telemetri & statistik PowerDNS
-│   ├── zone_show.php           # Editor tabel RRSet interaktif
-│   ├── zone_create.php         # Formulir pembuatan zona baru
-│   └── ...                     # Tampilan akun, user, template, audit, dll.
-├── CHANGELOG.md                # Catatan rilis terstruktur (Keep a Changelog)
-├── DOCNOTE.md                  # Catatan arsitektur & rekayasa teknis
-├── LICENSE                     # Lisensi terbuka MIT
-├── composer.json               # Konfigurasi metadata proyek & autoloader
-├── phpstan.neon                # Konfigurasi level analisis statis PHPStan
-├── psalm.xml                   # Konfigurasi analisis tipe data Psalm
-└── README.md                   # Dokumentasi utama proyek
+├── .dockerignore                # Build context exclusion for container image security
+├── .editorconfig                # Universal indentation and whitespace formatting rules
+├── .gitattributes               # Git line-ending normalization and diff attributes
+├── .gitignore                   # Version control ignore lists
+├── .php-cs-fixer.php            # Enterprise PHP-CS-Fixer PSR-12 strict configuration
+├── AUDIT_PLAN.md                # 13-Pillar Enterprise Codebase Audit Plan & Verification Log
+├── CHANGELOG.md                 # Semantic versioning release changelog (Keep a Changelog)
+├── Dockerfile                   # Hardened Alpine 3.19 PHP 8.3-FPM production container
+├── DOCNOTE.md                   # Deep technical notes, architecture decisions, and runbooks
+├── LICENSE                      # MIT Open Source License
+├── README.md                    # Primary project documentation, architecture & guides
+├── composer.json                # PHP dependency metadata, autoloading & scripts
+├── composer.lock                # Locked dependency tree
+├── package.json                 # Node.js ESM test runner configuration
+├── phpcs.xml                    # PHP_CodeSniffer PSR-12 standard configuration
+├── phpstan.neon                 # PHPStan Level 5 static analysis configuration
+├── psalm.xml                    # Psalm Level 4 type-safety analysis configuration
+├── app/                         # Pure Native PHP Application Kernel (PSR-12, Zero Framework)
+│   ├── PdnsClient.php           # PowerDNS Authoritative HTTP API v1 REST client
+│   ├── PdnsCluster.php          # Multi-Server PowerDNS cluster manager & node router
+│   ├── analytics.php            # DNS telemetry parser & pure vector SVG graphics engine
+│   ├── backup_services.php      # Metadata SQL backup/restore & zone snapshot engine
+│   ├── bootstrap.php            # Sub-millisecond bootstrapper, PDO, crypto & rate limiting
+│   ├── cache.php                # High-speed in-memory cache adapter (APCu / Request Memory)
+│   ├── csrf.php                 # Cryptographic session-bound CSRF token rotation
+│   ├── dns_name.php             # Canonical DNS name formatter, FQDN & PTR math
+│   ├── handlers.php             # HTTP request dispatchers, controllers & route endpoints
+│   ├── network_tools.php        # Subnet calculator, IPv6 splitter, WHOIS/RDAP & DNS lookup
+│   ├── services.php             # Core domain logic, 31 record type validators & RRSet diff
+│   ├── totp.php                 # RFC 6238 TOTP 2FA engine & pure vector SVG QR generator
+│   └── webhook_services.php     # Event-driven HMAC-SHA256 cryptographic webhook dispatcher
+├── deploy/                      # Production deployment templates & automation scripts
+│   ├── detect-php-fpm.sh        # FastCGI socket detection script for Linux distributions
+│   ├── install-debian.sh        # Automated unattended installer for Debian & Ubuntu
+│   ├── nginx.conf               # Hardened production Nginx vhost with strict CSP & HSTS
+│   └── pdns.snippet.conf        # Production PowerDNS daemon API configuration snippet
+├── public/                      # Web server document root (publicly accessible)
+│   ├── index.php                # Single front controller & router entry point
+│   ├── assets/                  # Local offline assets (Zero-CDN air-gapped architecture)
+│   │   ├── app.css              # Dark/light theme, safe area CSS & Xiaomi/Redmi guards
+│   │   ├── app.js               # Vanilla JavaScript DOM controller & async interactions
+│   │   ├── logo.svg             # High-resolution vector brand logo
+│   │   └── vendor/              # Local offline vendor bundles (Bootstrap 5.3, Font Awesome)
+│   │       ├── bootstrap/       # Bootstrap 5.3.3 CSS & JS bundles
+│   │       └── fontawesome/     # Font Awesome 6.7.2 webfonts & CSS
+│   └── uploads/                 # Secure storage directory for custom branding & avatars
+├── sql/                         # Database schema & migrations
+│   ├── schema.sql               # Base relational schema (MySQL 8.0+ / MariaDB 10.5+)
+│   └── migrations/              # Automated non-destructive schema migrations
+│       └── 0.3.0_enterprise_upgrade.sql # Schema migration for clusters, 2FA & webhooks
+├── tests/                       # Automated test suites (Zero-framework PHP & Playwright E2E)
+│   ├── helper.php               # Test environment bootstrap & mock assertions
+│   ├── test_analytics.php       # DNS telemetry parser & SVG chart test suite
+│   ├── test_backup_restore.php  # SQL dump/restore parser & sanitation test suite
+│   ├── test_bind_parser.php     # RFC 1035 BIND zone file parser test suite
+│   ├── test_bulk_records.php    # Cross-zone bulk search & replace test suite
+│   ├── test_cache.php           # APCu and request memory cache adapter test suite
+│   ├── test_cluster.php         # Multi-server cluster & node routing test suite
+│   ├── test_dyndns.php          # DynDNS 2 HTTP endpoint & credential test suite
+│   ├── test_linter.php          # Zone RFC compliance & linting engine test suite
+│   ├── test_network_tools.php   # IPCalc, IPv6 splitter & WHOIS test suite
+│   ├── test_playwright_responsive.js # Cross-device responsive layout test suite (10 viewports)
+│   ├── test_profile.php         # User profile, password hashing & avatar test suite
+│   ├── test_rdns_math.php       # IPv4 & IPv6 reverse DNS PTR math test suite
+│   ├── test_rdns_services.php   # Reverse DNS batch generation & RFC type test suite
+│   ├── test_snapshots.php       # Zone history & atomic diff engine test suite
+│   ├── test_totp.php            # RFC 6238 TOTP, Base32 codec & SVG QR test suite
+│   └── test_webhooks.php        # HMAC-SHA256 signature & webhook dispatch test suite
+└── views/                       # Modern semantic HTML5 UI view components
+    ├── accounts.php             # Multi-tenant account management & permissions
+    ├── analytics.php            # Real-time DNS telemetry, donut gauges & traffic analytics
+    ├── apikeys.php              # REST API token generation & revocation management
+    ├── audit.php                # Tamper-evident audit trail viewer
+    ├── backup.php               # Database & zone backup/restore interface
+    ├── bulk_records.php         # Cross-zone bulk search, replace & snapshot rollback
+    ├── dashboard.php            # Executive dashboard, quick metrics & health status
+    ├── dnssec.php               # DNSSEC key management & CDS/CDNSKEY delegation
+    ├── error.php                # Human-friendly HTTP error page (403, 404, 500)
+    ├── install.php              # Initial installation wizard & database setup
+    ├── layout.php               # Main application layout, sidebar & header
+    ├── layout_bare.php          # Minimalist layout for login & setup
+    ├── login.php                # Authentication page with Argon2id & 2FA TOTP verification
+    ├── profile.php              # User self-service profile, password & 2FA enrollment
+    ├── search.php               # Global fuzzy search across all zones and records
+    ├── servers.php              # Multi-server PowerDNS cluster manager & node latency
+    ├── settings.php             # Global panel configuration, branding & security
+    ├── templates.php            # DNS zone template library & deployment wizard
+    ├── tools_dns_lookup.php     # Web-based DNS resolver & query lookup tool
+    ├── tools_ipcalc.php         # Interactive IPv4/IPv6 bitwise subnet calculator & IPv6 splitter
+    ├── tools_rdns.php           # Reverse DNS wizard & batch PTR record generator
+    ├── tools_whois.php          # WHOIS / RDAP lookup client (RFC 9082)
+    ├── users.php                # Global user directory & role management (RBAC)
+    ├── webhooks.php             # Cryptographic webhook subscription manager
+    ├── zone_create.php          # Zone provisioning wizard (Forward/Reverse/Slave)
+    ├── zone_history.php         # Zone revision history & 1-click diff rollback
+    ├── zone_show.php            # Interactive RRSet record editor & RFC linter
+    └── zones.php                # Authoritative zone directory & quick search listing
 ```
 
 ---

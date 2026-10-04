@@ -1,0 +1,5 @@
+{
+  "name": "powerdns-admin-php",
+  "private": true,
+  "type": "module"
+}

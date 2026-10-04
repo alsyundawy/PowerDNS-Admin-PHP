@@ -5,9 +5,15 @@
  * Verifies zero horizontal overflow, zero console errors, zero CDN calls, theme toggle, and drawer navigation.
  */
 
-const http = require("node:http");
-const fs = require("node:fs");
-const path = require("node:path");
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const puppeteer = require(
   require.resolve("puppeteer", {
@@ -522,7 +528,9 @@ async function runTests() {
   }
 }
 
-void runTests().catch((err) => {
+try {
+  await runTests();
+} catch (err) {
   console.error("Fatal test runner error:", err);
   process.exit(1);
-});
+}
