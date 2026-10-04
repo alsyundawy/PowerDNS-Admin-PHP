@@ -1218,9 +1218,6 @@ function handleRdnsGeneratePtr(array $user): never
 }
 
 /**
- * @param array<string, mixed> $user
- */
-/**
  * @param list<array<string, mixed>> $rrsets
  * @param array<string, string> $matched
  */

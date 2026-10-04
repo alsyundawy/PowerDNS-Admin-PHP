@@ -29,7 +29,10 @@ function config(bool $reload = false): array
 {
     static $cfg = null;
     if ($reload || $cfg === null) {
-        $cfg = is_file(configPath()) ? require_once configPath() : [];
+        // Use `require` (not `require_once`) so that forced reload re-evaluates
+        // the file even if it was already included. `require_once` returns `true`
+        // on the second call, making $cfg a boolean instead of the config array.
+        $cfg = is_file(configPath()) ? (require configPath()) : [];
     }
     return is_array($cfg) ? $cfg : [];
 }
@@ -233,13 +236,13 @@ function view(string $name, array $data = []): void
         return;
     }
     ob_start();
-    include_once $viewFile;
+    include $viewFile;
     $content = (string) ob_get_clean();
     $layout = ($name === 'login' || $name === 'install') ? 'layout_bare' : 'layout';
     $layoutFile = appRoot() . '/views/' . $layout . '.php';
     (static function (string $file, string $content, array $viewData): void {
         extract($viewData, EXTR_SKIP);
-        include_once $file;
+        include $file;
     })($layoutFile, $content, $data);
 }
 
