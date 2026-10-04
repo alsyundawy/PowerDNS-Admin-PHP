@@ -43,12 +43,37 @@ document.addEventListener("DOMContentLoaded", () => {
   // Mobile sidebar toggle for small screens / Xiaomi / Redmi / Poco
   const toggleBtn = document.getElementById("sidebar-toggle");
   const sidebar = document.getElementById("app-sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  const closeSidebar = () => {
+    if (sidebar) sidebar.classList.remove("show");
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("sidebar-open");
+  };
+
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener("click", () => {
       const isOpen = sidebar.classList.toggle("show");
       toggleBtn.setAttribute("aria-expanded", String(isOpen));
+      document.body.classList.toggle("sidebar-open", isOpen);
     });
   }
+
+  if (backdrop) {
+    backdrop.addEventListener("click", closeSidebar);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && sidebar?.classList.contains("show")) {
+      closeSidebar();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 992) {
+      closeSidebar();
+    }
+  });
 
   // Copy to clipboard utility for tools
   const copyButtons = document.querySelectorAll(".btn-copy-target");

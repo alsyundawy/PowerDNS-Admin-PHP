@@ -50,6 +50,7 @@
   --safe-right: max(env(safe-area-inset-right, 0px), 0px);
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
   --safe-left: max(env(safe-area-inset-left, 0px), 0px);
+  --mobile-nav-h: calc(56px + var(--safe-top));
 }
 
 [data-theme="light"] {
@@ -843,11 +844,11 @@ table tbody tr:hover {
   .sidebar {
     display: none;
     position: fixed;
-    top: 56px;
+    top: var(--mobile-nav-h);
     left: 0;
     width: 280px;
-    height: calc(100vh - 56px);
-    height: calc(100dvh - 56px);
+    height: calc(100vh - var(--mobile-nav-h));
+    height: calc(100dvh - var(--mobile-nav-h));
     z-index: 1025;
     box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
     overflow-y: auto;
@@ -855,6 +856,24 @@ table tbody tr:hover {
 
   .sidebar.show {
     display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1020;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  body.sidebar-open .sidebar-backdrop {
+    display: block;
   }
 
   .main {

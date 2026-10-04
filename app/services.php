@@ -481,7 +481,7 @@ function saveZoneSnapshot(string $zoneName, array $zoneData, ?array $user = null
 }
 
 /**
- * @return list<array<string, mixed>>
+ * @return array<int, array<string, mixed>>
  */
 function getZoneSnapshots(string $zoneName, int $limit = 30): array
 {

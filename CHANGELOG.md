@@ -24,7 +24,7 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
   - Kalkulator subnetting bitwise lengkap untuk IPv4: kalkulasi Network Address, Netmask, Wildcard Mask, Broadcast Address, rentang host usable, total host, kelas alamat (A/B/C/D/E), cakupan IP (Private RFC 1918 / Public / CGNAT / Loopback), reverse DNS pointer (`in-addr.arpa`), serta representasi biner 32-bit.
   - Kalkulator dan ekspansi 128-bit IPv6: representasi 32-digit heksadesimal lengkap (8 kelompok x 4 digit), pemadatan alamat (RFC 5952), kalkulasi network address, jumlah subnet `/64` yang tersedia, deteksi cakupan IPv6 (Loopback, Link-Local, ULA RFC 4193, Multicast, Dokumentasi RFC 3849, Global Unicast), serta zona pointer reverse DNS (`ip6.arpa`).
 - **IPv6 Subnet Splitter Berkinerja Tinggi (`/tools/ipv6-splitter`):**
-  - Pemecah prefix IPv6 berbasis bit arbitrary dengan arsitektur memori aman menggunakan PHP `Generator` (`yield`), mampu menghasilkan hingga 65.536 subnet tanpa risiko *memory exhaustion*.
+  - Pemecah prefix IPv6 berbasis bit arbitrary dengan arsitektur memori aman menggunakan PHP `Generator` (`yield`), mampu menghasilkan hingga 65.536 subnet tanpa risiko _memory exhaustion_.
   - Pratinjau interaktif di layar (hingga 256 subnet) dengan tombol 1-klik salin ke clipboard.
   - Fitur unduh berkas massal instan (`Content-Type: text/plain`, streaming download) untuk seluruh daftar subnet tanpa buffering RAM berlebih.
 - **WHOIS & RDAP Lookup Tool (`/tools/whois`):**
@@ -38,6 +38,22 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 
 ### Keamanan, Performa & Perbaikan (Security, Performance & Fixes)
 
+- **Pembaruan Bootstrap 5.3.8 & Integritas Subresource (SRI):**
+  - Pembaruan dependensi CDN Bootstrap dari 5.3.3 ke versi stabil terbaru 5.3.8 pada `views/layout.php` dan `views/layout_bare.php`.
+  - Penerapan hash verifikasi integritas SHA-384 resmi (`sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB` untuk stylesheet CSS dan `sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI` untuk bundle skrip JS).
+- **Penguatan Header Keamanan Content Security Policy (CSP):**
+  - Memperbarui direktif `style-src` dan `script-src` pada `public/index.php` untuk mengizinkan sumber resmi `https://cdn.jsdelivr.net` berdampingan dengan skrip inline dan aset lokal `'self'`.
+  - Menambahkan direktif restriktif `connect-src 'self'` guna mengisolasi panggilan jaringan asinkron.
+- **Pencegahan Kebocoran Soket cURL (`PdnsClient`):**
+  - Membungkus eksekusi `requestRaw()` dalam blok `try ... finally { curl_close($ch); }` untuk menjamin destruksi soket dan pembebasan _file descriptor_ secara instan di seluruh skenario eksekusi (berhasil maupun ketika terjadi pengecualian/timeout).
+- **Optimasi Responsif & Notched Safe-Area (Xiaomi, Redmi, POCO, iOS):**
+  - Kalkulasi adaptif tinggi bilah navigasi seluler `--mobile-nav-h: calc(56px + var(--safe-top));` untuk tata letak laci sidebar tanpa tabrakan dengan status bar berponi (_punch-hole_ / _notch_).
+  - Implementasi komponen backdrop peredup (`.sidebar-backdrop`), dukungan penutupan drawer saat klik di luar area atau tombol `Escape`, serta penguncian gulir latar belakang (`body.sidebar-open { overflow: hidden; }`) dengan pemulihan otomatis saat perubahan ukuran layar ke desktop.
+  - Penambahan meta tag `<meta name="color-scheme" content="dark light">` untuk rendering kontrol form dan scrollbar native OLED tanpa _flash of unstyled content_.
+- **Peningkatan Tipisasi Statis & PHPDoc Strict:**
+  - Penambahan anotasi tipe eksplisit `@param array<string, mixed> $user` pada 14 fungsi handler dan `@return array<int, array<string, mixed>>` pada fungsi `getZoneSnapshots()`.
+  - Validasi bentuk array tipe aman pada fungsi `takeFlash()` mengembalikan `array{type: string, message: string}|null`.
+  - Penambahan spesifikasi tipe metode traits `PdnsDnssecTrait` dan `PdnsMetadataTrait`.
 - **Perbaikan `.gitignore` untuk Vendor Aset Lokal:**
   - Mengubah aturan `vendor/` menjadi `/vendor/` dan mengecualikan `!public/assets/vendor/` agar pustaka front-end lokal (Bootstrap, Font Awesome, jQuery) terkelola secara presisi di repositori Git tanpa mengikutsertakan dependensi internal Composer.
 - **Zero-Dependency Streaming HTTP Response:**
@@ -45,10 +61,10 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 - **Verifikasi Kualitas Kode Menyeluruh (13 Pillars):**
   - Lolos 100% PHPCS (PSR-12) dengan 0 error dan 0 warning.
   - Lolos 100% PHPStan (Level 5) dengan 0 error.
-  - Lolos 100% Psalm (Level 7) dengan 0 error.
+  - Lolos 100% Psalm (Level 7) dengan 0 error dan tingkat inferensi tipe 96.4%.
   - Lolos 100% PHP-CS-Fixer tanpa ada berkas yang perlu diformat ulang.
   - Lolos 100% ESLint, Stylelint, Prettier, dan Markdownlint.
-  - Seluruh 45/45 asersi unit test di folder `tests/` berjalan sukses (`PASS`).
+  - Seluruh unit test di folder `tests/` berjalan sukses (`PASS`).
 
 ---
 

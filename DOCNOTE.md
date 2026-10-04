@@ -34,7 +34,7 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
      - **Dark Canvas:** `#0b0f19` (OLED obsidian space), kartu `#111827`, border `#1e293b`, aksen elektrik cyan `#0ea5e9`, ungu neon `#8b5cf6`, dan status emerald `#10b981`.
      - **Light Canvas:** `#f8fafc` (Daylight Slate), kartu `#ffffff`, border `#e2e8f0`, teks kontras `#0f172a`.
 2. **Zero-Blur & Zero-Haze Rendering:**
-   - Menghindari filter *backdrop-blur* berlebih yang membebani GPU perangkat seluler.
+   - Menghindari filter _backdrop-blur_ berlebih yang membebani GPU perangkat seluler.
    - Menggunakan garis tepi tegas 1px (`var(--line)`), bayangan multi-layer tajam, serta antialiasing font `-webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility`.
 3. **Pencegahan Bug Font Inflation & Layar Terpotong (Xiaomi/Redmi/Poco/MIUI/HyperOS):**
    - Aturan proteksi `-webkit-text-size-adjust: 100%` dan `text-size-adjust: 100%` mencegah browser Android/MIUI membesarkan font secara sepihak pada wadah lebar.
@@ -168,16 +168,16 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
-### F. Penguatan Keamanan Zero-CDN & Header HTTP
+### F. Penguatan Keamanan CDN, SRI & Header HTTP
 
-1. **Eliminasi Total Ketergantungan CDN:**
-   - Header `Content-Security-Policy` di `public/index.php` dan `deploy/nginx.conf` telah membersihkan domain pihak ketiga (`cdn.jsdelivr.net`).
-   - Seluruh pustaka JavaScript (jQuery 3.7.1) dan CSS (Bootstrap 5.3.3) disajikan secara lokal dari direktori `public/assets/vendor/`.
+1. **Redundansi Bootstrap 5.3.8 & Subresource Integrity (SRI):**
+   - Menggunakan CDN resmi jsDelivr dengan hash SHA-384 resmi (`sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB` & `sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI`) dan fallback otomatis ke vendor lokal `public/assets/vendor/` jika koneksi CDN gagal atau di lingkungan terisolasi (_air-gapped_).
+   - Seluruh pustaka ikon Font Awesome 6.7.2 disajikan 100% secara lokal dari direktori `public/assets/vendor/fontawesome/`.
 
 2. **Header Keamanan Lengkap:**
 
    ```http
-   Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+   Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
    X-Frame-Options: DENY
    X-Content-Type-Options: nosniff
    Referrer-Policy: same-origin

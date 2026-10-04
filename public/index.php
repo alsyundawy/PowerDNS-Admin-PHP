@@ -42,9 +42,10 @@ header(
 );
 header(
     "Content-Security-Policy: default-src 'self'; " .
-    "style-src 'self' 'unsafe-inline'; " .
-    "script-src 'self' 'unsafe-inline'; " .
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
     "img-src 'self' data:; font-src 'self'; " .
+    "connect-src 'self'; " .
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 );
 if ($isHttps) {

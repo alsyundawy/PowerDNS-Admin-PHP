@@ -144,37 +144,41 @@ final class PdnsClient
             throw new UnexpectedValueException('Gagal menginisialisasi cURL untuk PowerDNS API.');
         }
 
-        $headers = [
-            'X-API-Key: ' . $this->apiKey,
-            'Accept: ' . $accept,
-        ];
-        $opts = [
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_SSL_VERIFYPEER => $this->verifyTls,
-            CURLOPT_SSL_VERIFYHOST => $this->verifyTls ? 2 : 0,
-        ];
-        if ($body !== null) {
-            $headers[] = 'Content-Type: application/json';
-            $opts[CURLOPT_HTTPHEADER] = $headers;
-            $opts[CURLOPT_POSTFIELDS] = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        try {
+            $headers = [
+                'X-API-Key: ' . $this->apiKey,
+                'Accept: ' . $accept,
+            ];
+            $opts = [
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => $this->timeout,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_SSL_VERIFYPEER => $this->verifyTls,
+                CURLOPT_SSL_VERIFYHOST => $this->verifyTls ? 2 : 0,
+            ];
+            if ($body !== null) {
+                $headers[] = 'Content-Type: application/json';
+                $opts[CURLOPT_HTTPHEADER] = $headers;
+                $opts[CURLOPT_POSTFIELDS] = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            }
+            curl_setopt_array($ch, $opts);
+            $raw = curl_exec($ch);
+            if ($raw === false) {
+                $err = curl_error($ch);
+                throw new UnexpectedValueException('PowerDNS API tidak terjangkau: ' . $err);
+            }
+            $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            if ($code >= 400) {
+                $decoded = json_decode((string) $raw, true);
+                $msg = is_array($decoded) ? (string) ($decoded['error'] ?? $raw) : (string) $raw;
+                throw new UnexpectedValueException('PowerDNS API ' . $code . ': ' . $msg);
+            }
+            return (string) $raw;
+        } finally {
+            curl_close($ch);
         }
-        curl_setopt_array($ch, $opts);
-        $raw = curl_exec($ch);
-        if ($raw === false) {
-            $err = curl_error($ch);
-            throw new UnexpectedValueException('PowerDNS API tidak terjangkau: ' . $err);
-        }
-        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        if ($code >= 400) {
-            $decoded = json_decode((string) $raw, true);
-            $msg = is_array($decoded) ? (string) ($decoded['error'] ?? $raw) : (string) $raw;
-            throw new UnexpectedValueException('PowerDNS API ' . $code . ': ' . $msg);
-        }
-        return (string) $raw;
     }
 
     /**

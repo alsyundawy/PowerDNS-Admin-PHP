@@ -16,6 +16,7 @@ declare(strict_types=1);
   <meta name="description" content="PowerDNS Authoritative Server Management Panel - Masuk / Autentikasi">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="theme-color" content="#0b0f19">
+  <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title><?= e($title ?? 'PowerDNS-Admin-PHP') ?></title>
@@ -27,8 +28,8 @@ declare(strict_types=1);
   </script>
   <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
         crossorigin="anonymous"
         onerror="this.onerror=null;this.href='/assets/vendor/bootstrap.min.css';">
   <link rel="stylesheet" href="/assets/app.css">

@@ -153,7 +153,13 @@ function takeFlash(): ?array
 {
     $flash = $_SESSION['flash'] ?? null;
     unset($_SESSION['flash']);
-    return is_array($flash) ? $flash : null;
+    if (is_array($flash) && isset($flash['type'], $flash['message'])) {
+        return [
+            'type' => (string) $flash['type'],
+            'message' => (string) $flash['message'],
+        ];
+    }
+    return null;
 }
 
 /**

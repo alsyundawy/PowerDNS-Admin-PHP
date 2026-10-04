@@ -219,6 +219,9 @@ function handleDashboard(array $user): void
     );
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZones(array $user): void
 {
     $q = trim((string) ($_GET['q'] ?? ''));
@@ -246,6 +249,9 @@ function handleZones(array $user): void
     view('zones', ['title' => 'Zona', 'user' => $user, 'zones' => $zones, 'q' => $q, 'kind' => $kind]);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneSync(array $user): void
 {
     csrfCheck();
@@ -443,6 +449,9 @@ function applyTemplate(PdnsClient $pdns, string $zone, int $templateId): void
     }
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneShow(array $user, string $zoneRaw): void
 {
     $zone = dnsCanonical(rawurldecode($zoneRaw));
@@ -520,6 +529,9 @@ function parseRecordPostRows(array $post): array
     return $rows;
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneSave(array $user, string $zoneRaw): void
 {
     csrfCheck();
@@ -560,6 +572,9 @@ function handleZoneSave(array $user, string $zoneRaw): void
     redirectZone($zone);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneDelete(array $user, string $zoneRaw): void
 {
     csrfCheck();
@@ -576,6 +591,9 @@ function handleZoneDelete(array $user, string $zoneRaw): void
     redirect('/zones');
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneAction(array $user, string $zoneRaw, string $action): void
 {
     csrfCheck();
@@ -601,6 +619,9 @@ function handleZoneAction(array $user, string $zoneRaw, string $action): void
     redirectZone($zone);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneHistory(array $user, string $zoneRaw): void
 {
     $zone = dnsCanonical(rawurldecode($zoneRaw));
@@ -623,6 +644,9 @@ function handleZoneHistory(array $user, string $zoneRaw): void
     ]);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneRollback(array $user, string $zoneRaw, string $snapshotIdRaw): void
 {
     csrfCheck();
@@ -641,6 +665,9 @@ function handleZoneRollback(array $user, string $zoneRaw, string $snapshotIdRaw)
     redirectZone($zone, '/history');
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneExport(array $user, string $zoneRaw): void
 {
     $zone = dnsCanonical(rawurldecode($zoneRaw));
@@ -663,6 +690,9 @@ function handleZoneExport(array $user, string $zoneRaw): void
     }
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleDnssec(array $user, string $zoneRaw): void
 {
     $zone = dnsCanonical(rawurldecode($zoneRaw));
@@ -704,6 +734,9 @@ function handleDnssec(array $user, string $zoneRaw): void
     ]);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleDnssecEnable(array $user, string $zoneRaw): void
 {
     csrfCheck();
@@ -752,6 +785,9 @@ function handleDnssecEnable(array $user, string $zoneRaw): void
     redirectZone($zone, '/dnssec');
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleDnssecToggleCds(array $user, string $zoneRaw): void
 {
     csrfCheck();
@@ -780,6 +816,9 @@ function handleDnssecToggleCds(array $user, string $zoneRaw): void
     redirectZone($zone, '/dnssec');
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleZoneGrant(array $user, string $zoneRaw): void
 {
     csrfCheck();
@@ -1106,6 +1145,9 @@ function handleSettings(array $user): void
     ]);
 }
 
+/**
+ * @param array<string, mixed> $user
+ */
 function handleSearch(array $user): void
 {
     $q = trim((string) ($_GET['q'] ?? ''));
