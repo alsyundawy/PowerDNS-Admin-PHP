@@ -21,20 +21,20 @@ CYAN='\033[1;36m'
 NC='\033[0m'
 
 cleanup_on_error() {
-    local exit_code=$?
-    if [[ "${exit_code}" -ne 0 ]]; then
-        echo -e "\n${RED}[ERROR] Instalasi terhenti karena terjadi kesalahan (Exit Code: ${exit_code}).${NC}" >&2
-    fi
+	local exit_code=$?
+	if [[ ${exit_code} -ne 0 ]]; then
+		echo -e "\n${RED}[ERROR] Instalasi terhenti karena terjadi kesalahan (Exit Code: ${exit_code}).${NC}" >&2
+	fi
 }
 trap cleanup_on_error EXIT
 
 CURRENT_UID="${EUID:-}"
-if [[ -z "${CURRENT_UID}" ]]; then
-    CURRENT_UID="$(id -u)"
+if [[ -z ${CURRENT_UID} ]]; then
+	CURRENT_UID="$(id -u)"
 fi
-if [[ "${CURRENT_UID}" -ne 0 ]]; then
-    echo -e "${RED}[ERROR] Skrip ini harus dijalankan sebagai ROOT (sudo).${NC}" >&2
-    exit 1
+if [[ ${CURRENT_UID} -ne 0 ]]; then
+	echo -e "${RED}[ERROR] Skrip ini harus dijalankan sebagai ROOT (sudo).${NC}" >&2
+	exit 1
 fi
 
 APP="/var/www/PowerDNS-Admin-PHP"
@@ -47,22 +47,22 @@ echo -e "${CYAN}================================================================
 echo -e "\n${BLUE}[1/6] Memperbarui repositori dan menginstal paket sistem...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
-    nginx-full \
-    mariadb-server \
-    mariadb-client \
-    curl \
-    git \
-    unzip \
-    ca-certificates \
-    php-fpm \
-    php-mysql \
-    php-curl \
-    php-mbstring \
-    php-xml \
-    php-intl \
-    php-gmp \
-    php-bcmath \
-    php-zip
+	nginx-full \
+	mariadb-server \
+	mariadb-client \
+	curl \
+	git \
+	unzip \
+	ca-certificates \
+	php-fpm \
+	php-mysql \
+	php-curl \
+	php-mbstring \
+	php-xml \
+	php-intl \
+	php-gmp \
+	php-bcmath \
+	php-zip
 
 PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
 echo -e "${GREEN}PHP terdeteksi: versi ${PHP_VER}${NC}"
@@ -75,14 +75,14 @@ chmod 750 /etc/pda
 
 # Jika script dijalankan dari dalam clone repo, sinkronkan ke ${APP} jika berbeda
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ "${CURRENT_DIR}" != "${APP}" && -f "${CURRENT_DIR}/public/index.php" ]]; then
-    echo -e "${YELLOW}Menyalin berkas dari ${CURRENT_DIR} ke ${APP}...${NC}"
-    cp -r "${CURRENT_DIR}/." "${APP}/"
+if [[ ${CURRENT_DIR} != "${APP}" && -f "${CURRENT_DIR}/public/index.php" ]]; then
+	echo -e "${YELLOW}Menyalin berkas dari ${CURRENT_DIR} ke ${APP}...${NC}"
+	cp -r "${CURRENT_DIR}/." "${APP}/"
 fi
 
 if [[ ! -f "${APP}/public/index.php" ]]; then
-    echo -e "${RED}[ERROR] Berkas ${APP}/public/index.php tidak ditemukan. Pastikan repo terpasang di ${APP}.${NC}" >&2
-    exit 1
+	echo -e "${RED}[ERROR] Berkas ${APP}/public/index.php tidak ditemukan. Pastikan repo terpasang di ${APP}.${NC}" >&2
+	exit 1
 fi
 
 chown -R www-data:www-data "${APP}"
@@ -138,8 +138,8 @@ systemctl enable --now mariadb
 DB_NAME="${DB_NAME:-pdns_admin}"
 DB_USER="${DB_USER:-pdns_admin_user}"
 
-if [[ -z "${DB_PASS:-}" ]]; then
-    DB_PASS="$(head -c 256 /dev/urandom | tr -dc '2-9a-hj-km-np-zA-HJ-NP-Z' | cut -c1-20)"
+if [[ -z ${DB_PASS:-} ]]; then
+	DB_PASS="$(head -c 256 /dev/urandom | tr -dc '2-9a-hj-km-np-zA-HJ-NP-Z' | cut -c1-20)"
 fi
 
 mariadb -u root <<EOF || { echo -e "${YELLOW}[WARN] Tidak dapat menjalankan inisialisasi root MariaDB otomatis (mungkin root ber-password). Silakan buat database manual.${NC}"; }
@@ -159,10 +159,10 @@ EOF
 
 # Impor skema tabel metadata jika database baru dan skema belum ada
 if mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" -e "DESCRIBE users;" &>/dev/null; then
-    echo -e "${GREEN}Tabel metadata PowerDNS-Admin-PHP sudah ada di database ${DB_NAME}.${NC}"
+	echo -e "${GREEN}Tabel metadata PowerDNS-Admin-PHP sudah ada di database ${DB_NAME}.${NC}"
 elif [[ -f "${APP}/sql/schema.sql" ]]; then
-    echo -e "${GREEN}Mengimpor skema metadata PowerDNS-Admin-PHP (${APP}/sql/schema.sql)...${NC}"
-    mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" <"${APP}/sql/schema.sql" || true
+	echo -e "${GREEN}Mengimpor skema metadata PowerDNS-Admin-PHP (${APP}/sql/schema.sql)...${NC}"
+	mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" <"${APP}/sql/schema.sql" || true
 fi
 
 # 6. Mengaktifkan dan merestart seluruh service

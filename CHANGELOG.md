@@ -55,11 +55,12 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
 
 ### Keamanan, Performa & Perbaikan (Security, Performance & Fixes)
 
-- **Pembaruan Bootstrap 5.3.8 & Integritas Subresource (SRI):**
-  - Pembaruan dependensi CDN Bootstrap dari 5.3.3 ke versi stabil terbaru 5.3.8 pada `views/layout.php` dan `views/layout_bare.php`.
-  - Penerapan hash verifikasi integritas SHA-384 resmi (`sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB` untuk stylesheet CSS dan `sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI` untuk bundle skrip JS).
+- **Aset Vendor 100% Lokal & Mandiri (Zero CDN / Offline / Air-Gapped Ready):**
+  - Mengeliminasi seluruh dependensi CDN eksternal (jsDelivr) pada `views/layout.php` dan `views/layout_bare.php`. Seluruh pustaka CSS dan JS (Bootstrap 5.3.8, Font Awesome 6.7.2, jQuery 3.7.1) disajikan langsung secara lokal dari `/assets/vendor/`.
+  - Menghilangkan trik pemuatan lambat dan rapuh `document.write` serta handler `onerror` pada `<link>` stylesheet.
+  - Memastikan kompatibilitas penuh untuk instalasi di jaringan terisolasi (_air-gapped_ / intranet) tanpa ketergantungan koneksi internet publik.
 - **Penguatan Header Keamanan Content Security Policy (CSP):**
-  - Memperbarui direktif `style-src` dan `script-src` pada `public/index.php` untuk mengizinkan sumber resmi `https://cdn.jsdelivr.net` berdampingan dengan skrip inline dan aset lokal `'self'`.
+  - Membersihkan domain eksternal `https://cdn.jsdelivr.net` dari direktif `style-src` dan `script-src` pada `public/index.php` dan `deploy/nginx.conf`, mengunci kebijakan CSP menjadi murni `'self'` dan `'unsafe-inline'`.
   - Menambahkan direktif restriktif `connect-src 'self'` guna mengisolasi panggilan jaringan asinkron.
 - **Pencegahan Kebocoran Soket cURL (`PdnsClient`):**
   - Membungkus eksekusi `requestRaw()` dalam blok `try ... finally { curl_close($ch); }` untuk menjamin destruksi soket dan pembebasan _file descriptor_ secara instan di seluruh skenario eksekusi (berhasil maupun ketika terjadi pengecualian/timeout).

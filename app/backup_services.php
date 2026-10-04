@@ -410,10 +410,25 @@ function restoreZones(PdnsClient $pdns, array $data): array
  * @param array<string, mixed> $file $_FILES['avatar']
  * @return array{ok: bool, path?: string, error?: string}
  */
-function saveUserAvatar(array $file, int $userId): array
-{
+/**
+ * Internal helper to validate and store an uploaded image safely.
+ *
+ * @param array<string, mixed> $file
+ * @param string $subDir Directory relative to /public/uploads/ (e.g. 'avatars' or 'branding')
+ * @param string $fileBaseName Target base filename without extension
+ * @param string $label Indonesian label for error messages (e.g. 'foto profil' or 'logo')
+ * @param bool $allowGif Whether GIF is permitted
+ * @return array{ok: bool, path?: string, error?: string}
+ */
+function processUploadedImage(
+    array $file,
+    string $subDir,
+    string $fileBaseName,
+    string $label = 'gambar',
+    bool $allowGif = true
+): array {
     if (!isset($file['error']) || is_array($file['error'])) {
-        return ['ok' => false, 'error' => 'Parameter berkas tidak valid.'];
+        return ['ok' => false, 'error' => sprintf('Parameter berkas %s tidak valid.', $label)];
     }
     if ($file['error'] !== UPLOAD_ERR_OK) {
         $msgs = [
@@ -424,12 +439,12 @@ function saveUserAvatar(array $file, int $userId): array
             UPLOAD_ERR_NO_TMP_DIR => 'Folder sementara server hilang.',
             UPLOAD_ERR_CANT_WRITE => 'Gagal menulis berkas ke penyimpanan.',
         ];
-        return ['ok' => false, 'error' => $msgs[(int) $file['error']] ?? 'Terjadi kesalahan unggah.'];
+        return ['ok' => false, 'error' => $msgs[(int) $file['error']] ?? sprintf('Unggah berkas %s gagal.', $label)];
     }
 
     $maxBytes = 2 * 1024 * 1024;
     if ((int) ($file['size'] ?? 0) > $maxBytes) {
-        return ['ok' => false, 'error' => 'Ukuran berkas maksimal 2MB.'];
+        return ['ok' => false, 'error' => sprintf('Ukuran berkas %s maksimal 2MB.', $label)];
     }
 
     $tmp = (string) ($file['tmp_name'] ?? '');
@@ -447,41 +462,58 @@ function saveUserAvatar(array $file, int $userId): array
         'image/png' => 'png',
         'image/jpeg' => 'jpg',
         'image/webp' => 'webp',
-        'image/gif' => 'gif',
         'image/svg+xml' => 'svg',
     ];
+    if ($allowGif) {
+        $allowedMimes['image/gif'] = 'gif';
+    }
 
     if (!isset($allowedMimes[$mime])) {
-        return ['ok' => false, 'error' => 'Format gambar harus PNG, JPG, WEBP, GIF, atau SVG.'];
+        $allowedFormats = $allowGif ? 'PNG, JPG, WEBP, GIF, atau SVG' : 'PNG, JPG, WEBP, atau SVG';
+        return ['ok' => false, 'error' => sprintf('Format %s harus %s.', $label, $allowedFormats)];
     }
 
     $ext = $allowedMimes[$mime];
     if ($ext !== 'svg') {
         $imgInfo = @getimagesize($tmp);
         if ($imgInfo === false) {
-            return ['ok' => false, 'error' => 'Berkas gambar tidak valid atau korup.'];
+            return ['ok' => false, 'error' => sprintf('Berkas %s tidak valid atau korup.', $label)];
         }
     } else {
         $svgContent = (string) file_get_contents($tmp);
-        if (preg_match('/<script|javascript:|onload|onerror|onclick/i', $svgContent)) {
-            return ['ok' => false, 'error' => 'Berkas SVG mengandung skrip yang tidak diizinkan.'];
+        $svgPattern = '/<script|javascript:|on\w+\s*=|data:\s*text\/html|'
+            . 'xlink:href\s*=\s*[\'"\s]*javascript:|<\?php|<\?=/i';
+        if (preg_match($svgPattern, $svgContent)) {
+            return ['ok' => false, 'error' => sprintf('Berkas SVG %s mengandung skrip yang tidak diizinkan.', $label)];
         }
     }
 
-    $uploadDir = appRoot() . '/public/uploads/avatars';
+    $uploadDir = appRoot() . '/public/uploads/' . trim($subDir, '/');
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
 
-    $filename = sprintf('avatar_%d_%s.%s', $userId, bin2hex(random_bytes(8)), $ext);
+    $filename = sprintf('%s.%s', $fileBaseName, $ext);
     $targetPath = $uploadDir . '/' . $filename;
 
     if (!move_uploaded_file($tmp, $targetPath)) {
-        return ['ok' => false, 'error' => 'Gagal memindahkan berkas foto profil.'];
+        return ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
     }
     chmod($targetPath, 0644);
 
-    return ['ok' => true, 'path' => '/uploads/avatars/' . $filename];
+    return ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename];
+}
+
+/**
+ * Validate and save user avatar upload.
+ *
+ * @param array<string, mixed> $file $_FILES['avatar']
+ * @return array{ok: bool, path?: string, error?: string}
+ */
+function saveUserAvatar(array $file, int $userId): array
+{
+    $fileBaseName = sprintf('avatar_%d_%s', $userId, bin2hex(random_bytes(8)));
+    return processUploadedImage($file, 'avatars', $fileBaseName, 'foto profil', true);
 }
 
 /**
@@ -492,65 +524,6 @@ function saveUserAvatar(array $file, int $userId): array
  */
 function saveBrandLogo(array $file): array
 {
-    if (!isset($file['error']) || is_array($file['error'])) {
-        return ['ok' => false, 'error' => 'Parameter berkas logo tidak valid.'];
-    }
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        return ['ok' => false, 'error' => 'Unggah berkas logo gagal.'];
-    }
-
-    $maxBytes = 2 * 1024 * 1024;
-    if ((int) ($file['size'] ?? 0) > $maxBytes) {
-        return ['ok' => false, 'error' => 'Ukuran berkas logo maksimal 2MB.'];
-    }
-
-    $tmp = (string) ($file['tmp_name'] ?? '');
-    if (!is_uploaded_file($tmp)) {
-        return ['ok' => false, 'error' => 'Berkas unggahan tidak sah.'];
-    }
-
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = $finfo ? finfo_file($finfo, $tmp) : '';
-    if ($finfo) {
-        finfo_close($finfo);
-    }
-
-    $allowedMimes = [
-        'image/png' => 'png',
-        'image/jpeg' => 'jpg',
-        'image/webp' => 'webp',
-        'image/svg+xml' => 'svg',
-    ];
-
-    if (!isset($allowedMimes[$mime])) {
-        return ['ok' => false, 'error' => 'Format logo harus PNG, JPG, WEBP, atau SVG.'];
-    }
-
-    $ext = $allowedMimes[$mime];
-    if ($ext !== 'svg') {
-        $imgInfo = @getimagesize($tmp);
-        if ($imgInfo === false) {
-            return ['ok' => false, 'error' => 'Berkas logo tidak valid.'];
-        }
-    } else {
-        $svgContent = (string) file_get_contents($tmp);
-        if (preg_match('/<script|javascript:|onload|onerror|onclick/i', $svgContent)) {
-            return ['ok' => false, 'error' => 'Berkas SVG logo mengandung skrip yang tidak diizinkan.'];
-        }
-    }
-
-    $uploadDir = appRoot() . '/public/uploads/branding';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
-
-    $filename = sprintf('logo_%s.%s', bin2hex(random_bytes(8)), $ext);
-    $targetPath = $uploadDir . '/' . $filename;
-
-    if (!move_uploaded_file($tmp, $targetPath)) {
-        return ['ok' => false, 'error' => 'Gagal memindahkan berkas logo.'];
-    }
-    chmod($targetPath, 0644);
-
-    return ['ok' => true, 'path' => '/uploads/branding/' . $filename];
+    $fileBaseName = sprintf('logo_%s', bin2hex(random_bytes(8)));
+    return processUploadedImage($file, 'branding', $fileBaseName, 'logo', false);
 }

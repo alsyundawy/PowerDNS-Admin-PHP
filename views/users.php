@@ -82,7 +82,7 @@ declare(strict_types=1);
       <?php foreach ($users as $row) :
           $rowAvatar = !empty($row['avatar_url']) ? (string) $row['avatar_url'] : '';
           $initial = strtoupper(substr((string) $row['username'], 0, 2));
-      ?>
+          ?>
         <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
@@ -101,8 +101,8 @@ declare(strict_types=1);
           <td><span class="badge bg-secondary"><?= e($row['role']) ?></span></td>
           <td>
             <?= !empty($row['active'])
-              ? '<span class="pill ok">aktif</span>'
-              : '<span class="pill bad">nonaktif</span>' ?>
+                  ? '<span class="pill ok">aktif</span>'
+                  : '<span class="pill bad">nonaktif</span>' ?>
           </td>
           <td><?= e((string) ($row['last_login_at'] ?? '–')) ?></td>
         </tr>

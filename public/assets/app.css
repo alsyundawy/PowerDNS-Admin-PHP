@@ -105,6 +105,17 @@ html {
   box-sizing: inherit;
 }
 
+/* Prevent 300ms tap delay on Xiaomi/Redmi/MIUI/HyperOS browsers */
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role="button"] {
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   color: var(--ink);
@@ -119,6 +130,7 @@ body {
   background-color: var(--paper);
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -143,6 +155,7 @@ a:focus-visible {
   display: grid;
   grid-template-columns: 270px 1fr;
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   background-color: var(--paper);
 }
@@ -185,12 +198,14 @@ a:focus-visible {
   padding: max(24px, var(--safe-top)) max(18px, var(--safe-left))
     max(24px, var(--safe-bottom)) 18px;
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   transition: transform 0.25s ease-in-out;
   border-right: 1px solid var(--line);
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
   height: 100dvh;
   overflow-y: auto;
 }
@@ -349,10 +364,12 @@ a:focus-visible {
     max(48px, var(--safe-bottom)) 32px;
   max-width: 1600px;
   width: 100%;
+  min-width: 0;
 }
 
 .topbar {
   margin-bottom: 24px;
+  min-width: 0;
 }
 
 .topbar h1 {
@@ -361,6 +378,7 @@ a:focus-visible {
   letter-spacing: -0.02em;
   font-weight: 700;
   color: var(--ink);
+  word-break: break-word;
 }
 
 .topbar p,
@@ -368,6 +386,7 @@ a:focus-visible {
   color: var(--ink-soft);
   margin: 4px 0 0;
   font-size: 14px;
+  word-break: break-word;
 }
 
 /* Panel Containers */
@@ -378,6 +397,7 @@ a:focus-visible {
   padding: 20px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
+  min-width: 0;
 }
 
 .panel header {
@@ -529,6 +549,7 @@ a:focus-visible {
 /* Authentication Page */
 .auth-body {
   min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   display: grid;
   place-items: center;
@@ -543,6 +564,7 @@ a:focus-visible {
 
 .auth-card {
   width: min(500px, 100%);
+  min-width: 0;
   background: var(--card);
   border-radius: var(--radius-lg);
   padding: 32px 28px;
@@ -848,6 +870,7 @@ table tbody tr:hover {
     left: 0;
     width: 280px;
     height: calc(100vh - var(--mobile-nav-h));
+    height: calc(100svh - var(--mobile-nav-h));
     height: calc(100dvh - var(--mobile-nav-h));
     z-index: 1025;
     box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);

@@ -14,7 +14,7 @@ declare(strict_types=1);
 <html lang="id" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="description" content="PowerDNS Authoritative Server Management Panel - Native PHP">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="theme-color" content="#0b0f19">
@@ -28,12 +28,8 @@ declare(strict_types=1);
       document.documentElement.setAttribute('data-theme', savedTheme);
     })();
   </script>
+  <link rel="stylesheet" href="/assets/vendor/bootstrap.min.css">
   <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-        crossorigin="anonymous"
-        onerror="this.onerror=null;this.href='/assets/vendor/bootstrap.min.css';">
   <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body class="app-body">
@@ -190,19 +186,8 @@ declare(strict_types=1);
       </div>
     </footer>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"
-          integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"
-          crossorigin="anonymous"></script>
-  <script>
-    window.jQuery || document.write('<script src="/assets/vendor/jquery.min.js"><\/script>');
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-          crossorigin="anonymous"></script>
-  <script>
-    (typeof bootstrap !== 'undefined') ||
-      document.write('<script src="/assets/vendor/bootstrap.bundle.min.js"><\/script>');
-  </script>
+  <script src="/assets/vendor/jquery.min.js"></script>
+  <script src="/assets/vendor/bootstrap.bundle.min.js"></script>
   <script src="/assets/app.js"></script>
 </body>
 </html>

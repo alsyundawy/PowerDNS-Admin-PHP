@@ -161,6 +161,7 @@ function handleLogin(): void
                 ->execute([$username, $ip, $ok ? 1 : 0]);
             if ($ok) {
                 loginUserSession($user, $password);
+                return;
             }
             $error = 'Username atau sandi salah.';
         }

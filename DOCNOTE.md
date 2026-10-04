@@ -206,16 +206,19 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
-### F. Penguatan Keamanan CDN, SRI & Header HTTP
+### F. Arsitektur Aset 100% Mandiri (Offline / Air-Gapped) & Header Keamanan Ketat
 
-1. **Redundansi Bootstrap 5.3.8 & Subresource Integrity (SRI):**
-   - Menggunakan CDN resmi jsDelivr dengan hash SHA-384 resmi (`sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB` & `sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI`) dan fallback otomatis ke vendor lokal `public/assets/vendor/` jika koneksi CDN gagal atau di lingkungan terisolasi (_air-gapped_).
-   - Seluruh pustaka ikon Font Awesome 6.7.2 disajikan 100% secara lokal dari direktori `public/assets/vendor/fontawesome/`.
+1. **Aset Vendor Lokal Penuh Tanpa Ketergantungan CDN Eksternal:**
+   - Seluruh pustaka front-end disajikan 100% secara lokal dari direktori `public/assets/vendor/`:
+     - Bootstrap 5.3.8 (`bootstrap.min.css` & `bootstrap.bundle.min.js`)
+     - Font Awesome 6.7.2 (`fontawesome/css/all.min.css` beserta font web `webfonts/`)
+     - jQuery 3.7.1 (`jquery.min.js`)
+   - Menghilangkan latensi jaringan ke CDN pihak ketiga (jsDelivr), mencegah kegagalan pemuatan pada lingkungan terisolasi (_air-gapped_ / intranet / jaringan internal), meniadakan trik rapuh `document.write` / `onerror` fallback, serta menjaga privasi pengguna (tidak ada kebocoran IP / referer ke pihak ketiga).
 
-2. **Header Keamanan Lengkap:**
+2. **Header Keamanan Lengkap & CSP Ketat:**
 
    ```http
-   Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+   Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
    X-Frame-Options: DENY
    X-Content-Type-Options: nosniff
    Referrer-Policy: same-origin
