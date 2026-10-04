@@ -217,6 +217,32 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 
 ---
 
+### H. Harmonisasi Infrastruktur Nginx, PHP-FPM, dan MariaDB (Berdasarkan Panduan ISP Deployment)
+
+1. **Optimalisasi Nginx Reverse Proxy (`deploy/nginx.conf`):**
+   - **Buffer & Ukuran Payload:** Menaikkan `client_max_body_size` menjadi `64M` dan `client_body_buffer_size 128k` untuk mendukung impor/ekspor berkas zona BIND skala puluhan ribu record.
+   - **Kompresi Gzip:** Menambahkan konfigurasi Gzip otomatis (`gzip_types`) untuk mempercepat transfer data CSS, JS, dan respons JSON REST API.
+   - **FastCGI Timeouts & Buffering:** Menetapkan `fastcgi_read_timeout 180s`, `fastcgi_buffer_size 32k`, dan `fastcgi_buffers 16 16k` untuk mencegah error HTTP 504 Gateway Timeout saat sinkronisasi zona massal.
+   - **Proteksi Berkas Sensitif:** Penolakan akses langsung terhadap ekstensi berkas `.sql`, `.md`, `.log`, `.sh`, `.json`, `.lock`, `.neon`, `.xml`, dan `.conf`.
+   - **Keamanan Header:** Penambahan `server_tokens off;`, `charset utf-8;`, dan `fastcgi_param HTTP_PROXY "";`.
+
+2. **Isolasi & Tuning Pool PHP-FPM (`/etc/php/<ver>/fpm/pool.d/pda.conf`):**
+   - Menggunakan dedicated socket `/run/php/php<ver>-fpm-pda.sock` dengan hak akses `listen.mode = 0660`.
+   - Penyetelan proses worker `pm = ondemand`, `pm.max_children = 16`, `pm.process_idle_timeout = 10s`, dan `pm.max_requests = 500` guna mendaur ulang memori dan mengeliminasi kebocoran RAM jangka panjang.
+   - Alokasi memori `memory_limit = 256M` dan `max_execution_time = 180` untuk kalkulasi bitwise subnetting serta parsing file BIND besar.
+   - Penambahan paket dependensi PHP: `php-gmp` dan `php-bcmath` (untuk kalkulasi 128-bit IPv6 bitwise mutakhir) serta `php-zip`.
+
+3. **Otomasi & Hardening MariaDB Database (`deploy/install-debian.sh`):**
+   - **Hak Akses Ganda (Dual-Host Privileges):** Otomasi pembuatan user dengan izin untuk `'user'@'localhost'` DAN `'user'@'127.0.0.1'`, mencegah galat _Access Denied_ saat koneksi PDO beralih antara UNIX socket dan jaringan TCP loopback.
+   - **Keamanan Database:** Pembersihan user kosong/anonim, penghapusan akses root remote, dan penghapusan database `test`.
+   - **Inisialisasi Otomatis:** Deteksi keberadaan tabel metadata dan impor otomatis `sql/schema.sql` saat instalasi awal.
+
+4. **Kompatibilitas PowerDNS Authoritative 4.8+ (`deploy/pdns.snippet.conf`):**
+   - Pembersihan parameter usang `recursor=` (core recursor dihapus pada PowerDNS 4.8+) dan rekomendasi delegasi ke Unbound lokal port 5353.
+   - Pembersihan parameter `bind-config=` jika menggunakan backend `gmysql` untuk menghindari galat fatal pada PowerDNS server.
+
+---
+
 ## 3. Catatan Arsitektur & Operasional Versi 0.1.0 (Initial Modernization)
 
 ### A. Format Dokumentasi README & Standardisasi Lokasi
