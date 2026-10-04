@@ -831,6 +831,8 @@ PowerDNS-Admin-PHP/
 ├── app/                         # Pure Native PHP Application Kernel (PSR-12, Zero Framework)
 │   ├── PdnsClient.php           # PowerDNS Authoritative HTTP API v1 REST client
 │   ├── PdnsCluster.php          # Multi-Server PowerDNS cluster manager & node router
+│   ├── PdnsDnssecTrait.php      # DNSSEC cryptographic keys & delegation signing trait
+│   ├── PdnsMetadataTrait.php    # PowerDNS zone metadata (SOA-EDIT-API, NSEC3) trait
 │   ├── analytics.php            # DNS telemetry parser & pure vector SVG graphics engine
 │   ├── backup_services.php      # Metadata SQL backup/restore & zone snapshot engine
 │   ├── bootstrap.php            # Sub-millisecond bootstrapper, PDO, crypto & rate limiting
@@ -841,7 +843,8 @@ PowerDNS-Admin-PHP/
 │   ├── network_tools.php        # Subnet calculator, IPv6 splitter, WHOIS/RDAP & DNS lookup
 │   ├── services.php             # Core domain logic, 31 record type validators & RRSet diff
 │   ├── totp.php                 # RFC 6238 TOTP 2FA engine & pure vector SVG QR generator
-│   └── webhook_services.php     # Event-driven HMAC-SHA256 cryptographic webhook dispatcher
+│   ├── webhook_services.php     # Event-driven HMAC-SHA256 cryptographic webhook dispatcher
+│   └── zone_linter.php          # RFC compliance & diagnostic linting engine
 ├── deploy/                      # Production deployment templates & automation scripts
 │   ├── detect-php-fpm.sh        # FastCGI socket detection script for Linux distributions
 │   ├── install-debian.sh        # Automated unattended installer for Debian & Ubuntu
@@ -864,7 +867,7 @@ PowerDNS-Admin-PHP/
 ├── tests/                       # Automated test suites (Zero-framework PHP & Playwright E2E)
 │   ├── helper.php               # Test environment bootstrap & mock assertions
 │   ├── test_analytics.php       # DNS telemetry parser & SVG chart test suite
-│   ├── test_backup_restore.php  # SQL dump/restore parser & sanitation test suite
+│   ├── test_backup.php          # SQL dump/restore parser & sanitation test suite
 │   ├── test_bind_parser.php     # RFC 1035 BIND zone file parser test suite
 │   ├── test_bulk_records.php    # Cross-zone bulk search & replace test suite
 │   ├── test_cache.php           # APCu and request memory cache adapter test suite
