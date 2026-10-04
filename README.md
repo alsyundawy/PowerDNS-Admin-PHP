@@ -6,7 +6,7 @@
   </a>
 </p>
 
-[![Release](https://img.shields.io/badge/Release-v0.2.0-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
+[![Release](https://img.shields.io/badge/Release-v0.2.1-007ACC?style=for-the-badge&logo=github)](https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases)
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![PowerDNS API v1](https://img.shields.io/badge/PowerDNS-Authoritative%20API%20v1-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white)](https://www.powerdns.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
@@ -76,7 +76,7 @@ management, and complete operational autonomy with zero runtime external CDN dep
 
 ## 🚀 Why This Modernized Edition?
 
-This edition (**v0.2.0**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
+This edition (**v0.2.1**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
 PowerDNS administration:
 
 ### 🛡️ 1. Zero-CDN Offline Architecture & Content Security
@@ -130,7 +130,7 @@ PowerDNS administration:
 ## 🎯 Key Features
 
 | Capability Area                | Highlights & Implementations                                                                                                                                  |
-|:-------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Zone Management**            | Forward and reverse zones, supporting `Native`, `Master`, `Slave`, `Producer`, and `Consumer` kinds with configurable `SOA-EDIT-API` metadata.                |
 | **Smart RRSet Editor**         | Interactive visual editor with RFC syntax validation for `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`, `PTR`, `SRV`, `CAA`, `HTTPS`, `SVCB`, `DS`, etc.            |
 | **Subnet rDNS Wizard**         | Interactive IPv4 `/24` and IPv6 `/64` (RFC 3596 nibble format) subnet calculator, batch PTR generator, and automatic forward-to-reverse PTR sync.             |
@@ -200,22 +200,22 @@ flowchart TB
 
 PowerDNS-Admin-PHP validates and formats all standard authoritative DNS Resource Record Sets:
 
-| Record Type | Description                           | RFC Standard       | Syntax Validation & Format Specs                               |
-|:------------|:--------------------------------------|:-------------------|:---------------------------------------------------------------|
-| **`A`**     | IPv4 Host Address                     | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`           |
-| **`AAAA`**  | IPv6 Host Address                     | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6              |
-| **`CNAME`** | Canonical Name (Alias)                | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot  |
-| **`MX`**    | Mail Exchange Server                  | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN   |
-| **`NS`**    | Authoritative Name Server             | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot       |
-| **`TXT`**   | Text Annotations (SPF, DKIM, DMARC)   | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape|
-| **`PTR`**   | Pointer Record (Reverse DNS)          | RFC 1035           | Target host FQDN ending with a trailing dot                    |
-| **`SRV`**   | Service Location Record               | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname        |
-| **`CAA`**   | Certification Authority Authorization | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain      |
-| **`SSHFP`** | SSH Public Key Fingerprint            | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data |
-| **`TLSA`**  | DANE Transport Layer Security Auth    | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data      |
-| **`NAPTR`** | Naming Authority Pointer              | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN     |
-| **`SPF`**   | Sender Policy Framework (Legacy)      | RFC 4408           | Text string policy definition                                  |
-| **`SOA`**   | Start of Authority                    | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL |
+| Record Type | Description                           | RFC Standard       | Syntax Validation & Format Specs                                |
+| :---------- | :------------------------------------ | :----------------- | :-------------------------------------------------------------- |
+| **`A`**     | IPv4 Host Address                     | RFC 1035           | Dotted-decimal format: `0.0.0.0` – `255.255.255.255`            |
+| **`AAAA`**  | IPv6 Host Address                     | RFC 3596           | Standard compressed or uncompressed RFC 4291 IPv6               |
+| **`CNAME`** | Canonical Name (Alias)                | RFC 1035           | Fully Qualified Domain Name (FQDN) ending with a trailing dot   |
+| **`MX`**    | Mail Exchange Server                  | RFC 1035, RFC 7505 | Priority integer (`0–65535`) followed by mail exchanger FQDN    |
+| **`NS`**    | Authoritative Name Server             | RFC 1035           | Authoritative nameserver FQDN ending with a trailing dot        |
+| **`TXT`**   | Text Annotations (SPF, DKIM, DMARC)   | RFC 1464, RFC 7208 | Character string enclosed in quotes, automatic multiline escape |
+| **`PTR`**   | Pointer Record (Reverse DNS)          | RFC 1035           | Target host FQDN ending with a trailing dot                     |
+| **`SRV`**   | Service Location Record               | RFC 2782           | Priority, weight, port (`1–65535`), and target hostname         |
+| **`CAA`**   | Certification Authority Authorization | RFC 6844, RFC 8659 | Flag byte, tag (`issue`, `issuewild`, `iodef`), CA domain       |
+| **`SSHFP`** | SSH Public Key Fingerprint            | RFC 4255, RFC 6594 | Algorithm, fingerprint type (`1` SHA-1, `2` SHA-256), hex data  |
+| **`TLSA`**  | DANE Transport Layer Security Auth    | RFC 6698, RFC 7671 | Certificate usage, selector, matching type, cert hex data       |
+| **`NAPTR`** | Naming Authority Pointer              | RFC 3403           | Order, preference, flags, service, regex, replacement FQDN      |
+| **`SPF`**   | Sender Policy Framework (Legacy)      | RFC 4408           | Text string policy definition                                   |
+| **`SOA`**   | Start of Authority                    | RFC 1035, RFC 2181 | Primary NS, contact email, serial, refresh, retry, expire, TTL  |
 
 ---
 
@@ -243,16 +243,16 @@ the primary variation lies in package management and web server configurations:
 
 ### Distribution Paths & Configuration Mapping
 
-| Component / Setting        | Ubuntu 22.04 / 24.04 & Debian 11 / 12     | Rocky Linux 8 / 9 & AlmaLinux 8 / 9       |
-|:---------------------------|:------------------------------------------|:------------------------------------------|
-| **Package Names**          | `pdns-server`, `pdns-backend-mysql`       | `pdns`, `pdns-backend-mysql`              |
-| **Systemd Service**        | `pdns.service`                            | `pdns.service`                            |
-| **Main Config File**       | `/etc/powerdns/pdns.conf`                 | `/etc/pdns/pdns.conf`                     |
-| **Web Server Root**        | `/var/www/PowerDNS-Admin-PHP/public`      | `/var/www/PowerDNS-Admin-PHP/public`      |
-| **Application Config**     | `/etc/pda/config.php`                     | `/etc/pda/config.php`                     |
-| **PHP-FPM Socket**         | `/run/php/php8.3-fpm-pda.sock`            | `/run/php-fpm/www.sock`                   |
-| **Service User / Group**   | `www-data:www-data`                       | `nginx:nginx` or `apache:apache`          |
-| **Firewall Management**    | `ufw` (Uncomplicated Firewall)            | `firewalld` or `nftables` / `iptables`    |
+| Component / Setting      | Ubuntu 22.04 / 24.04 & Debian 11 / 12 | Rocky Linux 8 / 9 & AlmaLinux 8 / 9    |
+| :----------------------- | :------------------------------------ | :------------------------------------- |
+| **Package Names**        | `pdns-server`, `pdns-backend-mysql`   | `pdns`, `pdns-backend-mysql`           |
+| **Systemd Service**      | `pdns.service`                        | `pdns.service`                         |
+| **Main Config File**     | `/etc/powerdns/pdns.conf`             | `/etc/pdns/pdns.conf`                  |
+| **Web Server Root**      | `/var/www/PowerDNS-Admin-PHP/public`  | `/var/www/PowerDNS-Admin-PHP/public`   |
+| **Application Config**   | `/etc/pda/config.php`                 | `/etc/pda/config.php`                  |
+| **PHP-FPM Socket**       | `/run/php/php8.3-fpm-pda.sock`        | `/run/php-fpm/www.sock`                |
+| **Service User / Group** | `www-data:www-data`                   | `nginx:nginx` or `apache:apache`       |
+| **Firewall Management**  | `ufw` (Uncomplicated Firewall)        | `firewalld` or `nftables` / `iptables` |
 
 ### Hardened PowerDNS Authoritative Configuration (`pdns.conf`)
 
@@ -428,19 +428,19 @@ sudo systemctl status pdns
 
 Konfigurasi aplikasi disimpan pada berkas terisolasi `/etc/pda/config.php` (dengan izin `640` milik `www-data`):
 
-| Setting Key         | Tipe Data | Default / Contoh Nilai            | Keterangan                                                      |
-|:--------------------|:----------|:----------------------------------|:----------------------------------------------------------------|
-| `db.host`           | `string`  | `"127.0.0.1"`                     | Alamat host database MariaDB/MySQL panel.                       |
-| `db.port`           | `int`     | `3306`                            | Port koneksi database.                                          |
-| `db.name`           | `string`  | `"pda"`                           | Nama database panel.                                            |
-| `db.user`           | `string`  | `"pda_user"`                      | Username database panel.                                        |
-| `db.pass`           | `string`  | `"[REDACTED]"`                    | Kata sandi database.                                            |
-| `app.secret_key`    | `string`  | `"[HEX 64 chars]"`                | Master secret key untuk enkripsi AES-256-GCM.                   |
-| `pdns_api_url`      | `string`  | `"http://127.0.0.1:8081"`         | URL endpoint PowerDNS Authoritative HTTP API v1.                |
-| `pdns_api_key`      | `string`  | `"[AES-256-GCM Encrypted]"`       | Kunci API PowerDNS daemon (tersimpan terenkripsi di database).  |
-| `session_lifetime`  | `int`     | `7200`                            | Batas waktu sesi aktif pengguna dalam detik (2 jam).            |
-| `rate_limit_ip`     | `int`     | `10`                              | Batas percobaan login per IP per jendela waktu 15 menit.        |
-| `rate_limit_user`   | `int`     | `5`                               | Batas percobaan login per username per jendela waktu 15 menit.  |
+| Setting Key        | Tipe Data | Default / Contoh Nilai      | Keterangan                                                     |
+| :----------------- | :-------- | :-------------------------- | :------------------------------------------------------------- |
+| `db.host`          | `string`  | `"127.0.0.1"`               | Alamat host database MariaDB/MySQL panel.                      |
+| `db.port`          | `int`     | `3306`                      | Port koneksi database.                                         |
+| `db.name`          | `string`  | `"pda"`                     | Nama database panel.                                           |
+| `db.user`          | `string`  | `"pda_user"`                | Username database panel.                                       |
+| `db.pass`          | `string`  | `"[REDACTED]"`              | Kata sandi database.                                           |
+| `app.secret_key`   | `string`  | `"[HEX 64 chars]"`          | Master secret key untuk enkripsi AES-256-GCM.                  |
+| `pdns_api_url`     | `string`  | `"http://127.0.0.1:8081"`   | URL endpoint PowerDNS Authoritative HTTP API v1.               |
+| `pdns_api_key`     | `string`  | `"[AES-256-GCM Encrypted]"` | Kunci API PowerDNS daemon (tersimpan terenkripsi di database). |
+| `session_lifetime` | `int`     | `7200`                      | Batas waktu sesi aktif pengguna dalam detik (2 jam).           |
+| `rate_limit_ip`    | `int`     | `10`                        | Batas percobaan login per IP per jendela waktu 15 menit.       |
+| `rate_limit_user`  | `int`     | `5`                         | Batas percobaan login per username per jendela waktu 15 menit. |
 
 ---
 
@@ -458,13 +458,13 @@ X-API-Key: pda_live_9f83ac7b12d5e4a8b7c6d5e4f3a2b1c0
 
 ### Endpoint Utama
 
-| Method   | Endpoint                       | Scope Minimal   | Deskripsi                                                         |
-|:---------|:-------------------------------|:----------------|:------------------------------------------------------------------|
-| `GET`    | `/api/v1/zones`                | `user`          | Mengambil daftar seluruh zona yang diizinkan untuk API key ini.   |
-| `GET`    | `/api/v1/zones/{name}`         | `user`          | Mengambil metadata dan seluruh RRSet dari zona tertentu.          |
-| `POST`   | `/api/v1/zones`                | `operator`      | Membuat zona authoritative baru.                                  |
-| `PUT`    | `/api/v1/zones/{name}`         | `operator`      | Memperbarui metadata zona.                                        |
-| `DELETE` | `/api/v1/zones/{name}`         | `admin`         | Menghapus zona dari PowerDNS.                                     |
+| Method   | Endpoint               | Scope Minimal | Deskripsi                                                       |
+| :------- | :--------------------- | :------------ | :-------------------------------------------------------------- |
+| `GET`    | `/api/v1/zones`        | `user`        | Mengambil daftar seluruh zona yang diizinkan untuk API key ini. |
+| `GET`    | `/api/v1/zones/{name}` | `user`        | Mengambil metadata dan seluruh RRSet dari zona tertentu.        |
+| `POST`   | `/api/v1/zones`        | `operator`    | Membuat zona authoritative baru.                                |
+| `PUT`    | `/api/v1/zones/{name}` | `operator`    | Memperbarui metadata zona.                                      |
+| `DELETE` | `/api/v1/zones/{name}` | `admin`       | Menghapus zona dari PowerDNS.                                   |
 
 ### Contoh Request via cURL
 
@@ -496,17 +496,17 @@ curl -s -X GET https://dns.example.com/api/v1/zones \
 
 Setiap berkas dalam PowerDNS-Admin-PHP diaudit secara ketat melalui quality gate otomatis:
 
-| Quality Gate             | Engine / Tool                                                     | Standar Target                      | Kriteria Lolos              |       Status        |
-|:-------------------------|:------------------------------------------------------------------|:------------------------------------|:----------------------------|:-------------------:|
-| **PHP Syntax Check**     | `php -l` (Lint 24 PHP source files)                               | PHP 8.2+ Syntax Compliance          | 0 syntax errors             |   **✔ 24/24 PASS**  |
-| **Coding Standards**     | [`PHP_CodeSniffer`](https://github.com/squizlabs/PHP_CodeSniffer) | PSR-12 strict & PSR-1 SideEffects   | 0 errors, 0 warnings        |  **✔ PSR-12 PASS**  |
-| **Code Formatting**      | [`PHP-CS-Fixer 3.95`](https://cs.symfony.com)                     | Symfony / PSR-12 strict ruleset     | 0 files to fix              |  **✔ 24/24 CLEAN**  |
-| **Static Analysis**      | [`PHPStan`](https://phpstan.org)                                  | Level 5 Strict Analysis             | 0 errors                    | **✔ LEVEL 5 CLEAN** |
-| **Type Inference**       | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis         | 0 errors, 95.5% inference   |     **✔ CLEAN**     |
-| **Frontend Scripting**   | [`ESLint`](https://eslint.org)                                    | Vanilla JS DOM Architecture         | 0 lint errors               |     **✔ CLEAN**     |
-| **Frontend Stylesheet**  | [`Stylelint`](https://stylelint.io)                               | Modern CSS & Safe Area Variables    | 0 style errors              |     **✔ CLEAN**     |
-| **Shell Script Security**| [`ShellCheck`](https://www.shellcheck.net)                        | POSIX / Bash Defensive Standards    | 0 warnings or issues        |   **✔ 0 ISSUES**    |
-| **Cognitive Complexity** | [`SonarLint`](https://www.sonarsource.com/products/sonarlint/)    | Cognitive Complexity $\le 15$       | All handlers compliant      |     **✔ PASS**      |
+| Quality Gate              | Engine / Tool                                                     | Standar Target                    | Kriteria Lolos            |       Status        |
+| :------------------------ | :---------------------------------------------------------------- | :-------------------------------- | :------------------------ | :-----------------: |
+| **PHP Syntax Check**      | `php -l` (Lint 24 PHP source files)                               | PHP 8.2+ Syntax Compliance        | 0 syntax errors           |  **✔ 24/24 PASS**   |
+| **Coding Standards**      | [`PHP_CodeSniffer`](https://github.com/squizlabs/PHP_CodeSniffer) | PSR-12 strict & PSR-1 SideEffects | 0 errors, 0 warnings      |  **✔ PSR-12 PASS**  |
+| **Code Formatting**       | [`PHP-CS-Fixer 3.95`](https://cs.symfony.com)                     | Symfony / PSR-12 strict ruleset   | 0 files to fix            |  **✔ 24/24 CLEAN**  |
+| **Static Analysis**       | [`PHPStan`](https://phpstan.org)                                  | Level 5 Strict Analysis           | 0 errors                  | **✔ LEVEL 5 CLEAN** |
+| **Type Inference**        | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis       | 0 errors, 95.5% inference |     **✔ CLEAN**     |
+| **Frontend Scripting**    | [`ESLint`](https://eslint.org)                                    | Vanilla JS DOM Architecture       | 0 lint errors             |     **✔ CLEAN**     |
+| **Frontend Stylesheet**   | [`Stylelint`](https://stylelint.io)                               | Modern CSS & Safe Area Variables  | 0 style errors            |     **✔ CLEAN**     |
+| **Shell Script Security** | [`ShellCheck`](https://www.shellcheck.net)                        | POSIX / Bash Defensive Standards  | 0 warnings or issues      |   **✔ 0 ISSUES**    |
+| **Cognitive Complexity**  | [`SonarLint`](https://www.sonarsource.com/products/sonarlint/)    | Cognitive Complexity $\le 15$     | All handlers compliant    |     **✔ PASS**      |
 
 ```text
 ========================================================================================
