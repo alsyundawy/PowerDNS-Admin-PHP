@@ -13,12 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const label = btn.querySelector(".theme-label");
       if (theme === "light") {
         if (icon) icon.className = "fa-solid fa-moon text-warning";
-        if (label) label.textContent = "Mode Terang";
-        btn.setAttribute("aria-label", "Beralih ke Mode Gelap");
+        if (label) label.textContent = "Light Mode";
+        btn.setAttribute("aria-label", "Switch to Dark Mode");
       } else {
         if (icon) icon.className = "fa-solid fa-sun text-warning";
-        if (label) label.textContent = "Mode Gelap";
-        btn.setAttribute("aria-label", "Beralih ke Mode Terang");
+        if (label) label.textContent = "Dark Mode";
+        btn.setAttribute("aria-label", "Switch to Light Mode");
       }
     });
   };

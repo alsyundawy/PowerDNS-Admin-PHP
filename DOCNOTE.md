@@ -43,7 +43,7 @@ Applied in:
 - `views/layout.php:177`
 - `views/login.php:45`
 
-**Verification:** PHPStan Level 5 + PHP-CS-Fixer: exit code 0. All 15 unit tests: exit code 0.
+**Verification:** PHPStan Level 5 + PHP-CS-Fixer: exit code 0. All 16 unit tests: exit code 0.
 
 ---
 
@@ -257,6 +257,11 @@ Version strings synchronized across the entire application interface:
 
 6. **100% English Codebase Standardization:**
    - Translated all remaining non-English strings in mock HTML, docstrings, and SVG accessibility labels across `tests/test_playwright_responsive.js`, `app/dns_name.php`, and `app/analytics.php`.
+
+7. **Client-Side Theme Switcher & View Accessibility Normalization:**
+   - English language normalization of theme toggle labels (`Switch to Dark Mode` / `Switch to Light Mode`) and `aria-label` attributes in `public/assets/app.js`.
+   - Enhanced zone creation guidance in `views/zone_create.php` for `Primary/Secondary` alongside `Master/Slave`.
+   - 100% PASS across Trunk, Playwright (10 viewports), PHPCS, PHPStan, Psalm, and all 16 PHP unit test suites.
 
 ---
 

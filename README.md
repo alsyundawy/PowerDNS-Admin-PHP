@@ -74,18 +74,18 @@ Operating across Debian, Ubuntu, Rocky Linux, AlmaLinux, CentOS, or Docker conta
 
 ## ⚡ Enterprise Architecture at a Glance
 
-| Core Pillar | Architectural Implementation & Delivery |
-| :--- | :--- |
-| **🚀 Sub-Millisecond Kernel** | Native PHP 8.1–8.5+ with PDO; zero runtime framework overhead (boots in $<1\text{ ms}$ with memory allocation $<2\text{ MB}$). |
-| **🛡️ 100% Air-Gapped Zero-CDN** | Bundled local offline Bootstrap 5.3, Font Awesome 6.7.2, and Vanilla JS. Enforces strict CSP (`'self'`) with zero external network leaks. |
-| **⚡ Single Source of Truth** | Pure authoritative integration via PowerDNS HTTP API v1. Zero DNS record duplication in the database; atomic mathematical RRSet diffs. |
-| **🔐 Defense-in-Depth Security** | Argon2id password hashing, AES-256-GCM encrypted cluster secrets, RFC 6238 TOTP 2FA, session-bound CSRF rotation, dual-axis rate limiting. |
-| **🏢 Multi-Node Clustering** | Centralized control plane for distributed PowerDNS Authoritative daemons with dynamic session routing and live latency telemetry. |
-| **💾 High-Throughput Caching** | Native in-memory APCu shared memory adapter with atomic prefix-based invalidation, serving repeated zone reads in $<0.2\text{ ms}$. |
-| **🪝 Cryptographic Webhooks** | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`). |
-| **📋 Zone RFC Linting Engine** | Automated real-time RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, and MX target checks). |
-| **📊 Telemetry & Visual Analytics** | PowerDNS ring buffer decoders (`queries`, `remotes`), SVG packet cache hit ratio donut gauges, and client query distribution. |
-| **🎨 OLED Dark/Light Theming** | Design system inspired by Visual Subnet Calculator with safe-area insets (`env(safe-area-inset-*)`) and horizontal overflow guards for mobile. |
+| Core Pillar                         | Architectural Implementation & Delivery                                                                                                        |
+| :---------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| **🚀 Sub-Millisecond Kernel**       | Native PHP 8.1–8.5+ with PDO; zero runtime framework overhead (boots in $<1\text{ ms}$ with memory allocation $<2\text{ MB}$).                 |
+| **🛡️ 100% Air-Gapped Zero-CDN**     | Bundled local offline Bootstrap 5.3, Font Awesome 6.7.2, and Vanilla JS. Enforces strict CSP (`'self'`) with zero external network leaks.      |
+| **⚡ Single Source of Truth**       | Pure authoritative integration via PowerDNS HTTP API v1. Zero DNS record duplication in the database; atomic mathematical RRSet diffs.         |
+| **🔐 Defense-in-Depth Security**    | Argon2id password hashing, AES-256-GCM encrypted cluster secrets, RFC 6238 TOTP 2FA, session-bound CSRF rotation, dual-axis rate limiting.     |
+| **🏢 Multi-Node Clustering**        | Centralized control plane for distributed PowerDNS Authoritative daemons with dynamic session routing and live latency telemetry.              |
+| **💾 High-Throughput Caching**      | Native in-memory APCu shared memory adapter with atomic prefix-based invalidation, serving repeated zone reads in $<0.2\text{ ms}$.            |
+| **🪝 Cryptographic Webhooks**       | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`).          |
+| **📋 Zone RFC Linting Engine**      | Automated real-time RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, and MX target checks).     |
+| **📊 Telemetry & Visual Analytics** | PowerDNS ring buffer decoders (`queries`, `remotes`), SVG packet cache hit ratio donut gauges, and client query distribution.                  |
+| **🎨 OLED Dark/Light Theming**      | Design system inspired by Visual Subnet Calculator with safe-area insets (`env(safe-area-inset-*)`) and horizontal overflow guards for mobile. |
 
 ---
 
@@ -335,18 +335,18 @@ All generated operations are merged into a single atomic payload `{"rrsets": [ .
 
 ### 5. Security Boundaries & Threat Mitigation Matrix
 
-| Layer / Boundary | Threat Vector Addressed | Defensive Mechanism & Invariant |
-| :--- | :--- | :--- |
-| **Ingress Proxy** | Man-in-the-Middle (MitM), Clickjacking | TLS 1.3, HSTS (`preload`), `X-Frame-Options: SAMEORIGIN`, strict `CSP` |
-| **Authentication** | Brute-force & Credential Stuffing | Dual-axis sliding-window rate limiting; Argon2id (`memory=64MB, time=4`) for passwords & 2FA backup codes |
-| **Session & MFA** | Session Hijacking & Stolen Credentials | `HttpOnly`, `SameSite=Strict`, `Secure` session cookies; RFC 6238 TOTP |
-| **Mutating HTTP** | Cross-Site Request Forgery (CSRF) | Session-bound cryptographic tokens with per-mutation rotation |
-| **Persistence** | SQL Injection (SQLi) | 100% Parameterized PDO prepared statements; zero dynamic concatenation |
-| **Secrets at Rest** | Database Compromise / Data Leakage | PowerDNS API keys encrypted via `AES-256-GCM` with dynamic IV vectors |
-| **Output Encoding** | Cross-Site Scripting (Stored/Reflected XSS) | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`) |
-| **Structured Logs** | Observability & Sensitive Data Leakage | Multi-channel structured JSON logging (`appLogger`) with automated recursive secret masking |
-| **Third-Party I/O** | Webhook Tampering & Forgery | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery |
-| **Zone Ingestion** | Database Lock Contention / Partial Ingestion | Transactional atomic batch synchronization (`syncZonesFromPdns`) with automatic rollback |
+| Layer / Boundary    | Threat Vector Addressed                      | Defensive Mechanism & Invariant                                                                           |
+| :------------------ | :------------------------------------------- | :-------------------------------------------------------------------------------------------------------- |
+| **Ingress Proxy**   | Man-in-the-Middle (MitM), Clickjacking       | TLS 1.3, HSTS (`preload`), `X-Frame-Options: SAMEORIGIN`, strict `CSP`                                    |
+| **Authentication**  | Brute-force & Credential Stuffing            | Dual-axis sliding-window rate limiting; Argon2id (`memory=64MB, time=4`) for passwords & 2FA backup codes |
+| **Session & MFA**   | Session Hijacking & Stolen Credentials       | `HttpOnly`, `SameSite=Strict`, `Secure` session cookies; RFC 6238 TOTP                                    |
+| **Mutating HTTP**   | Cross-Site Request Forgery (CSRF)            | Session-bound cryptographic tokens with per-mutation rotation                                             |
+| **Persistence**     | SQL Injection (SQLi)                         | 100% Parameterized PDO prepared statements; zero dynamic concatenation                                    |
+| **Secrets at Rest** | Database Compromise / Data Leakage           | PowerDNS API keys encrypted via `AES-256-GCM` with dynamic IV vectors                                     |
+| **Output Encoding** | Cross-Site Scripting (Stored/Reflected XSS)  | Strict context-aware HTML escaping (`htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`)                         |
+| **Structured Logs** | Observability & Sensitive Data Leakage       | Multi-channel structured JSON logging (`appLogger`) with automated recursive secret masking               |
+| **Third-Party I/O** | Webhook Tampering & Forgery                  | SHA256 HMAC signature digest (`X-PDNS-Signature`) per HTTP delivery                                       |
+| **Zone Ingestion**  | Database Lock Contention / Partial Ingestion | Transactional atomic batch synchronization (`syncZonesFromPdns`) with automatic rollback                  |
 
 ---
 
@@ -432,7 +432,7 @@ Add the following directives to your PowerDNS daemon configuration (e.g., `/etc/
 ```ini
 # Enable Built-in Web Server and REST API
 api=yes
-api-key=SandiRahasiaApiPowerDNS_456!
+api-key=PdnsAuthoritativeSecretKey_2026!
 webserver=yes
 webserver-address=127.0.0.1
 webserver-port=8081
@@ -736,13 +736,13 @@ X-API-Key: pda_live_9f83ac7b12d5e4a8b7c6d5e4f3a2b1c0
 
 ### Core Endpoints
 
-| Method   | Endpoint               | Minimum Scope | Description                                                    |
-| :------- | :--------------------- | :------------ | :------------------------------------------------------------- |
-| `GET`    | `/api/v1/zones`        | `user`        | Retrieve all DNS zones accessible to this API key.             |
-| `GET`    | `/api/v1/zones/{name}` | `user`        | Retrieve zone metadata and complete RRset collection.          |
-| `POST`   | `/api/v1/zones`        | `operator`    | Create a new authoritative DNS zone.                           |
-| `PUT`    | `/api/v1/zones/{name}` | `operator`    | Update zone metadata.                                          |
-| `DELETE` | `/api/v1/zones/{name}` | `admin`       | Delete an authoritative zone from PowerDNS.                    |
+| Method   | Endpoint               | Minimum Scope | Description                                           |
+| :------- | :--------------------- | :------------ | :---------------------------------------------------- |
+| `GET`    | `/api/v1/zones`        | `user`        | Retrieve all DNS zones accessible to this API key.    |
+| `GET`    | `/api/v1/zones/{name}` | `user`        | Retrieve zone metadata and complete RRset collection. |
+| `POST`   | `/api/v1/zones`        | `operator`    | Create a new authoritative DNS zone.                  |
+| `PUT`    | `/api/v1/zones/{name}` | `operator`    | Update zone metadata.                                 |
+| `DELETE` | `/api/v1/zones/{name}` | `admin`       | Delete an authoritative zone from PowerDNS.           |
 
 ### Example cURL Request
 
@@ -800,6 +800,7 @@ QUALITY GATE VERIFICATION RESULTS
 ✔ Prettier Format Check                        : 100% Code Formatting Match
 ✔ ShellCheck & Trunk (deploy/install-debian.sh): 0 Shell Script Warnings / POSIX
 ✔ Playwright Headless E2E (10 Viewports)       : 100% PASS (Zero Console & Runtime Errors)
+✔ PHP Unit Test Suites (16 Suites, 87 Tests)   : 100% PASS (0 Failures, Exit Code 0)
 ✔ SonarLint Cognitive Complexity               : All Handlers <= 15 Complexity
 ✔ Max Line Length Invariant                    : 100% Non-Vendor Lines <= 120 Chars
 ✔ Git Whitespace Check (git diff --check)      : Clean (0 Trailing Spaces / EOF Issues)

@@ -71,7 +71,7 @@ declare(strict_types=1);
   </div>
 
   <div>
-    <label class="form-label" for="zone-masters">Primary / Master IPs (Required for Slave zones, comma separated)</label>
+    <label class="form-label" for="zone-masters">Primary / Master IPs (Required for Slave/Secondary zones, comma separated)</label>
     <input class="form-control" id="zone-masters" name="masters" placeholder="192.0.2.53, 198.51.100.53">
   </div>
 

@@ -112,6 +112,9 @@ Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, i
   - Safe-area-inset handling and horizontal overflow blocking (`body, html { overflow-x: hidden !important; max-width: 100vw; }`).
   - `.table-responsive` bounded to `max-width: calc(100vw - 28px)`.
   - Truncated text and ellipsis buttons on compact mobile screens.
+- **Client-Side Theme Switcher & View Accessibility Normalization:**
+  - Translated theme toggle labels (`Switch to Dark Mode` / `Switch to Light Mode`) and dynamic accessibility `aria-label` attributes in `public/assets/app.js`.
+  - Updated zone creation guidance in `views/zone_create.php` for `Primary/Secondary` alongside `Master/Slave`.
 
 ### 13-Pillar Security Audit Verification (OWASP Top 10:2025 / CWE Top 25 2025)
 
@@ -131,7 +134,7 @@ Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, i
 
 ### Unit Test & Playwright E2E Verification
 
-All 15 PHP unit test suites and Playwright multi-viewport suite pass with exit code 0:
+All 16 PHP unit test suites and Playwright multi-viewport suite pass with exit code 0:
 
 | Test Suite                            | Test Coverage                                                    | Status  |
 | ------------------------------------- | ---------------------------------------------------------------- | ------- |
@@ -143,6 +146,7 @@ All 15 PHP unit test suites and Playwright multi-viewport suite pass with exit c
 | `tests/test_cluster.php`              | PdnsCluster CRUD, session switcher, latency ping                 | ✅ PASS |
 | `tests/test_dyndns.php`               | DynDNS update protocol, A/AAAA mapping, authentication           | ✅ PASS |
 | `tests/test_linter.php`               | RFC 1035/1912/2181 zone linting (apex CNAME, glue, MX CNAME)     | ✅ PASS |
+| `tests/test_logger.php`               | Structured multi-channel logging, sensitive credential redactor  | ✅ PASS |
 | `tests/test_network_tools.php`        | IPv4/IPv6 subnetting, generator splitting, DNS record lookup     | ✅ PASS |
 | `tests/test_profile.php`              | Argon2id verification, avatar file safety, system branding       | ✅ PASS |
 | `tests/test_rdns_math.php`            | Subnet to ARPA math, relative PTR host extraction                | ✅ PASS |
