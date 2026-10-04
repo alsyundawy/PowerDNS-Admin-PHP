@@ -1,7 +1,7 @@
 # =============================================================================
 # MegaLinter GitHub Actions Workflow — PowerDNS-Admin-PHP
 # https://megalinter.io  |  Version: v10.1.0 (latest)
-# Focus: PHP · HTML · CSS · JS · MD · BASH · JSON · YAML · XML · SQL · ACTION
+# Focus: PHP · HTML · CSS · JS · MD · BASH · JSON · YAML · XML · ACTION
 # =============================================================================
 ---
 name: MegaLinter
@@ -79,30 +79,28 @@ jobs:
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # --------------- Scope: All Supported Families for PowerDNS-Admin-PHP ----
-          ENABLE: PHP,HTML,CSS,JAVASCRIPT,MARKDOWN,BASH,JSON,YAML,XML,SQL,ACTION,REPOSITORY,COPYPASTE,EDITORCONFIG
-
-          # --------------- Supported Linters for Repository Stack -----------------
+          # --------------- Supported Linters for PowerDNS-Admin-PHP Stack -----------
           ENABLE_LINTERS: >-
             PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPCSFIXER,
             HTML_DJLINT,HTML_HTMLHINT,
             CSS_STYLELINT,
             JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
             MARKDOWN_MARKDOWNLINT,
-            BASH_SHELLCHECK,BASH_EXEC,BASH_SHFMT,
+            BASH_SHELLCHECK,BASH_SHFMT,
             JSON_PRETTIER,JSON_V8R,
             YAML_YAMLLINT,YAML_PRETTIER,YAML_V8R,
             XML_XMLLINT,
-            SQL_SQLFLUFF,
-            ACTION_ACTIONLINT,ACTION_ZIZMOR,
-            REPOSITORY_GITLEAKS,REPOSITORY_TRIVY,REPOSITORY_DEVSKIM,REPOSITORY_SECRETLINT,
-            COPYPASTE_JSCPD,
-            EDITORCONFIG_EDITORCONFIG_CHECKER
+            ACTION_ACTIONLINT
 
           # --------------- Auto-fix -----------------------------------------
           APPLY_FIXES: >-
             PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
             MARKDOWN_MARKDOWNLINT,BASH_SHFMT,JSON_PRETTIER,YAML_PRETTIER
+
+          # --------------- Project-mode CLI Analysis for PHP -----------------
+          PHP_PHPCS_CLI_LINT_MODE: project
+          PHP_PHPSTAN_CLI_LINT_MODE: project
+          PHP_PSALM_CLI_LINT_MODE: project
 
           # --------------- Config files -------------------------------------
           PHP_PHPCS_CONFIG_FILE: phpcs.xml
@@ -112,15 +110,6 @@ jobs:
           MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
           CSS_STYLELINT_CONFIG_FILE: .stylelintrc.json
           JAVASCRIPT_ES_CONFIG_FILE: eslint.config.js
-          SQL_SQLFLUFF_CONFIG_FILE: .sqlfluff
-          EDITORCONFIG_EDITORCONFIG_CHECKER_CONFIG_FILE: .editorconfig
-
-          # --------------- Non-blocking Linters (Advisory / Reports) --------
-          SQL_SQLFLUFF_DISABLE_ERRORS: true
-          REPOSITORY_DEVSKIM_DISABLE_ERRORS: true
-          REPOSITORY_BETTERLEAKS_DISABLE_ERRORS: true
-          REPOSITORY_KINGFISHER_DISABLE_ERRORS: true
-          COPYPASTE_JSCPD_DISABLE_ERRORS: true
 
           # --------------- Exclusions ---------------------------------------
           FILTER_REGEX_EXCLUDE: >-

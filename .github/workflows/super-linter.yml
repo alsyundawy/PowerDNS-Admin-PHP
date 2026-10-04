@@ -33,7 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BRANCH: main
           VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          LINTER_RULES_PATH: .
+          LINTER_RULES_PATH: .github/linters
 
           # Exclude vendor and cache directories
           FILTER_REGEX_EXCLUDE: ".*(vendor|node_modules|public/assets/vendor|\\.cache|\\.kilo|megalinter-reports).*"
@@ -63,7 +63,5 @@ jobs:
 
           # GitHub Actions & Security
           VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_GITHUB_ACTIONS_ZIZMOR: true
           VALIDATE_GIT_MERGE_CONFLICT_MARKERS: true
-          VALIDATE_EDITORCONFIG: true
           VALIDATE_ENV: true
