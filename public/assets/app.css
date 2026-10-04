@@ -29,6 +29,8 @@
   --sidebar-active-bg: rgba(14, 165, 233, 0.15);
   --danger: #ef4444;
   --danger-light: rgba(239, 68, 68, 0.15);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.15);
   --success: #10b981;
   --success-light: rgba(16, 185, 129, 0.15);
   --input-bg: #0d1322;
@@ -76,6 +78,8 @@
   --sidebar-active-bg: #0284c7;
   --danger: #dc2626;
   --danger-light: #fef2f2;
+  --warning: #d97706;
+  --warning-light: #fffbeb;
   --success: #16a34a;
   --success-light: #f0fdf4;
   --input-bg: #ffffff;
@@ -672,12 +676,13 @@ a:focus-visible {
 }
 
 .alert-warning {
-  background-color: rgba(245, 158, 11, 0.15);
+  background-color: var(--warning-light);
   border-color: rgba(245, 158, 11, 0.3);
   color: #fde68a;
 }
 
 [data-theme="light"] .alert-warning {
+  border-color: rgba(217, 119, 6, 0.3);
   color: #92400e;
 }
 
