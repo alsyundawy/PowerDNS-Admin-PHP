@@ -5,7 +5,27 @@ declare(strict_types=1);
 const PATH_USERS = '/users';
 const PATH_ZONES = '/zones/';
 const PATH_TOOLS_RDNS = '/tools/rdns';
+const PATH_SETTINGS = '/settings';
+const PATH_PROFILE = '/profile';
+const PATH_BACKUP = '/backup';
 const SQLSTATE_DUPLICATE = '23000';
+const SQL_UPDATE_USER_PASSWORD = 'UPDATE users SET password_hash = ? WHERE id = ?';
+const HEADER_TEXT_PLAIN = 'Content-Type: text/plain; charset=utf-8';
+const HEADER_NO_CACHE = 'Cache-Control: no-cache, no-store, must-revalidate';
+const DEFAULT_IPCALC_CIDR = '192.168.1.0/24';
+
+function sendAttachmentHeaders(
+    string $filename,
+    string $contentType = HEADER_TEXT_PLAIN,
+    ?int $contentLength = null
+): void {
+    header($contentType);
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    if ($contentLength !== null) {
+        header('Content-Length: ' . $contentLength);
+    }
+    header(HEADER_NO_CACHE);
+}
 
 function redirectZone(string $zone, string $subpath = ''): never
 {
@@ -132,7 +152,7 @@ function loginUserSession(array $user, string $password): void
     db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([(int) $user['id']]);
     if (password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
         $newHash = password_hash($password, PASSWORD_ARGON2ID);
-        db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        db()->prepare(SQL_UPDATE_USER_PASSWORD)
             ->execute([$newHash, (int) $user['id']]);
     }
     redirect('/');
@@ -703,9 +723,7 @@ function handleZoneExport(array $user, string $zoneRaw): void
         $bindText = $pdns->exportZone($zone);
 
         $filename = rtrim($zone, '.') . '.zone';
-        header('Content-Type: text/plain; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . strlen($bindText));
+        sendAttachmentHeaders($filename, HEADER_TEXT_PLAIN, strlen($bindText));
         echo $bindText;
         audit($user, 'export-zone', $zone, 'Ekspor berkas BIND RFC 1035');
         exit;
@@ -928,7 +946,7 @@ function updateExistingUser(array $user, int $id, array $data): void
             flash('danger', 'Sandi baru minimal 10 karakter.');
             redirect(PATH_USERS);
         }
-        db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        db()->prepare(SQL_UPDATE_USER_PASSWORD)
             ->execute([password_hash($password, PASSWORD_ARGON2ID), $id]);
     }
     audit($user, 'update-user', '', $username);
@@ -1135,6 +1153,70 @@ function handleAudit(array $user): void
     view('audit', ['title' => 'Audit', 'user' => $user, 'rows' => $rows]);
 }
 
+function processSettingsBrandingLogo(): void
+{
+    $appLogoUrl = trim((string) ($_POST['app_logo_url'] ?? ''));
+    if (!empty($_POST['remove_logo'])) {
+        $oldLogo = (string) setting('app_logo_url', '');
+        if ($oldLogo !== '' && str_starts_with($oldLogo, '/uploads/branding/')) {
+            $oldFile = appRoot() . '/public' . $oldLogo;
+            if (is_file($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+        settingSet('app_logo_url', '');
+        return;
+    }
+
+    if (
+        !empty($_FILES['app_logo_file']) &&
+        is_array($_FILES['app_logo_file']) &&
+        ($_FILES['app_logo_file']['error'] ?? 1) === UPLOAD_ERR_OK
+    ) {
+        $logoRes = saveBrandLogo($_FILES['app_logo_file']);
+        if ($logoRes['ok'] && !empty($logoRes['path'])) {
+            settingSet('app_logo_url', $logoRes['path']);
+        } else {
+            flash('danger', 'Logo gagal diunggah: ' . ($logoRes['error'] ?? 'Berkas tidak valid.'));
+            redirect(PATH_SETTINGS);
+        }
+    } elseif ($appLogoUrl !== '') {
+        settingSet('app_logo_url', $appLogoUrl);
+    }
+}
+
+function updateApplicationSettings(array $user): void
+{
+    csrfCheck();
+    $url = rtrim(trim((string) ($_POST['pdns_api_url'] ?? '')), '/');
+    $server = trim((string) ($_POST['pdns_server_id'] ?? 'localhost'));
+    $verify = isset($_POST['pdns_verify_tls']) ? '1' : '0';
+    $key = trim((string) ($_POST['pdns_api_key'] ?? ''));
+
+    $appName = trim((string) ($_POST['app_name'] ?? 'PowerDNS Admin'));
+    $appFooter = trim((string) ($_POST['app_footer_text'] ?? ''));
+
+    if (!preg_match('#^https?://#', $url)) {
+        flash('danger', 'URL API harus http atau https.');
+        redirect(PATH_SETTINGS);
+    }
+    settingSet('pdns_api_url', $url);
+    settingSet('pdns_server_id', $server !== '' ? $server : 'localhost');
+    settingSet('pdns_verify_tls', $verify);
+    if ($key !== '') {
+        settingSet('pdns_api_key', secretEncrypt($key));
+    }
+
+    settingSet('app_name', $appName !== '' ? $appName : 'PowerDNS Admin');
+    settingSet('app_footer_text', $appFooter);
+
+    processSettingsBrandingLogo();
+
+    audit($user, 'settings', '', 'Pengaturan endpoint & branding diperbarui');
+    flash('success', 'Pengaturan berhasil disimpan.');
+    redirect(PATH_SETTINGS);
+}
+
 /**
  * @param array<string, mixed> $user
  */
@@ -1142,57 +1224,7 @@ function handleSettings(array $user): void
 {
     requireRole($user, ['admin']);
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        csrfCheck();
-        $url = rtrim(trim((string) ($_POST['pdns_api_url'] ?? '')), '/');
-        $server = trim((string) ($_POST['pdns_server_id'] ?? 'localhost'));
-        $verify = isset($_POST['pdns_verify_tls']) ? '1' : '0';
-        $key = trim((string) ($_POST['pdns_api_key'] ?? ''));
-
-        $appName = trim((string) ($_POST['app_name'] ?? 'PowerDNS Admin'));
-        $appFooter = trim((string) ($_POST['app_footer_text'] ?? ''));
-        $appLogoUrl = trim((string) ($_POST['app_logo_url'] ?? ''));
-
-        if (!preg_match('#^https?://#', $url)) {
-            flash('danger', 'URL API harus http atau https.');
-            redirect('/settings');
-        }
-        settingSet('pdns_api_url', $url);
-        settingSet('pdns_server_id', $server !== '' ? $server : 'localhost');
-        settingSet('pdns_verify_tls', $verify);
-        if ($key !== '') {
-            settingSet('pdns_api_key', secretEncrypt($key));
-        }
-
-        settingSet('app_name', $appName !== '' ? $appName : 'PowerDNS Admin');
-        settingSet('app_footer_text', $appFooter);
-
-        if (!empty($_POST['remove_logo'])) {
-            $oldLogo = (string) setting('app_logo_url', '');
-            if ($oldLogo !== '' && str_starts_with($oldLogo, '/uploads/branding/')) {
-                $oldFile = appRoot() . '/public' . $oldLogo;
-                if (is_file($oldFile)) {
-                    @unlink($oldFile);
-                }
-            }
-        } elseif (
-            !empty($_FILES['app_logo_file']) &&
-            is_array($_FILES['app_logo_file']) &&
-            ($_FILES['app_logo_file']['error'] ?? 1) === UPLOAD_ERR_OK
-        ) {
-            $logoRes = saveBrandLogo($_FILES['app_logo_file']);
-            if ($logoRes['ok'] && !empty($logoRes['path'])) {
-                settingSet('app_logo_url', $logoRes['path']);
-            } else {
-                flash('danger', 'Logo gagal diunggah: ' . ($logoRes['error'] ?? 'Berkas tidak valid.'));
-                redirect('/settings');
-            }
-        } elseif ($appLogoUrl !== '') {
-            settingSet('app_logo_url', $appLogoUrl);
-        }
-
-        audit($user, 'settings', '', 'Pengaturan endpoint & branding diperbarui');
-        flash('success', 'Pengaturan berhasil disimpan.');
-        redirect('/settings');
+        updateApplicationSettings($user);
     }
     view('settings', [
         'title' => 'Pengaturan',
@@ -1709,11 +1741,11 @@ function handleDynDns(): void
  *
  * @param array<string, mixed> $user
  */
-function handleIpcalcTool(array $user, string $path, string $method): void
+function handleIpcalcTool(array $user): void
 {
-    $cidr = trim((string) ($_GET['cidr'] ?? ($_POST['cidr'] ?? '')));
+    $cidr = trim((string) ($_GET['cidr'] ?? ($_POST['cidr'] ?? DEFAULT_IPCALC_CIDR)));
     if ($cidr === '') {
-        $cidr = '192.168.1.0/24';
+        $cidr = DEFAULT_IPCALC_CIDR;
     }
 
     $error = null;
@@ -1744,7 +1776,7 @@ function handleIpcalcTool(array $user, string $path, string $method): void
  *
  * @param array<string, mixed> $user
  */
-function handleIpv6SplitterTool(array $user, string $path, string $method): void
+function handleIpv6SplitterTool(array $user): void
 {
     $subnet = trim((string) ($_GET['subnet'] ?? ($_POST['subnet'] ?? '2001:db8::/32')));
     $targetMask = (int) ($_GET['target_mask'] ?? ($_POST['target_mask'] ?? 48));
@@ -1774,8 +1806,7 @@ function handleIpv6SplitterTool(array $user, string $path, string $method): void
                 $parsed['mask'],
                 $targetMask
             );
-            header('Content-Type: text/plain; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            sendAttachmentHeaders($filename, HEADER_TEXT_PLAIN);
             header('X-Content-Type-Options: nosniff');
             foreach (ipv6splitGenerate($parsed['ip'], $parsed['mask'], $targetMask) as $item) {
                 echo $item . "\n";
@@ -1806,11 +1837,34 @@ function handleIpv6SplitterTool(array $user, string $path, string $method): void
 }
 
 /**
+ * Perform RDAP with WHOIS socket fallback query.
+ *
+ * @return array{rdap: ?array<string, mixed>, socket: ?array<string, mixed>, error: ?string}
+ */
+function executeWhoisLookup(string $query, string $customServer, string $mode): array
+{
+    if ($mode === 'socket' || $customServer !== '') {
+        $socketResult = whoisQuerySocket($query, $customServer !== '' ? $customServer : null);
+        $error = !$socketResult['success'] ? ($socketResult['error'] ?? 'Gagal query WHOIS socket.') : null;
+        return ['rdap' => null, 'socket' => $socketResult, 'error' => $error];
+    }
+
+    $rdapResult = whoisQueryRdap($query);
+    if ($rdapResult['success']) {
+        return ['rdap' => $rdapResult, 'socket' => null, 'error' => null];
+    }
+
+    $socketResult = whoisQuerySocket($query);
+    $error = !$socketResult['success'] ? 'RDAP & WHOIS Socket tidak menemukan data untuk query tersebut.' : null;
+    return ['rdap' => $rdapResult, 'socket' => $socketResult, 'error' => $error];
+}
+
+/**
  * Handler for WHOIS & RDAP Lookup Tool.
  *
  * @param array<string, mixed> $user
  */
-function handleWhoisTool(array $user, string $path, string $method): void
+function handleWhoisTool(array $user): void
 {
     $query = trim((string) ($_GET['query'] ?? ($_POST['query'] ?? '')));
     $customServer = trim((string) ($_GET['server'] ?? ($_POST['server'] ?? '')));
@@ -1821,21 +1875,10 @@ function handleWhoisTool(array $user, string $path, string $method): void
     $error = null;
 
     if ($query !== '') {
-        if ($mode === 'socket' || $customServer !== '') {
-            $socketResult = whoisQuerySocket($query, $customServer !== '' ? $customServer : null);
-            if (!$socketResult['success']) {
-                $error = $socketResult['error'] ?? 'Gagal query WHOIS socket.';
-            }
-        } else {
-            $rdapResult = whoisQueryRdap($query);
-            if (!$rdapResult['success']) {
-                // Fallback to socket query if RDAP failed or unsupported
-                $socketResult = whoisQuerySocket($query);
-                if (!$socketResult['success']) {
-                    $error = 'RDAP & WHOIS Socket tidak menemukan data untuk query tersebut.';
-                }
-            }
-        }
+        $lookup = executeWhoisLookup($query, $customServer, $mode);
+        $rdapResult = $lookup['rdap'];
+        $socketResult = $lookup['socket'];
+        $error = $lookup['error'];
     }
 
     view('tools_whois', [
@@ -1855,7 +1898,7 @@ function handleWhoisTool(array $user, string $path, string $method): void
  *
  * @param array<string, mixed> $user
  */
-function handleDnsLookupTool(array $user, string $path, string $method): void
+function handleDnsLookupTool(array $user): void
 {
     $domain = trim((string) ($_GET['domain'] ?? ($_POST['domain'] ?? '')));
     $type = strtoupper(trim((string) ($_GET['type'] ?? ($_POST['type'] ?? 'ANY'))));
@@ -1897,6 +1940,106 @@ function handleDnsLookupTool(array $user, string $path, string $method): void
  *
  * @param array<string, mixed> $user
  */
+function updateProfileInfo(int $userId, array $user): void
+{
+    csrfCheck();
+    $displayName = trim((string) ($_POST['display_name'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        flash('danger', 'Format email tidak valid.');
+        redirect(PATH_PROFILE);
+    }
+    $up = db()->prepare('UPDATE users SET display_name = ?, email = ? WHERE id = ?');
+    $up->execute([$displayName, $email, $userId]);
+    audit($user, 'profile', '', 'Memperbarui profil (nama/email)');
+    flash('success', 'Profil pengguna berhasil diperbarui.');
+    redirect(PATH_PROFILE);
+}
+
+function updateProfilePassword(int $userId, array $user): void
+{
+    csrfCheck();
+    $currPass = (string) ($_POST['current_password'] ?? '');
+    $newPass = (string) ($_POST['new_password'] ?? '');
+    $confirmPass = (string) ($_POST['confirm_password'] ?? '');
+
+    $stHash = db()->prepare('SELECT password_hash FROM users WHERE id = ?');
+    $stHash->execute([$userId]);
+    $hashRow = $stHash->fetch();
+    $currentHash = (string) ($hashRow['password_hash'] ?? '');
+
+    if (!password_verify($currPass, $currentHash)) {
+        flash('danger', 'Kata sandi saat ini tidak cocok.');
+        redirect(PATH_PROFILE);
+    }
+    if (strlen($newPass) < 8) {
+        flash('danger', 'Kata sandi baru minimal 8 karakter.');
+        redirect(PATH_PROFILE);
+    }
+    if ($newPass !== $confirmPass) {
+        flash('danger', 'Konfirmasi kata sandi baru tidak cocok.');
+        redirect(PATH_PROFILE);
+    }
+
+    $newHash = password_hash($newPass, PASSWORD_ARGON2ID);
+    $up = db()->prepare(SQL_UPDATE_USER_PASSWORD);
+    $up->execute([$newHash, $userId]);
+    audit($user, 'profile', '', 'Mengubah kata sandi');
+    flash('success', 'Kata sandi berhasil diubah.');
+    redirect(PATH_PROFILE);
+}
+
+function updateProfileAvatar(int $userId, array $user, array $freshUser): void
+{
+    csrfCheck();
+    if (empty($_FILES['avatar']) || !is_array($_FILES['avatar'])) {
+        flash('danger', 'Silakan pilih berkas gambar foto profil.');
+        redirect(PATH_PROFILE);
+    }
+    $res = saveUserAvatar($_FILES['avatar'], $userId);
+    if (!$res['ok']) {
+        flash('danger', $res['error'] ?? 'Gagal mengunggah foto profil.');
+        redirect(PATH_PROFILE);
+    }
+
+    $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
+    if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
+        $oldFile = appRoot() . '/public' . $oldAvatar;
+        if (is_file($oldFile)) {
+            @unlink($oldFile);
+        }
+    }
+
+    $newAvatarUrl = (string) ($res['path'] ?? '');
+    $up = db()->prepare('UPDATE users SET avatar_url = ? WHERE id = ?');
+    $up->execute([$newAvatarUrl, $userId]);
+    audit($user, 'profile', '', 'Mengunggah foto profil baru');
+    flash('success', 'Foto profil berhasil diperbarui.');
+    redirect(PATH_PROFILE);
+}
+
+function deleteProfileAvatar(int $userId, array $user, array $freshUser): void
+{
+    csrfCheck();
+    $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
+    if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
+        $oldFile = appRoot() . '/public' . $oldAvatar;
+        if (is_file($oldFile)) {
+            @unlink($oldFile);
+        }
+    }
+    $up = db()->prepare("UPDATE users SET avatar_url = '' WHERE id = ?");
+    $up->execute([$userId]);
+    audit($user, 'profile', '', 'Menghapus foto profil');
+    flash('success', 'Foto profil telah dihapus.');
+    redirect(PATH_PROFILE);
+}
+
+/**
+ * Handler for User Profile management (display name, email, password, and avatar).
+ *
+ * @param array<string, mixed> $user
+ */
 function handleProfile(array $user, string $path, string $method): void
 {
     $userId = (int) ($user['id'] ?? 0);
@@ -1912,95 +2055,16 @@ function handleProfile(array $user, string $path, string $method): void
         redirect('/');
     }
 
-    if ($path === '/profile/update' && $method === 'POST') {
-        csrfCheck();
-        $displayName = trim((string) ($_POST['display_name'] ?? ''));
-        $email = trim((string) ($_POST['email'] ?? ''));
-        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            flash('danger', 'Format email tidak valid.');
-            redirect('/profile');
+    if ($method === 'POST') {
+        if ($path === '/profile/update') {
+            updateProfileInfo($userId, $user);
+        } elseif ($path === '/profile/password') {
+            updateProfilePassword($userId, $user);
+        } elseif ($path === '/profile/avatar') {
+            updateProfileAvatar($userId, $user, $freshUser);
+        } elseif ($path === '/profile/avatar/delete') {
+            deleteProfileAvatar($userId, $user, $freshUser);
         }
-        $up = db()->prepare('UPDATE users SET display_name = ?, email = ? WHERE id = ?');
-        $up->execute([$displayName, $email, $userId]);
-        audit($user, 'profile', '', 'Memperbarui profil (nama/email)');
-        flash('success', 'Profil pengguna berhasil diperbarui.');
-        redirect('/profile');
-    }
-
-    if ($path === '/profile/password' && $method === 'POST') {
-        csrfCheck();
-        $currPass = (string) ($_POST['current_password'] ?? '');
-        $newPass = (string) ($_POST['new_password'] ?? '');
-        $confirmPass = (string) ($_POST['confirm_password'] ?? '');
-
-        $stHash = db()->prepare('SELECT password_hash FROM users WHERE id = ?');
-        $stHash->execute([$userId]);
-        $hashRow = $stHash->fetch();
-        $currentHash = (string) ($hashRow['password_hash'] ?? '');
-
-        if (!password_verify($currPass, $currentHash)) {
-            flash('danger', 'Kata sandi saat ini tidak cocok.');
-            redirect('/profile');
-        }
-        if (strlen($newPass) < 8) {
-            flash('danger', 'Kata sandi baru minimal 8 karakter.');
-            redirect('/profile');
-        }
-        if ($newPass !== $confirmPass) {
-            flash('danger', 'Konfirmasi kata sandi baru tidak cocok.');
-            redirect('/profile');
-        }
-
-        $newHash = password_hash($newPass, PASSWORD_ARGON2ID);
-        $up = db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
-        $up->execute([$newHash, $userId]);
-        audit($user, 'profile', '', 'Mengubah kata sandi');
-        flash('success', 'Kata sandi berhasil diubah.');
-        redirect('/profile');
-    }
-
-    if ($path === '/profile/avatar' && $method === 'POST') {
-        csrfCheck();
-        if (empty($_FILES['avatar']) || !is_array($_FILES['avatar'])) {
-            flash('danger', 'Silakan pilih berkas gambar foto profil.');
-            redirect('/profile');
-        }
-        $res = saveUserAvatar($_FILES['avatar'], $userId);
-        if (!$res['ok']) {
-            flash('danger', $res['error'] ?? 'Gagal mengunggah foto profil.');
-            redirect('/profile');
-        }
-
-        $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
-        if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
-            $oldFile = appRoot() . '/public' . $oldAvatar;
-            if (is_file($oldFile)) {
-                @unlink($oldFile);
-            }
-        }
-
-        $newAvatarUrl = (string) ($res['path'] ?? '');
-        $up = db()->prepare('UPDATE users SET avatar_url = ? WHERE id = ?');
-        $up->execute([$newAvatarUrl, $userId]);
-        audit($user, 'profile', '', 'Mengunggah foto profil baru');
-        flash('success', 'Foto profil berhasil diperbarui.');
-        redirect('/profile');
-    }
-
-    if ($path === '/profile/avatar/delete' && $method === 'POST') {
-        csrfCheck();
-        $oldAvatar = (string) ($freshUser['avatar_url'] ?? '');
-        if ($oldAvatar !== '' && str_starts_with($oldAvatar, '/uploads/avatars/')) {
-            $oldFile = appRoot() . '/public' . $oldAvatar;
-            if (is_file($oldFile)) {
-                @unlink($oldFile);
-            }
-        }
-        $up = db()->prepare("UPDATE users SET avatar_url = '' WHERE id = ?");
-        $up->execute([$userId]);
-        audit($user, 'profile', '', 'Menghapus foto profil');
-        flash('success', 'Foto profil telah dihapus.');
-        redirect('/profile');
     }
 
     view('profile', [
@@ -2010,149 +2074,166 @@ function handleProfile(array $user, string $path, string $method): void
     ]);
 }
 
-/**
- * Handler for Database, Settings, and Zones Backup & Restore.
- *
- * @param array<string, mixed> $user
- */
-function handleBackup(array $user, string $path, string $method): void
+function downloadDatabaseBackup(array $user): never
 {
-    requireRole($user, ['admin']);
+    $sql = backupDatabaseMetadata();
+    $filename = 'pdns_admin_db_backup_' . gmdate('Ymd_His') . '.sql';
+    sendAttachmentHeaders($filename, 'application/sql; charset=utf-8', strlen($sql));
+    echo $sql;
+    audit($user, 'backup', '', 'Mengunduh cadangan SQL database metadata');
+    exit;
+}
 
-    if ($path === '/backup/download/db' && $method === 'GET') {
-        $sql = backupDatabaseMetadata();
-        $filename = 'pdns_admin_db_backup_' . gmdate('Ymd_His') . '.sql';
-        header('Content-Type: application/sql; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . (string) strlen($sql));
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        echo $sql;
-        audit($user, 'backup', '', 'Mengunduh cadangan SQL database metadata');
-        exit;
+function downloadConfigBackup(array $user): never
+{
+    $config = backupConfigSettings();
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($json === false) {
+        flash('danger', 'Gagal mengenkode JSON konfigurasi.');
+        redirect(PATH_BACKUP);
     }
+    $filename = 'pdns_admin_config_' . gmdate('Ymd_His') . '.json';
+    sendAttachmentHeaders($filename, 'application/json; charset=utf-8', strlen($json));
+    echo $json;
+    audit($user, 'backup', '', 'Mengunduh cadangan konfigurasi JSON');
+    exit;
+}
 
-    if ($path === '/backup/download/config' && $method === 'GET') {
-        $config = backupConfigSettings();
-        $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+function downloadZonesBackup(array $user): never
+{
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $zonesData = backupAllZones($pdns);
+        $json = json_encode($zonesData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
-            flash('danger', 'Gagal mengenkode JSON konfigurasi.');
-            redirect('/backup');
+            throw new UnexpectedValueException('Gagal mengenkode JSON zona.');
         }
-        $filename = 'pdns_admin_config_' . gmdate('Ymd_His') . '.json';
-        header('Content-Type: application/json; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . (string) strlen($json));
-        header('Cache-Control: no-cache, no-store, must-revalidate');
+        $filename = 'pdns_admin_zones_' . gmdate('Ymd_His') . '.json';
+        sendAttachmentHeaders($filename, 'application/json; charset=utf-8', strlen($json));
         echo $json;
-        audit($user, 'backup', '', 'Mengunduh cadangan konfigurasi JSON');
+        audit($user, 'backup', '', 'Mengunduh cadangan zona PowerDNS JSON (' . $zonesData['count'] . ' zona)');
         exit;
+    } catch (Throwable $e) {
+        flash('danger', 'Gagal mencadangkan zona PowerDNS: ' . $e->getMessage());
+        redirect(PATH_BACKUP);
     }
+}
 
-    if ($path === '/backup/download/zones' && $method === 'GET') {
-        try {
-            $pdns = PdnsClient::fromSettings();
-            $zonesData = backupAllZones($pdns);
-            $json = json_encode($zonesData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if ($json === false) {
-                throw new UnexpectedValueException('Gagal mengenkode JSON zona.');
-            }
-            $filename = 'pdns_admin_zones_' . gmdate('Ymd_His') . '.json';
-            header('Content-Type: application/json; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . (string) strlen($json));
-            header('Cache-Control: no-cache, no-store, must-revalidate');
-            echo $json;
-            audit($user, 'backup', '', 'Mengunduh cadangan zona PowerDNS JSON (' . $zonesData['count'] . ' zona)');
-            exit;
-        } catch (Throwable $e) {
-            flash('danger', 'Gagal mencadangkan zona PowerDNS: ' . $e->getMessage());
-            redirect('/backup');
-        }
+function handleBackupDownloads(array $user, string $path): void
+{
+    if ($path === '/backup/download/db') {
+        downloadDatabaseBackup($user);
+    } elseif ($path === '/backup/download/config') {
+        downloadConfigBackup($user);
+    } elseif ($path === '/backup/download/zones') {
+        downloadZonesBackup($user);
     }
+}
 
-    if ($path === '/backup/restore/db' && $method === 'POST') {
-        csrfCheck();
-        if (
-            empty($_FILES['db_file']) ||
-            !is_array($_FILES['db_file']) ||
-            ($_FILES['db_file']['error'] ?? 1) !== UPLOAD_ERR_OK
-        ) {
-            flash('danger', 'Pilih berkas cadangan SQL yang valid.');
-            redirect('/backup');
-        }
-        $tmp = (string) ($_FILES['db_file']['tmp_name'] ?? '');
-        $sql = (string) file_get_contents($tmp);
-        $res = restoreDatabaseMetadata($sql);
+function restoreDatabaseBackup(array $user): void
+{
+    csrfCheck();
+    if (
+        empty($_FILES['db_file']) ||
+        !is_array($_FILES['db_file']) ||
+        ($_FILES['db_file']['error'] ?? 1) !== UPLOAD_ERR_OK
+    ) {
+        flash('danger', 'Pilih berkas cadangan SQL yang valid.');
+        redirect(PATH_BACKUP);
+    }
+    $tmp = (string) ($_FILES['db_file']['tmp_name'] ?? '');
+    $sql = (string) file_get_contents($tmp);
+    $res = restoreDatabaseMetadata($sql);
+    if ($res['success']) {
+        audit($user, 'restore', '', 'Memulihkan database metadata (' . $res['count'] . ' kueri)');
+        flash('success', 'Database metadata berhasil dipulihkan (' . $res['count'] . ' perintah SQL dieksekusi).');
+    } else {
+        flash('danger', 'Pemulihan database gagal: ' . ($res['error'] ?? 'Kesalahan tidak diketahui.'));
+    }
+    redirect(PATH_BACKUP);
+}
+
+function restoreConfigBackup(array $user): void
+{
+    csrfCheck();
+    if (
+        empty($_FILES['config_file']) ||
+        !is_array($_FILES['config_file']) ||
+        ($_FILES['config_file']['error'] ?? 1) !== UPLOAD_ERR_OK
+    ) {
+        flash('danger', 'Pilih berkas konfigurasi JSON yang valid.');
+        redirect(PATH_BACKUP);
+    }
+    $tmp = (string) ($_FILES['config_file']['tmp_name'] ?? '');
+    $raw = (string) file_get_contents($tmp);
+    try {
+        /** @var array<string, mixed> $data */
+        $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        $res = restoreConfigSettings($data);
         if ($res['success']) {
-            audit($user, 'restore', '', 'Memulihkan database metadata (' . $res['count'] . ' kueri)');
-            flash('success', 'Database metadata berhasil dipulihkan (' . $res['count'] . ' perintah SQL dieksekusi).');
+            audit($user, 'restore', '', 'Memulihkan konfigurasi settings (' . $res['count'] . ' opsi)');
+            flash('success', 'Konfigurasi berhasil dipulihkan (' . $res['count'] . ' pengaturan diperbarui).');
         } else {
-            flash('danger', 'Pemulihan database gagal: ' . ($res['error'] ?? 'Kesalahan tidak diketahui.'));
+            flash('danger', 'Pemulihan konfigurasi gagal: ' . ($res['error'] ?? 'Format tidak valid.'));
         }
-        redirect('/backup');
+    } catch (Throwable $e) {
+        flash('danger', 'Berkas JSON rusak atau tidak valid: ' . $e->getMessage());
     }
+    redirect(PATH_BACKUP);
+}
 
-    if ($path === '/backup/restore/config' && $method === 'POST') {
-        csrfCheck();
-        if (
-            empty($_FILES['config_file']) ||
-            !is_array($_FILES['config_file']) ||
-            ($_FILES['config_file']['error'] ?? 1) !== UPLOAD_ERR_OK
-        ) {
-            flash('danger', 'Pilih berkas konfigurasi JSON yang valid.');
-            redirect('/backup');
-        }
-        $tmp = (string) ($_FILES['config_file']['tmp_name'] ?? '');
-        $raw = (string) file_get_contents($tmp);
-        try {
-            /** @var array<string, mixed> $data */
-            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-            $res = restoreConfigSettings($data);
-            if ($res['success']) {
-                audit($user, 'restore', '', 'Memulihkan konfigurasi settings (' . $res['count'] . ' opsi)');
-                flash('success', 'Konfigurasi berhasil dipulihkan (' . $res['count'] . ' pengaturan diperbarui).');
-            } else {
-                flash('danger', 'Pemulihan konfigurasi gagal: ' . ($res['error'] ?? 'Format tidak valid.'));
-            }
-        } catch (Throwable $e) {
-            flash('danger', 'Berkas JSON rusak atau tidak valid: ' . $e->getMessage());
-        }
-        redirect('/backup');
+function restoreZonesBackup(array $user): void
+{
+    csrfCheck();
+    if (
+        empty($_FILES['zones_file']) ||
+        !is_array($_FILES['zones_file']) ||
+        ($_FILES['zones_file']['error'] ?? 1) !== UPLOAD_ERR_OK
+    ) {
+        flash('danger', 'Pilih berkas cadangan zona JSON yang valid.');
+        redirect(PATH_BACKUP);
     }
-
-    if ($path === '/backup/restore/zones' && $method === 'POST') {
-        csrfCheck();
-        if (
-            empty($_FILES['zones_file']) ||
-            !is_array($_FILES['zones_file']) ||
-            ($_FILES['zones_file']['error'] ?? 1) !== UPLOAD_ERR_OK
-        ) {
-            flash('danger', 'Pilih berkas cadangan zona JSON yang valid.');
-            redirect('/backup');
+    $tmp = (string) ($_FILES['zones_file']['tmp_name'] ?? '');
+    $raw = (string) file_get_contents($tmp);
+    try {
+        /** @var array<string, mixed> $data */
+        $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        $pdns = PdnsClient::fromSettings();
+        $res = restoreZones($pdns, $data);
+        if ($res['success']) {
+            audit($user, 'restore', '', 'Memulihkan zona (' . $res['restored'] . ' zona)');
+            flash(
+                'success',
+                'Pemulihan zona selesai: ' . $res['restored'] . ' dari ' . $res['total'] .
+                ' zona berhasil dipulihkan.'
+            );
+        } else {
+            flash('danger', 'Pemulihan zona mengalami masalah: ' . implode('; ', $res['errors']));
         }
-        $tmp = (string) ($_FILES['zones_file']['tmp_name'] ?? '');
-        $raw = (string) file_get_contents($tmp);
-        try {
-            /** @var array<string, mixed> $data */
-            $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-            $pdns = PdnsClient::fromSettings();
-            $res = restoreZones($pdns, $data);
-            if ($res['success']) {
-                audit($user, 'restore', '', 'Memulihkan zona (' . $res['restored'] . ' zona)');
-                flash(
-                    'success',
-                    'Pemulihan zona selesai: ' . $res['restored'] . ' dari ' . $res['total'] .
-                    ' zona berhasil dipulihkan.'
-                );
-            } else {
-                flash('danger', 'Pemulihan zona mengalami masalah: ' . implode('; ', $res['errors']));
-            }
-        } catch (Throwable $e) {
-            flash('danger', 'Gagal memproses berkas zona: ' . $e->getMessage());
-        }
-        redirect('/backup');
+    } catch (Throwable $e) {
+        flash('danger', 'Gagal memproses berkas zona: ' . $e->getMessage());
     }
+    redirect(PATH_BACKUP);
+}
 
+function handleBackupRestores(array $user, string $path): void
+{
+    if ($path === '/backup/restore/db') {
+        restoreDatabaseBackup($user);
+    } elseif ($path === '/backup/restore/config') {
+        restoreConfigBackup($user);
+    } elseif ($path === '/backup/restore/zones') {
+        restoreZonesBackup($user);
+    }
+}
+
+/**
+ * Gather database table count metrics and PowerDNS status for backup overview.
+ *
+ * @return array{tableCounts: array<string, int>, zoneCount: int, apiOk: bool}
+ */
+function getBackupOverview(): array
+{
     $tableCounts = [];
     foreach (APP_METADATA_TABLES as $tbl) {
         try {
@@ -2174,11 +2255,33 @@ function handleBackup(array $user, string $path, string $method): void
         $apiOk = false;
     }
 
-    view('backup', [
-        'title' => 'Cadangan & Pemulihan',
-        'user' => $user,
+    return [
         'tableCounts' => $tableCounts,
         'zoneCount' => $zoneCount,
         'apiOk' => $apiOk,
-    ]);
+    ];
+}
+
+/**
+ * Handler for Database, Settings, and Zones Backup & Restore.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleBackup(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin']);
+
+    if ($method === 'GET' && str_starts_with($path, '/backup/download/')) {
+        handleBackupDownloads($user, $path);
+    }
+
+    if ($method === 'POST' && str_starts_with($path, '/backup/restore/')) {
+        handleBackupRestores($user, $path);
+    }
+
+    $overview = getBackupOverview();
+    view('backup', array_merge([
+        'title' => 'Cadangan & Pemulihan',
+        'user' => $user,
+    ], $overview));
 }

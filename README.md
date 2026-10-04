@@ -505,11 +505,11 @@ Setiap berkas dalam PowerDNS-Admin-PHP diaudit secara ketat melalui quality gate
 
 | Quality Gate              | Engine / Tool                                                     | Standar Target                    | Kriteria Lolos            |       Status        |
 | :------------------------ | :---------------------------------------------------------------- | :-------------------------------- | :------------------------ | :-----------------: |
-| **PHP Syntax Check**      | `php -l` (Lint 24 PHP source files)                               | PHP 8.2+ Syntax Compliance        | 0 syntax errors           |  **✔ 24/24 PASS**   |
+| **PHP Syntax Check**      | `php -l` (Lint 44 PHP source files)                               | PHP 8.2+ Syntax Compliance        | 0 syntax errors           |  **✔ 44/44 PASS**   |
 | **Coding Standards**      | [`PHP_CodeSniffer`](https://github.com/squizlabs/PHP_CodeSniffer) | PSR-12 strict & PSR-1 SideEffects | 0 errors, 0 warnings      |  **✔ PSR-12 PASS**  |
-| **Code Formatting**       | [`PHP-CS-Fixer 3.95`](https://cs.symfony.com)                     | Symfony / PSR-12 strict ruleset   | 0 files to fix            |  **✔ 24/24 CLEAN**  |
+| **Code Formatting**       | [`PHP-CS-Fixer 3.95`](https://cs.symfony.com)                     | Symfony / PSR-12 strict ruleset   | 0 files to fix            |  **✔ 44/44 CLEAN**  |
 | **Static Analysis**       | [`PHPStan`](https://phpstan.org)                                  | Level 5 Strict Analysis           | 0 errors                  | **✔ LEVEL 5 CLEAN** |
-| **Type Inference**        | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis       | 0 errors, 95.5% inference |     **✔ CLEAN**     |
+| **Type Inference**        | [`Psalm`](https://psalm.dev)                                      | Strict Type Safety Analysis       | 0 errors, 96.9% inference |     **✔ CLEAN**     |
 | **Frontend Scripting**    | [`ESLint`](https://eslint.org)                                    | Vanilla JS DOM Architecture       | 0 lint errors             |     **✔ CLEAN**     |
 | **Frontend Stylesheet**   | [`Stylelint`](https://stylelint.io)                               | Modern CSS & Safe Area Variables  | 0 style errors            |     **✔ CLEAN**     |
 | **Shell Script Security** | [`ShellCheck`](https://www.shellcheck.net)                        | POSIX / Bash Defensive Standards  | 0 warnings or issues      |   **✔ 0 ISSUES**    |
@@ -519,16 +519,16 @@ Setiap berkas dalam PowerDNS-Admin-PHP diaudit secara ketat melalui quality gate
 ========================================================================================
 QUALITY GATE VERIFICATION RESULTS
 ========================================================================================
-✔ PHP Syntax Validation (php -l 24 files)       : 0 Syntax Error
+✔ PHP Syntax Validation (php -l 44 files)       : 0 Syntax Error
 ✔ PHP CodeSniffer (PSR-12 & PSR-1 SideEffects) : 0 Error / 0 Warning
 ✔ PHP-CS-Fixer 3.95 (Dry-Run Check)            : 0 Files to Fix
 ✔ PHPStan Static Analysis (Level 5)            : [OK] 0 Errors
-✔ Psalm Static Type Inference (Level 7)        : 0 Errors (96.4% Type Inference)
-✔ ESLint (public/assets/app.js)                : 0 Lint Errors
+✔ Psalm Static Type Inference (Level 7)        : 0 Errors (96.9% Type Inference)
+✔ ESLint (app.js & tests)                      : 0 Lint Errors
 ✔ Stylelint (public/assets/app.css)            : 0 Style Errors
 ✔ Prettier Format Check                        : 100% Code Formatting Match
 ✔ ShellCheck & Trunk (deploy/install-debian.sh): 0 Shell Script Warnings / POSIX
-✔ Playwright Headless E2E (37 Assertions)      : 100% PASS (Zero Console & Runtime Errors)
+✔ Playwright Headless E2E (10 Viewports)       : 100% PASS (Zero Console & Runtime Errors)
 ✔ SonarLint Cognitive Complexity               : All Handlers <= 15 Complexity
 ✔ Max Line Length Invariant                    : 100% Non-Vendor Lines <= 120 Chars
 ✔ Git Whitespace Check (git diff --check)      : Clean (0 Trailing Spaces / EOF Issues)
@@ -569,10 +569,12 @@ Untuk menjamin keandalan, pemeliharaan jangka panjang, dan keamanan sistem, stan
 ```text
 PowerDNS-Admin-PHP/
 ├── app/                        # Logika aplikasi native (PSR-12, zero side-effects)
+│   ├── backup_services.php     # Layanan backup/restore basis data & metadata zona DNS
 │   ├── bootstrap.php           # Inisialisasi basis, helper enkripsi, koneksi PDO
 │   ├── csrf.php                # Proteksi CSRF berbasis sesi dan rotasi token
 │   ├── dns_name.php            # Utilitas format DNS kanonikal dan kalkulasi FQDN
 │   ├── handlers.php            # Controller dan handler HTTP untuk seluruh rute
+│   ├── network_tools.php       # Utilitas kalkulator IP, IPv6 splitter, WHOIS, DNS lookup
 │   ├── PdnsClient.php          # Klien PowerDNS Authoritative HTTP API v1
 │   └── services.php            # Logika domain: validasi record, diff atomik, auth zona
 ├── deploy/                     # Template deployment server Linux
@@ -585,6 +587,7 @@ PowerDNS-Admin-PHP/
 │   │   ├── app.js              # Interaksi DOM Vanilla JavaScript (tanpa jQuery)
 │   │   ├── logo.svg            # Brand vector icon PowerDNS-Admin-PHP
 │   │   └── vendor/             # Fallback offline Bootstrap 5.3 & jQuery
+│   ├── uploads/                # Direktori aman penyimpanan avatar & branding logo
 │   └── index.php               # Front controller tunggal aplikasi
 ├── sql/                        # Skema database panel
 │   └── schema.sql              # Struktur tabel MySQL/MariaDB (InnoDB, utf8mb4)

@@ -134,10 +134,16 @@ declare(strict_types=1);
         </div>
         <div class="table-responsive">
           <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th scope="col" class="text-secondary" style="width: 220px;">Peristiwa</th>
+                <th scope="col" class="text-secondary">Tanggal / Waktu</th>
+              </tr>
+            </thead>
             <tbody>
               <?php foreach ($d['events'] as $ev) : ?>
                 <tr>
-                  <td class="text-secondary text-capitalize" style="width: 220px;"><?= e(str_replace('_', ' ', (string) ($ev['eventAction'] ?? ''))) ?>:</td>
+                  <th scope="row" class="text-secondary text-capitalize fw-normal" style="width: 220px;"><?= e(str_replace('_', ' ', (string) ($ev['eventAction'] ?? ''))) ?>:</th>
                   <td><strong><?= e((string) ($ev['eventDate'] ?? '')) ?></strong></td>
                 </tr>
               <?php endforeach; ?>

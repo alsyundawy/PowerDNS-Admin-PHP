@@ -24,17 +24,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const currentTheme =
-    document.documentElement.getAttribute("data-theme") ||
+    document.documentElement.dataset.theme ||
     localStorage.getItem("pdns_theme") ||
     "dark";
   updateThemeUI(currentTheme);
 
   themeToggleBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const active =
-        document.documentElement.getAttribute("data-theme") || "dark";
+      const active = document.documentElement.dataset.theme || "dark";
       const nextTheme = active === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", nextTheme);
+      document.documentElement.dataset.theme = nextTheme;
       localStorage.setItem("pdns_theme", nextTheme);
       updateThemeUI(nextTheme);
     });
@@ -79,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyButtons = document.querySelectorAll(".btn-copy-target");
   copyButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const targetId = btn.getAttribute("data-target");
+      const targetId = btn.dataset.target;
       if (!targetId) return;
       const targetEl = document.getElementById(targetId);
       if (!targetEl) return;

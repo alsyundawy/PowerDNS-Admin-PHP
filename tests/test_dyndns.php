@@ -17,7 +17,8 @@ $detectDynDnsIpType = function (string $ip): ?string {
     return null;
 };
 
-assertEq($detectDynDnsIpType('203.0.113.42'), 'A', 'IPv4 maps to A record');
+$testIpv4 = '203.0.113.42';
+assertEq($detectDynDnsIpType($testIpv4), 'A', 'IPv4 maps to A record');
 assertEq($detectDynDnsIpType('2001:db8::1'), 'AAAA', 'IPv6 maps to AAAA record');
 assertEq($detectDynDnsIpType('invalid-ip'), null, 'Invalid IP rejected');
 
@@ -29,8 +30,8 @@ $formatDynDnsResponse = function (string $code, ?string $ip = null): string {
     return $code . "\n";
 };
 
-assertEq($formatDynDnsResponse('good', '203.0.113.42'), "good 203.0.113.42\n", 'good response format');
-assertEq($formatDynDnsResponse('nochg', '203.0.113.42'), "nochg 203.0.113.42\n", 'nochg response format');
+assertEq($formatDynDnsResponse('good', $testIpv4), "good {$testIpv4}\n", 'good response format');
+assertEq($formatDynDnsResponse('nochg', $testIpv4), "nochg {$testIpv4}\n", 'nochg response format');
 assertEq($formatDynDnsResponse('nohost'), "nohost\n", 'nohost response format');
 assertEq($formatDynDnsResponse('badauth'), "badauth\n", 'badauth response format');
 assertEq($formatDynDnsResponse('911'), "911\n", '911 error response format');

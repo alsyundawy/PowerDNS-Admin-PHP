@@ -378,7 +378,7 @@ a:focus-visible {
   letter-spacing: -0.02em;
   font-weight: 700;
   color: var(--ink);
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .topbar p,
@@ -386,7 +386,7 @@ a:focus-visible {
   color: var(--ink-soft);
   margin: 4px 0 0;
   font-size: 14px;
-  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Panel Containers */
@@ -660,7 +660,11 @@ a:focus-visible {
 .alert-danger {
   background-color: var(--danger-light);
   border-color: rgba(239, 68, 68, 0.3);
-  color: var(--danger);
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .alert-danger {
+  color: #fca5a5;
 }
 
 .alert-warning {

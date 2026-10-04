@@ -18,23 +18,21 @@ const WHOIS_TIMEOUT_SECS = 6;
  */
 function ipcalcGetIpv4Class(int $firstOctet): string
 {
+    $class = 'Kelas E (Eksperimental)';
     if ($firstOctet < 128) {
-        return 'Kelas A';
+        $class = 'Kelas A';
+    } elseif ($firstOctet < 192) {
+        $class = 'Kelas B';
+    } elseif ($firstOctet < 224) {
+        $class = 'Kelas C';
+    } elseif ($firstOctet < 240) {
+        $class = 'Kelas D (Multicast)';
     }
-    if ($firstOctet < 192) {
-        return 'Kelas B';
-    }
-    if ($firstOctet < 224) {
-        return 'Kelas C';
-    }
-    if ($firstOctet < 240) {
-        return 'Kelas D (Multicast)';
-    }
-    return 'Kelas E (Eksperimental)';
+    return $class;
 }
 
 /**
- * Determine IPv4 address scope/type.
+ * Determine IPv4 address scope/type using standard RFC bitwise hex bounds.
  */
 function ipcalcGetIpv4Scope(string $ip): string
 {
@@ -42,23 +40,25 @@ function ipcalcGetIpv4Scope(string $ip): string
     if ($long === false) {
         return 'Invalid';
     }
-    // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+    $uLong = (int) sprintf('%u', $long);
+    $scope = 'Public Internet';
+
+    // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 (RFC 1918)
     if (
-        ($long >= (int) ip2long('10.0.0.0') && $long <= (int) ip2long('10.255.255.255')) ||
-        ($long >= (int) ip2long('172.16.0.0') && $long <= (int) ip2long('172.31.255.255')) ||
-        ($long >= (int) ip2long('192.168.0.0') && $long <= (int) ip2long('192.168.255.255'))
+        ($uLong >= 0x0A000000 && $uLong <= 0x0AFFFFFF) ||
+        ($uLong >= 0xAC100000 && $uLong <= 0xAC1FFFFF) ||
+        ($uLong >= 0xC0A80000 && $uLong <= 0xC0A8FFFF)
     ) {
-        return 'Private (RFC 1918)';
+        $scope = 'Private (RFC 1918)';
+    } elseif ($uLong >= 0x7F000000 && $uLong <= 0x7FFFFFFF) {
+        // 127.0.0.0/8 (RFC 1122)
+        $scope = 'Loopback (RFC 1122)';
+    } elseif ($uLong >= 0x64400000 && $uLong <= 0x647FFFFF) {
+        // 100.64.0.0/10 (CGNAT RFC 6598)
+        $scope = 'Shared / CGNAT (RFC 6598)';
     }
-    // 127.0.0.0/8
-    if ($long >= (int) ip2long('127.0.0.0') && $long <= (int) ip2long('127.255.255.255')) {
-        return 'Loopback (RFC 1122)';
-    }
-    // 100.64.0.0/10 (CGNAT)
-    if ($long >= (int) ip2long('100.64.0.0') && $long <= (int) ip2long('100.127.255.255')) {
-        return 'Shared / CGNAT (RFC 6598)';
-    }
-    return 'Public Internet';
+
+    return $scope;
 }
 
 /**
@@ -74,13 +74,9 @@ function ipcalcProcessIpv4(string $cidrInput): ?array
 
     $ip = $m[1];
     $cidr = isset($m[2]) ? (int) $m[2] : 32;
-
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $cidr < 0 || $cidr > 32) {
-        return null;
-    }
-
     $ipLong = ip2long($ip);
-    if ($ipLong === false) {
+
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || $cidr < 0 || $cidr > 32 || $ipLong === false) {
         return null;
     }
 
@@ -91,7 +87,12 @@ function ipcalcProcessIpv4(string $cidrInput): ?array
     $firstOctet = (int) $octets[0];
 
     $totalHosts = (float) (2 ** (32 - $cidr));
-    $usableHosts = $cidr <= 30 ? max(0, (int) ($totalHosts - 2)) : ($cidr === 31 ? 2 : 1);
+    $usableHosts = 1;
+    if ($cidr <= 30) {
+        $usableHosts = max(0, (int) ($totalHosts - 2));
+    } elseif ($cidr === 31) {
+        $usableHosts = 2;
+    }
 
     if ($cidr <= 30) {
         $firstUsable = long2ip($networkLong + 1);
@@ -150,27 +151,24 @@ function ipcalcUncompressIpv6(string $ip): string
 function ipcalcGetIpv6Scope(string $ip): string
 {
     $lower = strtolower($ip);
+    $scope = 'Global Unicast (2000::/3)';
     if ($lower === '::1' || $lower === '0000:0000:0000:0000:0000:0000:0000:0001') {
-        return 'Loopback (RFC 4291)';
-    }
-    if (str_starts_with($lower, 'fe80:')) {
-        return 'Link-Local Unicast (RFC 4291)';
-    }
-    if (
+        $scope = 'Loopback (RFC 4291)';
+    } elseif (str_starts_with($lower, 'fe80:')) {
+        $scope = 'Link-Local Unicast (RFC 4291)';
+    } elseif (
         str_starts_with($lower, 'fc00:')
         || str_starts_with($lower, 'fd00:')
         || str_starts_with($lower, 'fc')
         || str_starts_with($lower, 'fd')
     ) {
-        return 'Unique Local Address / ULA (RFC 4193)';
+        $scope = 'Unique Local Address / ULA (RFC 4193)';
+    } elseif (str_starts_with($lower, 'ff')) {
+        $scope = 'Multicast (RFC 4291)';
+    } elseif (str_starts_with($lower, '2001:db8:') || str_starts_with($lower, '2001:0db8:')) {
+        $scope = 'Documentation (RFC 3849)';
     }
-    if (str_starts_with($lower, 'ff')) {
-        return 'Multicast (RFC 4291)';
-    }
-    if (str_starts_with($lower, '2001:db8:') || str_starts_with($lower, '2001:0db8:')) {
-        return 'Documentation (RFC 3849)';
-    }
-    return 'Global Unicast (2000::/3)';
+    return $scope;
 }
 
 /**
@@ -211,7 +209,13 @@ function ipcalcProcessIpv6(string $cidrInput): ?array
     }
     $netUncompressed = implode(':', str_split($netHex, 4));
     $packedNet = hex2bin($netHex);
-    $compressedNet = $packedNet !== false ? (inet_ntop($packedNet) ?: $netUncompressed) : $netUncompressed;
+    $compressedNet = $netUncompressed;
+    if ($packedNet !== false) {
+        $ntop = inet_ntop($packedNet);
+        if ($ntop !== false && $ntop !== '') {
+            $compressedNet = $ntop;
+        }
+    }
 
     $totalSubnets64 = $cidr <= 64 ? number_format((float) (2 ** (64 - $cidr))) : '0';
 
@@ -242,10 +246,7 @@ function ipv6splitValidate(string $subnet): ?array
     }
     $ip = $m[1];
     $mask = (int) $m[2];
-    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        return null;
-    }
-    if ($mask < 1 || $mask > 128) {
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) || $mask < 1 || $mask > 128) {
         return null;
     }
     return ['ip' => $ip, 'mask' => $mask];
@@ -275,36 +276,39 @@ function ipv6splitGenerate(string $baseIp, int $sourceMask, int $targetMask): \G
         $fullBin .= sprintf('%04b', (int) hexdec($hex[$i]));
     }
 
-    // Zero out host bits beyond source mask
-    $baseNetBin = substr($fullBin, 0, $sourceMask) . str_repeat('0', 128 - $sourceMask);
+    $prefixBin = substr($fullBin, 0, $sourceMask);
+    $suffixZeros = str_repeat('0', 128 - $targetMask);
 
     for ($i = 0; $i < $maxCount; $i++) {
-        $iBin = $diffBits > 0 ? sprintf('%0' . $diffBits . 'b', $i) : '';
-        $subnetBin = substr($baseNetBin, 0, $sourceMask) . $iBin . substr($baseNetBin, $targetMask);
+        $subnetBits = sprintf('%0' . $diffBits . 'b', $i);
+        $fullSubnetBin = $prefixBin . $subnetBits . $suffixZeros;
 
-        $subnetHex = '';
-        for ($j = 0; $j < 128; $j += 4) {
-            $subnetHex .= dechex((int) bindec(substr($subnetBin, $j, 4)));
+        // Convert 128-bit binary back to hex
+        $subHex = '';
+        for ($b = 0; $b < 128; $b += 4) {
+            $subHex .= dechex((int) bindec(substr($fullSubnetBin, $b, 4)));
         }
 
-        $packed = hex2bin($subnetHex);
-        $formatted = $packed !== false ? inet_ntop($packed) : implode(':', str_split($subnetHex, 4));
-        yield (string) ($formatted !== false ? $formatted : implode(':', str_split($subnetHex, 4))) . '/' . $targetMask;
+        $packed = hex2bin($subHex);
+        $compressed = $packed !== false ? inet_ntop($packed) : '';
+        if ($compressed !== false && $compressed !== '') {
+            yield $compressed . '/' . $targetMask;
+        } else {
+            yield implode(':', str_split($subHex, 4)) . '/' . $targetMask;
+        }
     }
 }
 
 /**
- * Execute RDAP query over cURL with fallback.
- * @return array<string, mixed>
+ * Execute HTTP cURL request to RDAP server and decode JSON response.
+ *
+ * @return array{success: bool, data?: array<string, mixed>, error?: string}
  */
-function whoisQueryRdap(string $query): array
+function fetchRdapJson(string $url): array
 {
-    $isIp = filter_var($query, FILTER_VALIDATE_IP) !== false;
-    $url = RDAP_BASE_URL . ($isIp ? 'ip/' : 'domain/') . urlencode($query);
-
     $ch = curl_init($url);
     if ($ch === false) {
-        return ['success' => false, 'error' => 'Inisialisasi cURL gagal.', 'data' => []];
+        return ['success' => false, 'error' => 'Inisialisasi cURL gagal.'];
     }
 
     curl_setopt_array($ch, [
@@ -323,22 +327,38 @@ function whoisQueryRdap(string $query): array
     curl_close($ch);
 
     if ($res === false || $err !== '') {
-        return ['success' => false, 'error' => 'Kueri RDAP gagal: ' . $err, 'data' => []];
+        return ['success' => false, 'error' => 'Kueri RDAP gagal: ' . $err];
     }
-
     if ($httpCode !== 200) {
-        return ['success' => false, 'error' => 'Server RDAP mengembalikan status HTTP ' . $httpCode, 'data' => []];
+        return ['success' => false, 'error' => 'Server RDAP mengembalikan status HTTP ' . $httpCode];
     }
 
     $json = json_decode((string) $res, true);
     if (!is_array($json)) {
-        return ['success' => false, 'error' => 'Respons RDAP bukan format JSON yang valid.', 'data' => []];
+        return ['success' => false, 'error' => 'Respons RDAP bukan format JSON yang valid.'];
+    }
+
+    return ['success' => true, 'data' => $json];
+}
+
+/**
+ * Execute RDAP query over cURL with fallback.
+ * @return array<string, mixed>
+ */
+function whoisQueryRdap(string $query): array
+{
+    $isIp = filter_var($query, FILTER_VALIDATE_IP) !== false;
+    $url = RDAP_BASE_URL . ($isIp ? 'ip/' : 'domain/') . urlencode($query);
+
+    $res = fetchRdapJson($url);
+    if (!$res['success']) {
+        return ['success' => false, 'error' => $res['error'] ?? 'Gagal kueri RDAP.', 'data' => []];
     }
 
     return [
         'success' => true,
         'type' => $isIp ? 'IP Network' : 'Domain',
-        'data' => $json,
+        'data' => (array) ($res['data'] ?? []),
     ];
 }
 
@@ -426,6 +446,81 @@ function dnsLookupAll(string $domain): array
 }
 
 /**
+ * Format string representation for specific DNS record type.
+ *
+ * @param array<string, mixed> $rec
+ */
+function formatDnsRecordValue(string $type, array $rec): string
+{
+    return match ($type) {
+        'A' => (string) ($rec['ip'] ?? ''),
+        'AAAA' => (string) ($rec['ipv6'] ?? ''),
+        'MX' => (isset($rec['pri']) ? ($rec['pri'] . ' ') : '') . (string) ($rec['target'] ?? ''),
+        'TXT' => (string) ($rec['txt'] ?? ''),
+        'NS', 'CNAME', 'PTR' => (string) ($rec['target'] ?? ''),
+        'SOA' => sprintf(
+            '%s %s %s %s %s %s %s',
+            (string) ($rec['mname'] ?? ''),
+            (string) ($rec['rname'] ?? ''),
+            (string) ($rec['serial'] ?? ''),
+            (string) ($rec['refresh'] ?? ''),
+            (string) ($rec['retry'] ?? ''),
+            (string) ($rec['expire'] ?? ''),
+            (string) ($rec['minimum-ttl'] ?? '')
+        ),
+        'CAA' => sprintf(
+            '%s %s "%s"',
+            (string) ($rec['flags'] ?? 0),
+            (string) ($rec['tag'] ?? ''),
+            (string) ($rec['value'] ?? '')
+        ),
+        'SRV' => sprintf(
+            '%s %s %s %s',
+            (string) ($rec['pri'] ?? 0),
+            (string) ($rec['weight'] ?? 0),
+            (string) ($rec['port'] ?? 0),
+            (string) ($rec['target'] ?? '')
+        ),
+        default => (string) ($rec['ip'] ?? $rec['ipv6'] ?? $rec['target'] ?? $rec['txt'] ?? ''),
+    };
+}
+
+/**
+ * Resolve IPv4 and IPv6 glue records for nameserver hostname.
+ *
+ * @return array{glue_ipv4: list<string>, glue_ipv6: list<string>, glue_ips: string}
+ */
+function resolveNsGlue(string $target): array
+{
+    $glueA = @dns_get_record($target, DNS_A);
+    $glueAaaa = @dns_get_record($target, DNS_AAAA);
+    $glueIpv4 = [];
+    $glueIpv6 = [];
+
+    if (is_array($glueA)) {
+        foreach ($glueA as $g) {
+            if (!empty($g['ip'])) {
+                $glueIpv4[] = (string) $g['ip'];
+            }
+        }
+    }
+    if (is_array($glueAaaa)) {
+        foreach ($glueAaaa as $g) {
+            if (!empty($g['ipv6'])) {
+                $glueIpv6[] = (string) $g['ipv6'];
+            }
+        }
+    }
+
+    $totalGlue = count($glueIpv4) + count($glueIpv6);
+    return [
+        'glue_ipv4' => $glueIpv4,
+        'glue_ipv6' => $glueIpv6,
+        'glue_ips' => $totalGlue > 0 ? implode(', ', array_merge($glueIpv4, $glueIpv6)) : 'N/A',
+    ];
+}
+
+/**
  * Clean and enrich DNS records with glue IPs and formatted fields.
  * @param array<int, array<string, mixed>> $items
  * @return array<int, array<string, mixed>>
@@ -435,64 +530,13 @@ function processDnsRecords(string $type, array $items): array
     $out = [];
     foreach ($items as $rec) {
         unset($rec['class']);
-        $value = match ($type) {
-            'A' => (string) ($rec['ip'] ?? ''),
-            'AAAA' => (string) ($rec['ipv6'] ?? ''),
-            'MX' => (isset($rec['pri']) ? ($rec['pri'] . ' ') : '') . (string) ($rec['target'] ?? ''),
-            'TXT' => (string) ($rec['txt'] ?? ''),
-            'NS', 'CNAME', 'PTR' => (string) ($rec['target'] ?? ''),
-            'SOA' => sprintf(
-                '%s %s %s %s %s %s %s',
-                (string) ($rec['mname'] ?? ''),
-                (string) ($rec['rname'] ?? ''),
-                (string) ($rec['serial'] ?? ''),
-                (string) ($rec['refresh'] ?? ''),
-                (string) ($rec['retry'] ?? ''),
-                (string) ($rec['expire'] ?? ''),
-                (string) ($rec['minimum-ttl'] ?? '')
-            ),
-            'CAA' => sprintf(
-                '%s %s "%s"',
-                (string) ($rec['flags'] ?? 0),
-                (string) ($rec['tag'] ?? ''),
-                (string) ($rec['value'] ?? '')
-            ),
-            'SRV' => sprintf(
-                '%s %s %s %s',
-                (string) ($rec['pri'] ?? 0),
-                (string) ($rec['weight'] ?? 0),
-                (string) ($rec['port'] ?? 0),
-                (string) ($rec['target'] ?? '')
-            ),
-            default => (string) ($rec['ip'] ?? $rec['ipv6'] ?? $rec['target'] ?? $rec['txt'] ?? ''),
-        };
-        $rec['value'] = trim($value);
+        $rec['value'] = trim(formatDnsRecordValue($type, $rec));
 
         if ($type === 'NS' && !empty($rec['target'])) {
-            $target = (string) $rec['target'];
-            $glueA = @dns_get_record($target, DNS_A);
-            $glueAaaa = @dns_get_record($target, DNS_AAAA);
-            $glueIpv4 = [];
-            $glueIpv6 = [];
-            if (is_array($glueA)) {
-                foreach ($glueA as $g) {
-                    if (!empty($g['ip'])) {
-                        $glueIpv4[] = (string) $g['ip'];
-                    }
-                }
-            }
-            if (is_array($glueAaaa)) {
-                foreach ($glueAaaa as $g) {
-                    if (!empty($g['ipv6'])) {
-                        $glueIpv6[] = (string) $g['ipv6'];
-                    }
-                }
-            }
-            $rec['glue_ipv4'] = $glueIpv4;
-            $rec['glue_ipv6'] = $glueIpv6;
-            $rec['glue_ips'] = count($glueIpv4) + count($glueIpv6) > 0
-                ? implode(', ', array_merge($glueIpv4, $glueIpv6))
-                : 'N/A';
+            $glue = resolveNsGlue((string) $rec['target']);
+            $rec['glue_ipv4'] = $glue['glue_ipv4'];
+            $rec['glue_ipv6'] = $glue['glue_ipv6'];
+            $rec['glue_ips'] = $glue['glue_ips'];
         }
         $out[] = $rec;
     }

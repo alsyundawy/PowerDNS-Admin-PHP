@@ -46,12 +46,13 @@ assertEq(ipcalcProcessIpv4('192.168.1.1/35'), null, 'ipcalcProcessIpv4 rejects m
 assertEq(ipcalcProcessIpv4('not-an-ip'), null, 'ipcalcProcessIpv4 rejects garbage');
 
 // Test 5: IPv6 Calculation Standard /64
-$res6_1 = ipcalcProcessIpv6('2001:db8::1/64');
+$docNetIpv6 = '2001:db8::';
+$res6_1 = ipcalcProcessIpv6($docNetIpv6 . '1/64');
 assertEq(is_array($res6_1), true, 'ipcalcProcessIpv6 returns array for 2001:db8::1/64');
 if ($res6_1 !== null) {
     assertEq($res6_1['uncompressed'], '2001:0db8:0000:0000:0000:0000:0000:0001', 'IPv6 uncompressed expansion');
     assertEq($res6_1['compressed'], '2001:db8::1', 'IPv6 compressed string');
-    assertEq($res6_1['network'], '2001:db8::', 'IPv6 network address');
+    assertEq($res6_1['network'], $docNetIpv6, 'IPv6 network address');
     assertEq($res6_1['mask'], 64, 'IPv6 mask integer');
     assertEq($res6_1['subnets_slash_64'], '1', 'IPv6 /64 has 1 subnet of size /64');
     assertEq($res6_1['scope'], 'Documentation (RFC 3849)', 'IPv6 scope detection for 2001:db8::');
@@ -59,7 +60,7 @@ if ($res6_1 !== null) {
 }
 
 // Test 6: IPv6 /32 Calculation
-$res6_2 = ipcalcProcessIpv6('2001:db8::/32');
+$res6_2 = ipcalcProcessIpv6($docNetIpv6 . '/32');
 if ($res6_2 !== null) {
     assertEq($res6_2['subnets_slash_64'], '4,294,967,296', 'IPv6 /32 has 4,294,967,296 /64 subnets');
 }

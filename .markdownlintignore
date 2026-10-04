@@ -1,0 +1,4 @@
+LICENSE
+vendor/**
+node_modules/**
+public/assets/vendor/**

@@ -11,6 +11,7 @@
 **/*.yml
 **/*.xml
 **/*.neon
+**/*.html
 LICENSE
 public/assets/vendor/**
 vendor/**

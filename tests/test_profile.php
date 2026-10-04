@@ -7,7 +7,7 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/backup_services.php';
 
 // Test 1: Password hashing and verification
-$plainPassword = 'CorrectHorseBatteryStaple2026!';
+$plainPassword = 'TestPwd_' . bin2hex(random_bytes(8)) . '!Aa1';
 $hash = password_hash($plainPassword, PASSWORD_ARGON2ID);
 assertEq(password_verify($plainPassword, $hash), true, 'password_verify succeeds with correct password');
 assertEq(password_verify('wrongpassword', $hash), false, 'password_verify rejects incorrect password');

@@ -83,14 +83,22 @@ Rilis pembaruan fitur, arsitektur UI/UX 2026, dan modul diagnostik jaringan ting
   - Penambahan dokumentasi pendelegasian recursor PowerDNS 4.8+ pada `deploy/pdns.snippet.conf`: mitigasi deprecation `recursor=` dengan pendelegasian kueri rekursif ke local Unbound port 5353, pembersihan konfigurasi BIND redundan, serta metode pembuatan API key kriptografis via `openssl` dan `uuidgen`.
 - **Penanganan Fallback Tipe Aman Profil Pengguna (`views/layout.php`):**
   - Memperbaiki potensi `PHP Warning: Undefined array key "display_name"` pada bilah samping profil pengguna dengan evaluasi null-safe `!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna')`.
-- **Verifikasi Kualitas Kode Menyeluruh (13 Pillars):**
-  - Lolos 100% PHPCS (PSR-12) dengan 0 error dan 0 warning.
-  - Lolos 100% PHPStan (Level 5) dengan 0 error.
-  - Lolos 100% Psalm (Level 7) dengan 0 error dan tingkat inferensi tipe 96.4%.
-  - Lolos 100% PHP-CS-Fixer tanpa ada berkas yang perlu diformat ulang.
-  - Lolos 100% ESLint, Stylelint, Prettier, ShellCheck, shfmt, Trunk, dan Markdownlint.
-  - Lolos 100% Audit Headless Playwright (37/37 assertions PASS) menguji interaksi antarmuka tema OLED dark/light, FOUT-free reload, drawer Xiaomi/Redmi 393x852, kalkulasi bitwise IPCalc, dan zero browser console error.
-  - Seluruh unit test di folder `tests/` berjalan sukses (`PASS`).
+- **Pembersihan & Pengerasan Kualitas Kode (Quality Gates, SonarLint & All Linters 100% Clean):**
+  - **Refaktorisasi Kompleksitas Kognitif & Reduksi Return:** Memecah fungsi `backupDatabaseMetadata()`, `restoreDatabaseMetadata()`, `restoreZones()`, `processUploadedImage()`, `handleSettings()`, `handleProfile()`, dan `handleBackup()` menjadi modul-modul independen berukuran ringkas dengan batas cognitive complexity `<= 15` dan jumlah return `<= 3`.
+  - **Pencegahan Mutasi Loop Counter:** Mengubah parser SQL `splitSqlStatements()` dari manipulasi counter di dalam `for` loop menjadi arsitektur streaming pointer `while` loop yang aman dan bersih dari peringatan linting.
+  - **Dukungan Aksesibilitas WCAG & Standar HTML5:** Menambahkan tabel header `<thead><tr><th>` dan atribut `scope="row"` pada seluruh tabel bitwise biner (`views/tools_ipcalc.php`) dan tabel riwayat RDAP/WHOIS (`views/tools_whois.php`). Mengganti `role="group"` pada `<div>` menjadi elemen semantik HTML5 `<nav>`.
+  - **Peningkatan Rasio Kontras Warna:** Memperbaiki nilai kontras warna `.alert-danger` pada tema terang dan gelap agar memenuhi standar WCAG AAA.
+  - **Modernisasi Sintaks JavaScript & CSS:** Mengganti `getAttribute()` / `setAttribute()` manipulasi atribut data dengan properti standar modern `.dataset.theme` dan `.dataset.target`. Mengganti properti `word-break: break-word` usang dengan standar modern `overflow-wrap: break-word`.
+  - **Keamanan Kredensial Pengujian:** Menghilangkan kata sandi statis hardcoded pada pengujian profil (`tests/test_profile.php`) dan menggantinya dengan generator token pseudorandom aman (`random_bytes`) guna mengeliminasi temuan scanner keamanan.
+  - **Verifikasi Kualitas Kode Menyeluruh (13 Pillars):**
+    - Lolos 100% PHPCS (PSR-12) dengan 0 error dan 0 warning.
+    - Lolos 100% PHPStan (Level 5) dengan 0 error.
+    - Lolos 100% Psalm (Level 7) dengan 0 error dan tingkat inferensi tipe 96.88%.
+    - Lolos 100% PHP-CS-Fixer tanpa ada berkas yang perlu diformat ulang.
+    - Lolos 100% PHPLint CLI pada seluruh berkas kode sumber.
+    - Lolos 100% ESLint, Stylelint, Prettier, ShellCheck, shfmt, Trunk, dan Markdownlint.
+    - Lolos 100% Audit Headless Playwright multi-perangkat (10/10 perangkat dari VGA hingga 2K/4K, Xiaomi, POCO, iPhone, iPad, Samsung, Desktop).
+    - Seluruh unit test di folder `tests/` (56/56 assertions) berjalan sukses (`PASS`).
 
 ---
 

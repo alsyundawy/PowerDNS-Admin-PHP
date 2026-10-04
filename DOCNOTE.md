@@ -93,12 +93,37 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
    - Nilai kembalian eksekusi perintah tidak termasking di dalam ekspansi parameter (`CURRENT_UID="$(id -u)"`).
    - Format kode lolos 100% pada verifikasi `shfmt`, `shellcheck`, dan Trunk.
 
-6. **Validasi End-to-End Headless Playwright (37 Assertions Zero-Error):**
-   - Mengaudit runtime DOM, interaksi JavaScript, dan render CSS antarmuka secara headless:
+6. **Validasi End-to-End Headless Playwright (Multi-Device Responsive Matrix):**
+   - Mengaudit runtime DOM, interaksi JavaScript, dan render CSS antarmuka secara headless di 10 profil viewport:
      - Siklus hidup tema: verifikasi switch dark/light, persistensi `localStorage`, evaluasi script inline pada `<head>` untuk mitigasi FOUT.
-     - Responsivitas mobile: pengujian laci navigasi Xiaomi/Redmi 393x852, penutupan via tombol ESC dan klik backdrop overlay, serta penguncian scroll body.
+     - Responsivitas mobile: pengujian laci navigasi Xiaomi Redmi, POCO, Samsung Galaxy, iPhone, iPad Mini, dan Laptop/Desktop HD hingga 2K/4K.
      - Tool jaringan: validasi kalkulasi bitwise IPCalc IPv4/IPv6, pembangkitan subnet pada IPv6 Splitter, pemilih tipe record DNS Lookup, serta formulir login dan install.
      - Penangkapan error browser: menjamin 0 uncaught exception dan 0 console error.
+
+---
+
+### F. Pengerasan Kualitas Kode, Audit Linter & SonarLint 100% Bersih
+
+1. **Refaktorisasi Kompleksitas Kognitif (Cognitive Complexity <= 15):**
+   - Fungsi-fungsi besar yang memiliki kompleksitas kognitif tinggi dipecah secara modular:
+     - `backupDatabaseMetadata()` diekstraksi menjadi `dumpTableSql()` dan `formatSqlRow()`.
+     - `restoreDatabaseMetadata()` diekstraksi menjadi `validateRestoreStatements()` dan `executeRestoreStatements()`.
+     - `restoreZones()` diekstraksi menjadi `buildPatchRrsets()` dan `restoreSingleZone()`.
+     - `processUploadedImage()` diekstraksi menjadi `validateUploadFileParams()` dan `validateImageMimeAndContent()`.
+     - `handleSettings()` diekstraksi menjadi `processSettingsBrandingLogo()` dan `updateApplicationSettings()`.
+     - `handleProfile()` diekstraksi menjadi `updateProfileInfo()`, `updateProfilePassword()`, `updateProfileAvatar()`, dan `deleteProfileAvatar()`.
+     - `handleBackup()` (156 baris) dipecah menjadi `handleBackupDownloads()`, `handleBackupRestores()`, dan `getBackupOverview()`.
+2. **Pemberantasan Anti-Pattern Loop Counter Mutation (Rule S127):**
+   - Parser SQL `splitSqlStatements()` direkayasa ulang dari mutasi counter `$i` di dalam `for` loop menjadi arsitektur streaming pointer `while` loop yang murni mengontrol laju traversal karakter dengan fungsi pembantu `skipSqlComment()` dan `isQuoteEscaped()`.
+3. **Standarisasi Aksesibilitas WCAG & Validasi HTML5:**
+   - Menambahkan struktur header tabel semantik `<thead><tr><th scope="col">` dan `<th scope="row">` pada tabel bitwise `views/tools_ipcalc.php` dan tabel riwayat RDAP/WHOIS `views/tools_whois.php`.
+   - Mengganti elemen `div` beratribut `role="group"` pada tombol navigasi tab dengan elemen navigasi semantik HTML5 `<nav>`.
+   - Menyelaraskan kontras teks `.alert-danger` dengan rasio kontras 7:1+ (WCAG AAA) pada tema terang dan gelap.
+4. **Modernisasi Sintaksis DOM Frontend:**
+   - Memutakhirkan interaksi atribut kustom di `public/assets/app.js` menggunakan standar API `.dataset.theme` dan `.dataset.target`.
+   - Mengganti properti CSS non-standar yang didepresiasi (`word-break: break-word`) dengan standar W3C `overflow-wrap: break-word`.
+5. **Keamanan Otomasi Pengujian:**
+   - Menghilangkan string kata sandi statis hardcoded pada `tests/test_profile.php` dan menggantinya dengan generator acak dinamis (`random_bytes`) guna mengeliminasi peringatan secret scanner.
 
 ---
 

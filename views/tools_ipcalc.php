@@ -25,14 +25,14 @@ $tab = $activeTab ?? 'ipcalc';
     </h2>
     <p class="text-secondary small mb-0">Perhitungan bitwise subnetting IPv4, ekspansi 128-bit IPv6, reverse DNS (PTR), dan generator subnetting.</p>
   </div>
-  <div class="btn-group" role="group" aria-label="Navigasi Tab Tools">
+  <nav class="btn-group" aria-label="Navigasi Tab Tools">
     <a href="/tools/ipcalc" class="btn btn-sm <?= $tab === 'ipcalc' ? 'btn-primary' : 'btn-outline-secondary' ?>">
       <i class="fa-solid fa-network-wired me-1"></i>IPCalc
     </a>
     <a href="/tools/ipv6-splitter" class="btn btn-sm <?= $tab === 'splitter' ? 'btn-primary' : 'btn-outline-secondary' ?>">
       <i class="fa-solid fa-diagram-project me-1"></i>IPv6 Splitter
     </a>
-  </div>
+  </nav>
 </div>
 
 <?php if (!empty($error)) : ?>
@@ -52,7 +52,7 @@ $tab = $activeTab ?? 'ipcalc';
             <i class="fa-solid fa-hashtag"></i>
           </span>
           <input type="text" class="form-control" id="cidr-input" name="cidr"
-                 value="<?= e($cidr ?? '192.168.1.0/24') ?>"
+                 value="<?= e($cidr) ?>"
                  placeholder="Contoh: 192.168.1.0/24 atau 2001:db8::/32" required autofocus>
         </div>
       </div>
@@ -141,13 +141,19 @@ $tab = $activeTab ?? 'ipcalc';
           <div class="card-body py-2">
             <div class="table-responsive">
               <table class="table table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col" class="text-secondary" style="width: 140px;">Properti</th>
+                    <th scope="col" class="text-secondary">Nilai Biner</th>
+                  </tr>
+                </thead>
                 <tbody>
                   <tr>
-                    <td class="text-secondary" style="width: 140px;">IP Address:</td>
+                    <th scope="row" class="text-secondary fw-normal">IP Address:</th>
                     <td><code><?= e((string) $result['binary_ip']) ?></code></td>
                   </tr>
                   <tr>
-                    <td class="text-secondary">Subnet Mask:</td>
+                    <th scope="row" class="text-secondary fw-normal">Subnet Mask:</th>
                     <td><code><?= e((string) $result['binary_mask']) ?></code></td>
                   </tr>
                 </tbody>
@@ -244,8 +250,16 @@ $tab = $activeTab ?? 'ipcalc';
         <label for="target-mask-select" class="form-label small fw-semibold">Target Prefix Tujuan</label>
         <select class="form-select" id="target-mask-select" name="target_mask">
           <?php for ($m = 32; $m <= 128; $m += 4) : ?>
+            <?php
+            $optLabel = '';
+              if ($m === 48) {
+                  $optLabel = '(Site / Enterprise)';
+              } elseif ($m === 64) {
+                  $optLabel = '(Standard SLAAC Subnet)';
+              }
+              ?>
             <option value="<?= $m ?>" <?= ($targetMask ?? 48) === $m ? 'selected' : '' ?>>
-              /<?= $m ?> <?= $m === 48 ? '(Site / Enterprise)' : ($m === 64 ? '(Standard SLAAC Subnet)' : '') ?>
+              /<?= $m ?><?= $optLabel !== '' ? ' ' . $optLabel : '' ?>
             </option>
           <?php endfor; ?>
         </select>

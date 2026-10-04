@@ -125,13 +125,13 @@ if ($path === '/') {
 } elseif (str_starts_with($path, '/tools/rdns')) {
     handleRdnsTool($user, $path, $method);
 } elseif ($path === '/tools/ipcalc') {
-    handleIpcalcTool($user, $path, $method);
+    handleIpcalcTool($user);
 } elseif ($path === '/tools/ipv6-splitter') {
-    handleIpv6SplitterTool($user, $path, $method);
+    handleIpv6SplitterTool($user);
 } elseif ($path === '/tools/whois') {
-    handleWhoisTool($user, $path, $method);
+    handleWhoisTool($user);
 } elseif ($path === '/tools/dns-lookup') {
-    handleDnsLookupTool($user, $path, $method);
+    handleDnsLookupTool($user);
 } elseif (preg_match('#^/zones/([^/]+)$#', $path, $m) && $method === 'GET') {
     handleZoneShow($user, $m[1]);
 } elseif (preg_match('#^/zones/([^/]+)/save$#', $path, $m) && $method === 'POST') {
