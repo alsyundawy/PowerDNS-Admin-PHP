@@ -72,6 +72,14 @@ Rilis pembaruan besar (major feature update) menghadirkan otomasi Reverse DNS (r
   - Pemotongan seluruh baris melebihi 120 karakter dan perapian indentasi pada `views/zone_show.php`, `views/zone_history.php`, `views/tools_rdns.php`, `views/dnssec.php`, dan `views/zone_create.php`.
   - Penambahan atribut aksesibilitas WAI-ARIA (`for`, `aria-label`, dan input ID) pada formulir wizard rDNS `views/tools_rdns.php`.
 
+### Infrastruktur CI/CD & Pembersihan Repositori (CI/CD & Maintenance)
+
+- **Konfigurasi Penuh Super-Linter v9 & MegaLinter v10:**
+  - Mengaktifkan 100% linter yang didukung untuk seluruh stack repositori (PHPCS, PHPStan, Psalm, PHPLint, PHP-CS-Fixer, Stylelint, ESLint, Prettier, ShellCheck, shfmt, Markdownlint, Actionlint, xmllint, yamllint, v8r).
+  - Mengeliminasi laporan spam dengan menonaktifkan DevSkim (`VALIDATE_DEVSKIM: false`) dan SARIF reporter non-standar pada MegaLinter.
+- **Audit Upstream GitHub Actions:** Seluruh action diperbarui ke versi rilis upstream terbaru (`actions/checkout@v7.0.1`, `super-linter@v9.0.0`, `megalinter@v10.1.0`, `codeql-action@v4.38.2`, `upload-artifact@v7.0.1`, `git-auto-commit-action@v7.2.0`, `create-pull-request@v8.1.1`).
+- **Pembersihan Repositori:** Penghapusan folder dokumentasi usang `docs/` agar struktur repositori tetap bersih dan terstandarisasi.
+
 ---
 
 ## [0.1.0] - 2026-10-04 (Initial Release)

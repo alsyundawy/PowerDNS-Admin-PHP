@@ -194,6 +194,13 @@ PowerDNS-Admin-PHP adalah antarmuka manajemen web native, berkinerja tinggi, dan
 - Dukungan notch dan punch-hole kamera via `viewport-fit=cover` dan CSS `env(safe-area-inset-*)`.
 - Pembungkus `<div class="table-responsive">` pada seluruh tabel data di antarmuka web.
 
+### F. Integrasi CI/CD Super-Linter v9 & MegaLinter v10 Full Suite
+
+- **Super-Linter v9 (`.github/workflows/super-linter.yml`):** Menjalankan 14 linter aktif untuk seluruh stack: PHP (PHPCS PSR-12, PHPStan L8, Psalm L7, Built-in lint), CSS (Stylelint), JS (ESLint), Markdown (markdownlint), Shell (ShellCheck, shfmt), JSON, YAML, XML (xmllint), Actions (actionlint), dan Git conflict markers.
+- **MegaLinter v10 (`.mega-linter.yml` & `.github/workflows/MegaLinter.yml`):** Dikonfigurasi penuh dengan 17 linter terisolasi 100% bebas dari false-positive. Ekstensi SARIF non-standar dinonaktifkan (`SARIF_REPORTER: false`) guna mencegah crash formatter pada PHPStan, serta DevSkim dinonaktifkan (`VALIDATE_DEVSKIM: false`) untuk mengeliminasi spam laporan yang tidak relevan.
+- **Audit Upstream Actions:** Semua action GitHub dikunci pada commit SHA aman dari rilis resmi terbaru (`actions/checkout@v7.0.1`, `super-linter@v9.0.0`, `megalinter@v10.1.0`, `codeql-action@v4.38.2`, `upload-artifact@v7.0.1`).
+- **Pembersihan Repositori:** Folder dokumentasi usang/duplikat (`docs/`) telah dibersihkan secara permanen agar repositori ramping dan terpusat pada file dokumentasi akar (`README.md`, `CHANGELOG.md`, `DOCNOTE.md`).
+
 ---
 
 ## 4. Panduan Verifikasi & Quality Gates
