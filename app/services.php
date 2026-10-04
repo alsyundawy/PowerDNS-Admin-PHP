@@ -46,8 +46,8 @@ function requireZoneAccess(array $user, string $zone, bool $edit = false): void
     if (!userCanZone($user, $zone, $edit)) {
         http_response_code(403);
         view('error', [
-            'title' => 'Zona terkunci',
-            'message' => 'Anda tidak punya akses ke zona ini.',
+            'title' => 'Access Denied',
+            'message' => 'You do not have access to this zone.',
             'user' => $user,
         ]);
         exit;
@@ -91,17 +91,17 @@ function validateSecurityRecord(string $type, string $content): ?string
 {
     return match ($type) {
         'DS', 'CDS' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'Format harus: "keytag algo digesttype digest".',
+            ? null : 'Format must be: "keytag algo digesttype digest".',
         'DNSKEY', 'CDNSKEY' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
-            ? null : 'Format harus: "flags protocol algorithm publickey".',
+            ? null : 'Format must be: "flags protocol algorithm publickey".',
         'TLSA', 'SMIMEA' => preg_match('/^\d+\s+\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'Format harus: "usage selector matching cert_data".',
+            ? null : 'Format must be: "usage selector matching cert_data".',
         'SSHFP' => preg_match('/^\d+\s+\d+\s+[A-Fa-f0-9]+$/', $content)
-            ? null : 'SSHFP harus format: "algorithm fptype fingerprint".',
+            ? null : 'SSHFP format must be: "algorithm fptype fingerprint".',
         'CERT' => preg_match(REGEX_NUM_NUM_NUM_STR, $content)
-            ? null : 'CERT harus format: "type keytag algorithm certificate".',
+            ? null : 'CERT format must be: "type keytag algorithm certificate".',
         'CSYNC' => preg_match('/^\d+\s+\d+\s+.+$/', $content)
-            ? null : 'CSYNC harus format: "serial flags type1 type2 ...".',
+            ? null : 'CSYNC format must be: "serial flags type1 type2 ...".',
         default => null,
     };
 }
@@ -110,13 +110,13 @@ function validateExtendedRecord(string $type, string $content): ?string
 {
     return match ($type) {
         'HTTPS', 'SVCB' => preg_match('/^\d+\s+\S+/', $content)
-            ? null : 'Format harus: "prioritas target [params]" (contoh: 1 . alpn="h3,h2").',
+            ? null : 'Format must be: "priority target [params]" (e.g. 1 . alpn="h3,h2").',
         'URI' => preg_match('/^\d+\s+\d+\s+\S+$/', $content)
-            ? null : 'URI harus format: "priority weight target".',
+            ? null : 'URI format must be: "priority weight target".',
         'HINFO' => (preg_match('/^".*"\s+".*"$/', $content) || preg_match('/^\S+\s+\S+$/', $content))
-            ? null : 'HINFO harus format: "hardware" "os".',
+            ? null : 'HINFO format must be: "hardware" "os".',
         'RP' => preg_match('/^\S+\s+\S+$/', $content)
-            ? null : 'RP harus format: "mailbox-fqdn txt-fqdn".',
+            ? null : 'RP format must be: "mailbox-fqdn txt-fqdn".',
         default => null,
     };
 }
@@ -127,10 +127,12 @@ function validateExtendedRecord(string $type, string $content): ?string
 function validateIpRecord(string $type, string $content): ?string
 {
     if ($type === 'A') {
-        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? null : 'A harus alamat IPv4 valid.';
+        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+            ? null : 'A record must be a valid IPv4 address.';
     }
     if ($type === 'AAAA') {
-        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? null : 'AAAA harus alamat IPv6 valid.';
+        return filter_var($content, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)
+            ? null : 'AAAA record must be a valid IPv6 address.';
     }
     return null;
 }
@@ -141,7 +143,7 @@ function validateIpRecord(string $type, string $content): ?string
 function validateNameRecord(string $type, string $content): ?string
 {
     if (in_array($type, ['CNAME', 'NS', 'PTR', 'ALIAS', 'DNAME'], true)) {
-        return preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.')) ? null : 'Nama host target tidak valid.';
+        return preg_match('/^[A-Za-z0-9_.*-]+$/', rtrim($content, '.')) ? null : 'Invalid target hostname.';
     }
     return null;
 }
@@ -154,14 +156,14 @@ function validateSpecialRecord(string $type, string $content): ?string
     $error = null;
     if ($type === 'MX') {
         $error = preg_match('/^\d{1,5}\s+\S+$/', $content)
-            ? null : 'MX harus format: "prioritas hostname" (contoh: 10 mail.example.com).';
+            ? null : 'MX format must be: "priority hostname" (e.g. 10 mail.example.com).';
     } elseif ($type === 'SRV') {
         $error = preg_match(REGEX_NUM_NUM_NUM_STR, $content)
-            ? null : 'SRV harus format: "prio weight port target".';
+            ? null : 'SRV format must be: "prio weight port target".';
     } elseif ($type === 'CAA') {
-        $error = preg_match('/^\d+\s+\S+\s+/', $content) ? null : 'CAA harus format: "flags tag value".';
+        $error = preg_match('/^\d+\s+\S+\s+/', $content) ? null : 'CAA format must be: "flags tag value".';
     } elseif ($type === 'TXT' || $type === 'SPF') {
-        $error = strlen($content) > 4096 ? 'Teks terlalu panjang (maksimal 4096 karakter).' : null;
+        $error = strlen($content) > 4096 ? 'Text is too long (maximum 4096 characters).' : null;
     }
     return $error;
 }
@@ -185,10 +187,10 @@ function validateRecord(string $type, string $content): ?string
     $type = strtoupper($type);
     $content = trim($content);
     if ($content === '') {
-        return 'Isi record kosong.';
+        return 'Record content is empty.';
     }
     if (!in_array($type, RECORD_TYPES, true)) {
-        return 'Tipe record tidak diizinkan.';
+        return 'Record type is not allowed.';
     }
 
     if (in_array($type, ['DS', 'CDS', 'DNSKEY', 'CDNSKEY', 'TLSA', 'SMIMEA', 'SSHFP', 'CERT', 'CSYNC'], true)) {
@@ -343,7 +345,7 @@ function soaOf(array $zone): string
 }
 
 /**
- * Auto-generate daftar record PTR untuk subnet /24 (misal: host 1 s/d 254).
+ * Auto-generate PTR record batch for /24 subnet (e.g., host 1 through 254).
  *
  * @return array<int, array{name: string, type: string, ttl: int, content: string, disabled: bool, comment: string}>
  */
@@ -392,7 +394,7 @@ function generateIpv4SubnetPtrBatch(
 }
 
 /**
- * Auto-generate sekuensial record PTR untuk subnet IPv6 /64.
+ * Auto-generate sequential PTR records for IPv6 /64 subnet.
  *
  * @return array<int, array{name: string, type: string, ttl: int, content: string, disabled: bool, comment: string}>
  */
@@ -441,8 +443,8 @@ function generateIpv6SubnetPtrBatch(
 }
 
 /**
- * Mencari apakah zona reverse untuk IP ini terdaftar di database panel.
- * Mendukung pencocokan hierarkis fleksibel untuk IPv4 (/24, /16, /8) dan IPv6 (/64, /48, /32).
+ * Check whether a matching reverse zone for this IP is registered in the panel database.
+ * Supports flexible hierarchical matching for IPv4 (/24, /16, /8) and IPv6 (/64, /48, /32).
  */
 function findMatchingReverseZone(string $ip): ?string
 {
@@ -480,7 +482,7 @@ function findMatchingReverseZone(string $ip): ?string
 }
 
 /**
- * Sinkronisasi otomatis record A/AAAA forward ke record PTR di zona reverse yang sesuai.
+ * Automatically synchronize forward A/AAAA records to PTR records in the matching reverse zone.
  *
  * @param array<string, mixed> $user
  */
@@ -687,7 +689,7 @@ function rollbackZoneSnapshot(PdnsClient $pdns, array $user, string $zoneName, i
 
     $snapshot = getZoneSnapshot($snapshotId);
     if (!$snapshot || dnsCanonical((string) $snapshot['zone_name']) !== $name) {
-        throw new InvalidArgumentException('Snapshot tidak ditemukan untuk zona ini.');
+        throw new InvalidArgumentException('Snapshot not found for this zone.');
     }
 
     $currentZone = $pdns->zone($name);
@@ -696,7 +698,7 @@ function rollbackZoneSnapshot(PdnsClient $pdns, array $user, string $zoneName, i
         $name,
         $currentZone,
         $user,
-        'Auto-snapshot sebelum rollback ke revisi #' . $snapshotId
+        'Auto-snapshot before rollback to revision #' . $snapshotId
     );
 
     $patch = diffSnapshotRrsets($currentZone['rrsets'] ?? [], $snapshot['rrsets']);
@@ -708,7 +710,7 @@ function rollbackZoneSnapshot(PdnsClient $pdns, array $user, string $zoneName, i
         $user,
         'zone-rollback',
         $name,
-        'Rollback ke revisi #' . $snapshotId . ' (dibuat ' . ($snapshot['created_at'] ?? '') . ')'
+        'Rollback to revision #' . $snapshotId . ' (created ' . ($snapshot['created_at'] ?? '') . ')'
     );
 
     return true;
@@ -1326,7 +1328,7 @@ function bulkReplaceRecords(
     $targetContent = trim($targetContent);
     $replacementContent = trim($replacementContent);
     if ($targetContent === '') {
-        return ['zones_modified' => 0, 'records_replaced' => 0, 'errors' => ['Target konten pencarian kosong']];
+        return ['zones_modified' => 0, 'records_replaced' => 0, 'errors' => ['Search target content is empty']];
     }
 
     $typeFilter = $typeFilter !== null && trim($typeFilter) !== '' ? strtoupper(trim($typeFilter)) : null;

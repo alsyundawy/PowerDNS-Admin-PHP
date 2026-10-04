@@ -34,7 +34,7 @@ final class PdnsClient
         $server = (string) setting('pdns_server_id', 'localhost');
         $verify = setting('pdns_verify_tls', '1') !== '0';
         if ($url === '' || $key === '') {
-            throw new UnexpectedValueException('PowerDNS API belum dikonfigurasi.');
+            throw new UnexpectedValueException('PowerDNS API is not configured.');
         }
         return new self($url, $key, $server !== '' ? $server : 'localhost', $verify);
     }
@@ -141,7 +141,7 @@ final class PdnsClient
         $url = $this->baseUrl . $path;
         $ch = curl_init($url);
         if ($ch === false) {
-            throw new UnexpectedValueException('Gagal menginisialisasi cURL untuk PowerDNS API.');
+            throw new UnexpectedValueException('Failed to initialize cURL for PowerDNS API.');
         }
 
         try {
@@ -167,7 +167,7 @@ final class PdnsClient
             $raw = curl_exec($ch);
             if ($raw === false) {
                 $err = curl_error($ch);
-                throw new UnexpectedValueException('PowerDNS API tidak terjangkau: ' . $err);
+                throw new UnexpectedValueException('PowerDNS API unreachable: ' . $err);
             }
             $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
             if ($code >= 400) {

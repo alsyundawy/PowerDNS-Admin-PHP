@@ -95,7 +95,7 @@ function appKey(): string
     $key = (string) (config()['appKey'] ?? '');
     $raw = base64_decode($key, true);
     if ($raw === false || strlen($raw) < 32) {
-        throw new UnexpectedValueException('appKey tidak valid.');
+        throw new UnexpectedValueException('appKey is invalid.');
     }
     return substr($raw, 0, 32);
 }
@@ -106,7 +106,7 @@ function secretEncrypt(string $plain): string
     $tag = '';
     $cipher = openssl_encrypt($plain, 'aes-256-gcm', appKey(), OPENSSL_RAW_DATA, $iv, $tag);
     if ($cipher === false) {
-        throw new UnexpectedValueException('Gagal mengenkripsi rahasia.');
+        throw new UnexpectedValueException('Failed to encrypt secret.');
     }
     return base64_encode($iv . $tag . $cipher);
 }
@@ -297,7 +297,7 @@ function requireLogin(): array
 {
     $user = currentUser();
     if (!$user) {
-        flash('warning', 'Sesi berakhir. Silakan masuk lagi.');
+        flash('warning', 'Session expired. Please sign in again.');
         redirect('/login');
     }
     return $user;
@@ -312,8 +312,8 @@ function requireRole(array $user, array $roles): void
     if (!in_array($user['role'] ?? '', $roles, true)) {
         http_response_code(403);
         view('error', [
-            'title' => 'Akses ditolak',
-            'message' => 'Peran Anda tidak boleh melakukan aksi ini.',
+            'title' => 'Access Denied',
+            'message' => 'Your role is not authorized to perform this action.',
             'user' => $user,
         ]);
         exit;
@@ -348,7 +348,7 @@ function view(string $name, array $data = []): void
     $viewFile = appRoot() . '/views/' . $name . '.php';
     if (!is_file($viewFile)) {
         http_response_code(500);
-        echo 'View tidak ditemukan.';
+        echo 'View not found.';
         return;
     }
     ob_start();

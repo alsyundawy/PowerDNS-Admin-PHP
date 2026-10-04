@@ -17,15 +17,15 @@ declare(strict_types=1);
 ?>
 <div class="toolbar mb-3">
   <form class="search-inline" method="get" action="/zones">
-    <input class="form-control" name="q" value="<?= e($q) ?>" placeholder="Cari nama zona..." aria-label="Cari zona">
-    <select class="form-select" name="kind" aria-label="Jenis zona">
-      <option value="">Semua jenis</option>
+    <input class="form-control" name="q" value="<?= e($q) ?>" placeholder="Search zone name..." aria-label="Search zones">
+    <select class="form-select" name="kind" aria-label="Zone type">
+      <option value="">All types</option>
       <?php foreach (['Native', 'Master', 'Slave', 'Producer', 'Consumer'] as $k) : ?>
         <option value="<?= e($k) ?>" <?= $kind === $k ? 'selected' : '' ?>><?= e($k) ?></option>
       <?php endforeach; ?>
     </select>
     <button class="btn btn-outline-primary" type="submit">
-      <i class="fa-solid fa-filter me-1"></i>Saring
+      <i class="fa-solid fa-filter me-1"></i>Filter
     </button>
   </form>
   <div class="d-flex gap-2 flex-wrap">
@@ -33,11 +33,11 @@ declare(strict_types=1);
       <form method="post" action="/zones/sync" class="d-inline">
         <?= csrfField() ?>
         <button class="btn btn-outline-secondary" type="submit">
-          <i class="fa-solid fa-arrows-rotate me-1"></i>Sinkron dari PowerDNS
+          <i class="fa-solid fa-arrows-rotate me-1"></i>Sync from PowerDNS
         </button>
       </form>
       <a class="btn btn-primary" href="/zones/new">
-        <i class="fa-solid fa-plus me-1"></i>Zona Baru
+        <i class="fa-solid fa-plus me-1"></i>New Zone
       </a>
     <?php endif; ?>
   </div>
@@ -48,9 +48,9 @@ declare(strict_types=1);
     <table class="table align-middle mb-0">
       <thead>
         <tr>
-          <th scope="col"><i class="fa-solid fa-globe me-1"></i>Zona</th>
-          <th scope="col">Jenis</th>
-          <th scope="col"><i class="fa-solid fa-users me-1"></i>Akun</th>
+          <th scope="col"><i class="fa-solid fa-globe me-1"></i>Zone</th>
+          <th scope="col">Type</th>
+          <th scope="col"><i class="fa-solid fa-users me-1"></i>Account</th>
           <th scope="col">Serial</th>
           <th scope="col"><i class="fa-solid fa-shield-halved me-1"></i>DNSSEC</th>
         </tr>
@@ -68,9 +68,9 @@ declare(strict_types=1);
           <td><code><?= e((string) ($z['serial'] ?? '')) ?></code></td>
           <td>
             <?php if (!empty($z['dnssec'])) : ?>
-              <span class="pill ok"><i class="fa-solid fa-check me-1"></i>aktif</span>
+              <span class="pill ok"><i class="fa-solid fa-check me-1"></i>active</span>
             <?php else : ?>
-              <span class="pill">tidak</span>
+              <span class="pill">no</span>
             <?php endif; ?>
           </td>
         </tr>
@@ -78,7 +78,7 @@ declare(strict_types=1);
       <?php if (!$zones) : ?>
         <tr>
           <td colspan="5" class="text-center py-4 muted">
-            Belum ada zona di cache. Jalankan sinkron setelah API terhubung.
+            No zones in cache yet. Run sync after API connection is established.
           </td>
         </tr>
       <?php endif; ?>

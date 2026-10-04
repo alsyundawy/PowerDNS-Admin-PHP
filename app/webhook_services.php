@@ -219,7 +219,7 @@ function testWebhookDelivery(int $id): array
 {
     $hook = getWebhook($id);
     if (!$hook) {
-        return ['success' => false, 'status_code' => 0, 'message' => 'Webhook tidak ditemukan'];
+        return ['success' => false, 'status_code' => 0, 'message' => 'Webhook not found'];
     }
 
     $envelope = [
@@ -227,7 +227,7 @@ function testWebhookDelivery(int $id): array
         'timestamp' => time(),
         'delivery_id' => bin2hex(random_bytes(16)),
         'data' => [
-            'message' => 'Uji konektivitas webhook PowerDNS-Admin-PHP v0.3.0',
+            'message' => 'PowerDNS-Admin-PHP v0.3.0 webhook connectivity ping test',
             'webhook_id' => $id,
             'webhook_name' => $hook['name'],
         ],
@@ -237,7 +237,7 @@ function testWebhookDelivery(int $id): array
 
     $ch = curl_init((string) $hook['url']);
     if ($ch === false) {
-        return ['success' => false, 'status_code' => 0, 'message' => 'Gagal inisialisasi cURL'];
+        return ['success' => false, 'status_code' => 0, 'message' => 'Failed to initialize cURL'];
     }
 
     curl_setopt_array($ch, [
@@ -272,7 +272,7 @@ function testWebhookDelivery(int $id): array
         // ignore
     }
 
-    $statusMessage = 'Terkirim (HTTP ' . $code . ')';
+    $statusMessage = 'Delivered (HTTP ' . $code . ')';
     if (!$success) {
         $statusMessage = $errorMsg ?? (WEBHOOK_HTTP_ERR_PREFIX . $code);
     }

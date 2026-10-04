@@ -39,7 +39,7 @@ $evilSql = "DROP DATABASE pdns_admin; SELECT * FROM users;";
 $result = restoreDatabaseMetadata($evilSql);
 assertEq($result['success'], false, 'restoreDatabaseMetadata rejects DROP DATABASE');
 assertEq(
-    str_contains((string) ($result['error'] ?? ''), 'tidak diizinkan'),
+    str_contains((string) ($result['error'] ?? ''), 'not allowed'),
     true,
     'Error message identifies forbidden statement'
 );

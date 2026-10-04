@@ -27,6 +27,6 @@ function csrfCheck(): void
     $known = (string) ($_SESSION['csrf'] ?? '');
     if ($sent === '' || $known === '' || !hash_equals($known, $sent)) {
         http_response_code(419);
-        exit('CSRF token tidak valid. Muat ulang halaman lalu coba lagi.');
+        exit('Invalid CSRF token. Please reload the page and try again.');
     }
 }

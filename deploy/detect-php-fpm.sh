@@ -25,9 +25,9 @@ if command -v php &>/dev/null; then
 fi
 
 if [[ -n ${CLI_PHP_VER} ]]; then
-	echo -e "${BLUE}[INFO] PHP CLI aktif:${NC} versi ${GREEN}${CLI_PHP_VER}${NC}"
+	echo -e "${BLUE}[INFO] Active PHP CLI:${NC} version ${GREEN}${CLI_PHP_VER}${NC}"
 else
-	echo -e "${YELLOW}[WARN] PHP CLI tidak ditemukan di PATH sistem.${NC}"
+	echo -e "${YELLOW}[WARN] PHP CLI not found in system PATH.${NC}"
 fi
 
 # 2. Detect Available PHP-FPM Versions in /etc/php
@@ -46,9 +46,9 @@ if [[ -d "/etc/php" ]]; then
 fi
 
 if [[ ${#INSTALLED_FPM_VERSIONS[@]} -gt 0 ]]; then
-	echo -e "${BLUE}[INFO] Versi PHP-FPM terpasang:${NC} ${GREEN}${INSTALLED_FPM_VERSIONS[*]}${NC}"
+	echo -e "${BLUE}[INFO] Installed PHP-FPM versions:${NC} ${GREEN}${INSTALLED_FPM_VERSIONS[*]}${NC}"
 else
-	echo -e "${YELLOW}[WARN] Direktori /etc/php/*/fpm tidak ditemukan.${NC}"
+	echo -e "${YELLOW}[WARN] Directory /etc/php/*/fpm not found.${NC}"
 fi
 
 # 3. Determine Best Target PHP Version
@@ -59,10 +59,10 @@ fi
 
 if [[ -z ${TARGET_VER} ]]; then
 	TARGET_VER="8.2"
-	echo -e "${YELLOW}[WARN] Menggunakan fallback versi target:${NC} ${TARGET_VER}"
+	echo -e "${YELLOW}[WARN] Using fallback target version:${NC} ${TARGET_VER}"
 fi
 
-echo -e "${CYAN}[TARGET] Versi PHP-FPM yang direkomendasikan:${NC} ${GREEN}${TARGET_VER}${NC}"
+echo -e "${CYAN}[TARGET] Recommended PHP-FPM version:${NC} ${GREEN}${TARGET_VER}${NC}"
 
 POOL_SOCK="/run/php/php${TARGET_VER}-fpm-pda.sock"
 UNIVERSAL_SOCK="/run/php/php-fpm-pda.sock"
@@ -79,16 +79,16 @@ if [[ ${CURRENT_USER_ID} -eq 0 ]]; then
 	mkdir -p /run/php
 	if [[ -S ${POOL_SOCK} || -f "/etc/php/${TARGET_VER}/fpm/pool.d/pda.conf" ]]; then
 		ln -sfn "${POOL_SOCK}" "${UNIVERSAL_SOCK}"
-		echo -e "${GREEN}[OK] Symlink universal dibuat:${NC} ${UNIVERSAL_SOCK} -> ${POOL_SOCK}"
+		echo -e "${GREEN}[OK] Universal symlink created:${NC} ${UNIVERSAL_SOCK} -> ${POOL_SOCK}"
 	else
-		echo -e "${YELLOW}[INFO] Socket belum aktif. Pastikan service php${TARGET_VER}-fpm sedang berjalan:${NC}"
+		echo -e "${YELLOW}[INFO] Socket not active yet. Ensure php${TARGET_VER}-fpm service is running:${NC}"
 		echo -e "       systemctl restart php${TARGET_VER}-fpm"
 	fi
 else
-	echo -e "${YELLOW}[INFO] Jalankan skrip ini dengan 'sudo' jika ingin membuat symlink otomatis.${NC}"
+	echo -e "${YELLOW}[INFO] Run this script with 'sudo' to create the symlink automatically.${NC}"
 fi
 
-echo -e "\n${CYAN}Informasi Konfigurasi Nginx:${NC}"
-echo -e "  - FastCGI Pass: ${YELLOW}unix:${UNIVERSAL_SOCK}${NC} (atau unix:${POOL_SOCK})"
+echo -e "\n${CYAN}Nginx Configuration Information:${NC}"
+echo -e "  - FastCGI Pass: ${YELLOW}unix:${UNIVERSAL_SOCK}${NC} (or unix:${POOL_SOCK})"
 echo -e "  - Pool File   : ${YELLOW}/etc/php/${TARGET_VER}/fpm/pool.d/pda.conf${NC}"
 echo ""

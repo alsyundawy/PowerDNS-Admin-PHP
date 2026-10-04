@@ -22,23 +22,23 @@ $tcpQueries = (int) ($metrics['tcp-queries'] ?? 0);
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
-    <h2 class="h5 mb-0"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Telemetri & Analitik DNS</h2>
-    <p class="text-secondary small mb-0">Statistik real-time, rasio efisiensi cache, dan ring buffer PowerDNS Authoritative: <strong><?= e($serverName) ?></strong></p>
+    <h2 class="h5 mb-0"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>DNS Telemetry & Analytics</h2>
+    <p class="text-secondary small mb-0">Real-time statistics, cache efficiency ratio, and ring buffers for PowerDNS Authoritative: <strong><?= e($serverName) ?></strong></p>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <div class="dropdown">
       <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-        <i class="fa-solid fa-clock me-1"></i> Auto-refresh: <?= $refreshSeconds > 0 ? $refreshSeconds . 's' : 'Mati' ?>
+        <i class="fa-solid fa-clock me-1"></i> Auto-refresh: <?= $refreshSeconds > 0 ? $refreshSeconds . 's' : 'Off' ?>
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item <?= $refreshSeconds === 0 ? 'active' : '' ?>" href="/analytics?refresh=0&mask=<?= $anonymizeIp ? '1' : '0' ?>">Mati</a></li>
-        <li><a class="dropdown-item <?= $refreshSeconds === 15 ? 'active' : '' ?>" href="/analytics?refresh=15&mask=<?= $anonymizeIp ? '1' : '0' ?>">Setiap 15 Detik</a></li>
-        <li><a class="dropdown-item <?= $refreshSeconds === 30 ? 'active' : '' ?>" href="/analytics?refresh=30&mask=<?= $anonymizeIp ? '1' : '0' ?>">Setiap 30 Detik</a></li>
-        <li><a class="dropdown-item <?= $refreshSeconds === 60 ? 'active' : '' ?>" href="/analytics?refresh=60&mask=<?= $anonymizeIp ? '1' : '0' ?>">Setiap 60 Detik</a></li>
+        <li><a class="dropdown-item <?= $refreshSeconds === 0 ? 'active' : '' ?>" href="/analytics?refresh=0&mask=<?= $anonymizeIp ? '1' : '0' ?>">Off</a></li>
+        <li><a class="dropdown-item <?= $refreshSeconds === 15 ? 'active' : '' ?>" href="/analytics?refresh=15&mask=<?= $anonymizeIp ? '1' : '0' ?>">Every 15 Seconds</a></li>
+        <li><a class="dropdown-item <?= $refreshSeconds === 30 ? 'active' : '' ?>" href="/analytics?refresh=30&mask=<?= $anonymizeIp ? '1' : '0' ?>">Every 30 Seconds</a></li>
+        <li><a class="dropdown-item <?= $refreshSeconds === 60 ? 'active' : '' ?>" href="/analytics?refresh=60&mask=<?= $anonymizeIp ? '1' : '0' ?>">Every 60 Seconds</a></li>
       </ul>
     </div>
-    <a href="/analytics/export?format=json" class="btn btn-sm btn-outline-primary" title="Unduh snapshot metrik format JSON">
-      <i class="fa-solid fa-download me-1"></i> Ekspor JSON
+    <a href="/analytics/export?format=json" class="btn btn-sm btn-outline-primary" title="Download metrics snapshot in JSON format">
+      <i class="fa-solid fa-download me-1"></i> Export JSON
     </a>
   </div>
 </div>
@@ -68,7 +68,7 @@ if ($cacheHitRatio >= 70) {
 
   <div class="col-md-8">
     <div class="panel h-100 d-flex flex-column justify-content-between">
-      <h3 class="h6 text-secondary mb-3"><i class="fa-solid fa-chart-column me-1"></i>Volume Kueri & Transport Protocol</h3>
+      <h3 class="h6 text-secondary mb-3"><i class="fa-solid fa-chart-column me-1"></i>Query Volume & Transport Protocol</h3>
       <div class="stat-grid mb-3">
         <article>
           <span>UDP Queries</span>
@@ -104,7 +104,7 @@ if ($cacheHitRatio >= 70) {
   <div class="col-lg-6">
     <div class="panel h-100">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="h6 mb-0"><i class="fa-solid fa-fire me-2 text-danger"></i>Top 10 Domain Kueri Terpopuler</h3>
+        <h3 class="h6 mb-0"><i class="fa-solid fa-fire me-2 text-danger"></i>Top 10 Most Queried Domains</h3>
         <span class="badge bg-secondary-subtle text-secondary small">Ring Buffer</span>
       </div>
       <?= renderSvgHorizontalBarChart($topQueries, 460, 30) ?>
@@ -117,7 +117,7 @@ if ($cacheHitRatio >= 70) {
         <h3 class="h6 mb-0"><i class="fa-solid fa-network-wired me-2 text-info"></i>Top 10 Resolvers / Remote IPs</h3>
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" id="mask-ip" <?= $anonymizeIp ? 'checked' : '' ?> onchange="window.location.href='/analytics?refresh=<?= $refreshSeconds ?>&mask=' + (this.checked ? '1' : '0');">
-          <label class="form-check-label small text-secondary" for="mask-ip">Mask IP (Privasi)</label>
+          <label class="form-check-label small text-secondary" for="mask-ip">Mask IP (Privacy)</label>
         </div>
       </div>
       <?= renderSvgHorizontalBarChart($topRemotes, 460, 30) ?>

@@ -52,6 +52,6 @@ assertEq(validateRecord('CERT', '1 0 0 m359...'), null, 'Valid CERT record');
 assertEq(validateRecord('CSYNC', '66 3 A AAAA'), null, 'Valid CSYNC record');
 assertEq(validateRecord('HINFO', '"Intel Core" "Linux"'), null, 'Valid HINFO record');
 assertEq(validateRecord('RP', 'admin.example.com. info.example.com.'), null, 'Valid RP record');
-assertEq(validateRecord('INVALID_TYPE', 'foo'), 'Tipe record tidak diizinkan.', 'Unknown record type rejected');
+assertEq(validateRecord('INVALID_TYPE', 'foo'), 'Record type is not allowed.', 'Unknown record type rejected');
 
 echo "All rDNS services and record types validation tests passed successfully!\n";

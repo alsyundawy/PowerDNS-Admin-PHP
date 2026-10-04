@@ -9,11 +9,11 @@ declare(strict_types=1);
 
 ?>
 <!doctype html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="description" content="PowerDNS Authoritative Server Management Panel - Masuk / Autentikasi">
+  <meta name="description" content="PowerDNS Authoritative Server Management Panel - Sign In / Authentication">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="theme-color" content="#0b0f19">
   <meta name="color-scheme" content="dark light">

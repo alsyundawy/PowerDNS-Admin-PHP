@@ -23,7 +23,7 @@ NC='\033[0m'
 cleanup_on_error() {
 	local exit_code=$?
 	if [[ ${exit_code} -ne 0 ]]; then
-		echo -e "\n${RED}[ERROR] Instalasi terhenti karena terjadi kesalahan (Exit Code: ${exit_code}).${NC}" >&2
+		echo -e "\n${RED}[ERROR] Installation aborted due to an error (Exit Code: ${exit_code}).${NC}" >&2
 	fi
 }
 trap cleanup_on_error EXIT
@@ -33,7 +33,7 @@ if [[ -z ${CURRENT_UID} ]]; then
 	CURRENT_UID="$(id -u)"
 fi
 if [[ ${CURRENT_UID} -ne 0 ]]; then
-	echo -e "${RED}[ERROR] Skrip ini harus dijalankan sebagai ROOT (sudo).${NC}" >&2
+	echo -e "${RED}[ERROR] This script must be run as ROOT (sudo).${NC}" >&2
 	exit 1
 fi
 
@@ -43,8 +43,8 @@ echo -e "${CYAN}================================================================
 echo -e "${GREEN} PowerDNS-Admin-PHP - Nginx, PHP-FPM & MariaDB Auto Installer ${NC}"
 echo -e "${CYAN}================================================================================${NC}"
 
-# 1. Update paket & instalasi dependensi core
-echo -e "\n${BLUE}[1/6] Memperbarui repositori dan menginstal paket sistem...${NC}"
+# 1. Update packages & install core dependencies
+echo -e "\n${BLUE}[1/6] Updating package repositories and installing system packages...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
 	nginx-full \
@@ -77,23 +77,23 @@ fi
 if [[ -z ${PHP_VER:-} ]]; then
 	PHP_VER="8.2"
 fi
-echo -e "${GREEN}PHP terdeteksi: versi ${PHP_VER}${NC}"
+echo -e "${GREEN}PHP detected: version ${PHP_VER}${NC}"
 
-# 2. Setup struktur direktori & hak akses berkas
-echo -e "\n${BLUE}[2/6] Mempersiapkan direktori aplikasi dan izin akses www-data...${NC}"
+# 2. Setup directory structure & file permissions
+echo -e "\n${BLUE}[2/6] Preparing application directory and www-data permissions...${NC}"
 install -d -o www-data -g www-data "${APP}"
 install -d -o www-data -g www-data /etc/pda
 chmod 750 /etc/pda
 
-# Jika script dijalankan dari dalam clone repo, sinkronkan ke ${APP} jika berbeda
+# If script is run inside repo clone, sync to ${APP} if different
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ ${CURRENT_DIR} != "${APP}" && -f "${CURRENT_DIR}/public/index.php" ]]; then
-	echo -e "${YELLOW}Menyalin berkas dari ${CURRENT_DIR} ke ${APP}...${NC}"
+	echo -e "${YELLOW}Copying files from ${CURRENT_DIR} to ${APP}...${NC}"
 	cp -r "${CURRENT_DIR}/." "${APP}/"
 fi
 
 if [[ ! -f "${APP}/public/index.php" ]]; then
-	echo -e "${RED}[ERROR] Berkas ${APP}/public/index.php tidak ditemukan. Pastikan repo terpasang di ${APP}.${NC}" >&2
+	echo -e "${RED}[ERROR] File ${APP}/public/index.php not found. Ensure repository is installed at ${APP}.${NC}" >&2
 	exit 1
 fi
 
@@ -101,11 +101,11 @@ chown -R www-data:www-data "${APP}"
 find "${APP}" -type d -exec chmod 750 {} +
 find "${APP}" -type f -exec chmod 640 {} +
 
-# Pastikan script deploy tetap executable
+# Ensure deploy scripts remain executable
 chmod 755 "${APP}/deploy/"*.sh 2>/dev/null || true
 
-# 3. Konfigurasi dedicated PHP-FPM pool [pda]
-echo -e "\n${BLUE}[3/6] Mengonfigurasi PHP-FPM pool isolated (/etc/php/${PHP_VER}/fpm/pool.d/pda.conf)...${NC}"
+# 3. Configure dedicated PHP-FPM pool [pda]
+echo -e "\n${BLUE}[3/6] Configuring isolated PHP-FPM pool (/etc/php/${PHP_VER}/fpm/pool.d/pda.conf)...${NC}"
 cat >"/etc/php/${PHP_VER}/fpm/pool.d/pda.conf" <<EOF
 [pda]
 user = www-data
@@ -133,21 +133,21 @@ EOF
 mkdir -p /run/php
 ln -sfn "/run/php/php${PHP_VER}-fpm-pda.sock" /run/php/php-fpm-pda.sock
 
-# 4. Konfigurasi Nginx Web Server
-echo -e "\n${BLUE}[4/6] Mengonfigurasi Nginx Reverse Proxy...${NC}"
-# Sesuaikan versi socket PHP-FPM pada deploy/nginx.conf jika ada
+# 4. Configure Nginx Web Server
+echo -e "\n${BLUE}[4/6] Configuring Nginx Reverse Proxy...${NC}"
+# Adjust PHP-FPM socket version in deploy/nginx.conf if present
 sed -i -E "s#php[0-9.]+-fpm-pda\.sock#php${PHP_VER}-fpm-pda.sock#g" "${APP}/deploy/nginx.conf"
 
 cp "${APP}/deploy/nginx.conf" /etc/nginx/sites-available/pda.conf
 ln -sfn /etc/nginx/sites-available/pda.conf /etc/nginx/sites-enabled/pda.conf
 
-# Hapus default site untuk menghindari konflik port 80
+# Remove default site to prevent port 80 conflict
 rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 
 nginx -t
 
 # 5. Setup & Hardening MariaDB Database
-echo -e "\n${BLUE}[5/6] Menginisialisasi MariaDB Database & Privileges...${NC}"
+echo -e "\n${BLUE}[5/6] Initializing MariaDB Database & Privileges...${NC}"
 systemctl enable --now mariadb
 
 DB_NAME="${DB_NAME:-pdns_admin}"
@@ -157,7 +157,7 @@ if [[ -z ${DB_PASS:-} ]]; then
 	DB_PASS="$(head -c 256 /dev/urandom | tr -dc '2-9a-hj-km-np-zA-HJ-NP-Z' | cut -c1-20)"
 fi
 
-mariadb -u root <<EOF || { echo -e "${YELLOW}[WARN] Tidak dapat menjalankan inisialisasi root MariaDB otomatis (mungkin root ber-password). Silakan buat database manual.${NC}"; }
+mariadb -u root <<EOF || { echo -e "${YELLOW}[WARN] Unable to run automated root MariaDB initialization (root may require password). Please create database manually.${NC}"; }
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
@@ -172,16 +172,16 @@ DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
 FLUSH PRIVILEGES;
 EOF
 
-# Impor skema tabel metadata jika database baru dan skema belum ada
+# Import metadata table schema if new database and schema does not exist
 if mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" -e "DESCRIBE users;" &>/dev/null; then
-	echo -e "${GREEN}Tabel metadata PowerDNS-Admin-PHP sudah ada di database ${DB_NAME}.${NC}"
+	echo -e "${GREEN}PowerDNS-Admin-PHP metadata tables already exist in database ${DB_NAME}.${NC}"
 elif [[ -f "${APP}/sql/schema.sql" ]]; then
-	echo -e "${GREEN}Mengimpor skema metadata PowerDNS-Admin-PHP (${APP}/sql/schema.sql)...${NC}"
+	echo -e "${GREEN}Importing PowerDNS-Admin-PHP metadata schema (${APP}/sql/schema.sql)...${NC}"
 	mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" <"${APP}/sql/schema.sql" || true
 fi
 
-# 6. Mengaktifkan dan merestart seluruh service
-echo -e "\n${BLUE}[6/6] Memulai ulang layanan Nginx dan PHP-FPM...${NC}"
+# 6. Enable and restart all services
+echo -e "\n${BLUE}[6/6] Restarting Nginx and PHP-FPM services...${NC}"
 systemctl daemon-reload
 systemctl enable --now "php${PHP_VER}-fpm" nginx mariadb
 systemctl restart "php${PHP_VER}-fpm" nginx
@@ -190,24 +190,24 @@ trap - EXIT
 
 echo ""
 echo -e "${GREEN}================================================================================${NC}"
-echo -e "${GREEN} INSTALASI POWERDNS-ADMIN-PHP BERHASIL SELESAI! ${NC}"
+echo -e "${GREEN} POWERDNS-ADMIN-PHP INSTALLATION COMPLETED SUCCESSFULLY! ${NC}"
 echo -e "${GREEN}================================================================================${NC}"
 echo ""
-echo -e "${CYAN}Informasi Konfigurasi Database:${NC}"
+echo -e "${CYAN}Database Configuration Information:${NC}"
 echo -e "  - DB Host     : ${YELLOW}127.0.0.1${NC}"
 echo -e "  - DB Port     : ${YELLOW}3306${NC}"
 echo -e "  - DB Name     : ${YELLOW}${DB_NAME}${NC}"
 echo -e "  - DB User     : ${YELLOW}${DB_USER}${NC}"
 echo -e "  - DB Password : ${YELLOW}${DB_PASS}${NC}"
 echo ""
-echo -e "${CYAN}Status Socket & Web Server:${NC}"
+echo -e "${CYAN}Socket & Web Server Status:${NC}"
 echo -e "  - Nginx Config: ${YELLOW}/etc/nginx/sites-available/pda.conf${NC}"
 echo -e "  - PHP-FPM Sock: ${YELLOW}/run/php/php${PHP_VER}-fpm-pda.sock${NC}"
 echo -e "  - Web Directory: ${YELLOW}${APP}/public${NC}"
 echo ""
-echo -e "${CYAN}Langkah Selanjutnya:${NC}"
-echo -e "  1. Arahkan browser Anda ke IP server atau Domain Anda untuk menyelesaikan setup:"
-echo -e "     ${GREEN}http://<IP_SERVER_ANDA>/install${NC}"
-echo -e "  2. Masukkan parameter kredensial database di atas pada wizard instalasi web."
-echo -e "  3. Buat akun Administrator pertama Anda."
+echo -e "${CYAN}Next Steps:${NC}"
+echo -e "  1. Point your web browser to your server IP or Domain to complete setup:"
+echo -e "     ${GREEN}http://<YOUR_SERVER_IP>/install${NC}"
+echo -e "  2. Enter the database credentials above in the web installation wizard."
+echo -e "  3. Create your first Administrator account."
 echo ""

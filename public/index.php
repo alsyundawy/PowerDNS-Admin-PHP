@@ -65,11 +65,11 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if (str_starts_with($path, '/api/')) {
     if (!installed()) {
-        jsonOut(503, ['error' => 'Belum terpasang']);
+        jsonOut(503, ['error' => 'Not installed']);
     }
     $apiUser = apiUser();
     if (!$apiUser) {
-        jsonOut(401, ['error' => 'API key tidak valid']);
+        jsonOut(401, ['error' => 'Invalid API key']);
     }
     handleApi($apiUser);
 }
@@ -178,5 +178,5 @@ if ($path === '/') {
     handleZoneExport($user, $m[1]);
 } else {
     http_response_code(404);
-    view('error', ['title' => 'Tidak ditemukan', 'message' => 'Halaman tidak ada.', 'user' => $user]);
+    view('error', ['title' => 'Not Found', 'message' => 'Page not found.', 'user' => $user]);
 }

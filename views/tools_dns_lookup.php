@@ -19,7 +19,7 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
     <h2 class="h4 mb-1 text-light">
       <i class="fa-solid fa-satellite-dish text-info me-2"></i>DNS Record Lookup
     </h2>
-    <p class="text-secondary small mb-0">Inspeksi record DNS publik otoritatif menggunakan engine resolver native PHP dengan resolusi otomatis glue IP.</p>
+    <p class="text-secondary small mb-0">Inspect authoritative public DNS records using PHP native resolver engine with automated glue IP resolution.</p>
   </div>
 </div>
 
@@ -33,18 +33,18 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
 <div class="panel">
   <form method="get" action="/tools/dns-lookup" class="row g-2 align-items-end mb-2">
     <div class="col-md-7 col-12">
-      <label for="dns-domain-input" class="form-label small fw-semibold">Nama Domain / Host FQDN</label>
+      <label for="dns-domain-input" class="form-label small fw-semibold">Domain Name / FQDN Host</label>
       <div class="input-group">
         <span class="input-group-text bg-dark border-secondary text-secondary">
           <i class="fa-solid fa-globe"></i>
         </span>
         <input type="text" class="form-control" id="dns-domain-input" name="domain"
                value="<?= e($domain ?? '') ?>"
-               placeholder="Contoh: powerdns.com atau cloudflare.com" required autofocus>
+               placeholder="Example: powerdns.com or cloudflare.com" required autofocus>
       </div>
     </div>
     <div class="col-md-2 col-6">
-      <label for="dns-type-select" class="form-label small fw-semibold">Tipe Record</label>
+      <label for="dns-type-select" class="form-label small fw-semibold">Record Type</label>
       <select class="form-select" id="dns-type-select" name="type">
         <?php foreach ($types as $t) : ?>
           <option value="<?= $t ?>" <?= ($type ?? 'ANY') === $t ? 'selected' : '' ?>><?= $t ?></option>
@@ -53,14 +53,14 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
     </div>
     <div class="col-md-3 col-6">
       <button type="submit" class="btn btn-primary w-100">
-        <i class="fa-solid fa-magnifying-glass me-1"></i>Lookup DNS
+        <i class="fa-solid fa-magnifying-glass me-1"></i>DNS Lookup
       </button>
     </div>
   </form>
 
   <?php if (!empty($domain)) : ?>
     <div class="d-flex flex-wrap gap-1 pt-2 align-items-center">
-      <span class="text-secondary small me-1">Filter Tipe:</span>
+      <span class="text-secondary small me-1">Type Filter:</span>
       <?php foreach ($types as $t) : ?>
         <a href="/tools/dns-lookup?domain=<?= urlencode($domain) ?>&type=<?= $t ?>"
            class="badge <?= ($type ?? 'ANY') === $t ? 'bg-primary' : 'bg-secondary-subtle text-light' ?> text-decoration-none">
@@ -70,7 +70,7 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
     </div>
   <?php else : ?>
     <div class="d-flex flex-wrap gap-2 pt-1">
-      <span class="text-secondary small align-self-center">Contoh cepat:</span>
+      <span class="text-secondary small align-self-center">Quick examples:</span>
       <a href="/tools/dns-lookup?domain=powerdns.com&type=ANY" class="badge bg-secondary-subtle text-light text-decoration-none">powerdns.com</a>
       <a href="/tools/dns-lookup?domain=google.com&type=ANY" class="badge bg-secondary-subtle text-light text-decoration-none">google.com</a>
       <a href="/tools/dns-lookup?domain=cloudflare.com&type=NS" class="badge bg-secondary-subtle text-light text-decoration-none">cloudflare.com (NS)</a>
@@ -83,10 +83,10 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <div>
         <h3 class="h6 mb-0 text-info fw-bold">
-          <i class="fa-solid fa-list-check me-2"></i>Hasil DNS untuk <?= e($domain) ?>
-          <span class="badge bg-secondary-subtle text-secondary ms-1"><?= count($records) ?> record</span>
+          <i class="fa-solid fa-list-check me-2"></i>DNS Results for <?= e($domain) ?>
+          <span class="badge bg-secondary-subtle text-secondary ms-1"><?= count($records) ?> records</span>
         </h3>
-        <small class="text-secondary">Tipe: <?= e($type) ?></small>
+        <small class="text-secondary">Type: <?= e($type) ?></small>
       </div>
       <div class="d-flex gap-2">
         <a href="/tools/whois?query=<?= urlencode($domain) ?>" class="btn btn-sm btn-outline-info">
@@ -97,7 +97,7 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
 
     <?php if (empty($records)) : ?>
       <div class="alert alert-warning mb-0" role="alert">
-        <i class="fa-solid fa-triangle-exclamation me-1"></i>Tidak ditemukan record DNS untuk domain dan tipe tersebut.
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>No DNS records found for the specified domain and record type.
       </div>
     <?php else : ?>
       <div class="table-responsive">
@@ -105,10 +105,10 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
           <thead>
             <tr>
               <th>Host (FQDN)</th>
-              <th style="width: 100px;">Tipe</th>
+              <th style="width: 100px;">Type</th>
               <th style="width: 90px;">TTL</th>
               <th>Data / Target / Value</th>
-              <th style="width: 80px;">Aksi</th>
+              <th style="width: 80px;">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -151,7 +151,7 @@ $types = ['ANY', 'A', 'AAAA', 'NS', 'MX', 'TXT', 'SOA', 'CNAME', 'PTR', 'SRV', '
                 </td>
                 <td>
                   <button class="btn btn-sm btn-outline-secondary btn-copy-target"
-                          data-target="rec-val-<?= $idx ?>" title="Salin Record">
+                          data-target="rec-val-<?= $idx ?>" title="Copy Record">
                     <i class="fa-solid fa-copy"></i>
                   </button>
                 </td>

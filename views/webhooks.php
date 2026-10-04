@@ -14,11 +14,11 @@ declare(strict_types=1);
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <div>
-    <h2 class="h5 mb-0"><i class="fa-solid fa-bolt me-2 text-warning"></i>Webhooks CI/CD & Integrasi</h2>
-    <p class="text-secondary small mb-0">Kirim notifikasi HTTP POST bertanda tangan kriptografis HMAC-SHA256 saat zona atau record berubah.</p>
+    <h2 class="h5 mb-0"><i class="fa-solid fa-bolt me-2 text-warning"></i>CI/CD &amp; Webhooks Integration</h2>
+    <p class="text-secondary small mb-0">Send cryptographically signed HMAC-SHA256 HTTP POST notifications when zones or records change.</p>
   </div>
   <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#modal-add-webhook">
-    <i class="fa-solid fa-plus me-1"></i> Tambah Webhook
+    <i class="fa-solid fa-plus me-1"></i> Add Webhook
   </button>
 </div>
 
@@ -27,12 +27,12 @@ declare(strict_types=1);
     <table class="table table-hover align-middle mb-0">
       <thead>
         <tr>
-          <th>Nama Webhook</th>
+          <th>Webhook Name</th>
           <th>Endpoint URL</th>
-          <th>Langganan Event</th>
-          <th>Status Delivery</th>
-          <th>Terakhir Dikirim</th>
-          <th class="text-end">Aksi</th>
+          <th>Subscribed Events</th>
+          <th>Delivery Status</th>
+          <th>Last Delivered</th>
+          <th class="text-end">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -40,7 +40,7 @@ declare(strict_types=1);
           <tr>
             <td colspan="6" class="text-center text-secondary py-4">
               <i class="fa-solid fa-bolt fa-2x mb-2 opacity-50 d-block"></i>
-              Belum ada webhook yang didaftarkan. Tambahkan endpoint URL untuk menerima pembaruan DNS otomatis.
+              No webhooks registered yet. Add an endpoint URL to receive automated DNS updates.
             </td>
           </tr>
         <?php else : ?>
@@ -53,9 +53,9 @@ declare(strict_types=1);
               <td>
                 <div class="fw-bold"><?= e((string) $w['name']) ?></div>
                 <?php if (!empty($w['is_active'])) : ?>
-                  <span class="badge bg-success-subtle text-success small">Aktif</span>
+                  <span class="badge bg-success-subtle text-success small">Active</span>
                 <?php else : ?>
-                  <span class="badge bg-secondary-subtle text-secondary small">Nonaktif</span>
+                  <span class="badge bg-secondary-subtle text-secondary small">Inactive</span>
                 <?php endif; ?>
               </td>
               <td><code><?= e((string) $w['url']) ?></code></td>
@@ -72,7 +72,7 @@ declare(strict_types=1);
                     HTTP <?= $statusCode ?>
                   </span>
                 <?php else : ?>
-                  <span class="badge bg-secondary-subtle text-secondary">Belum ada event</span>
+                  <span class="badge bg-secondary-subtle text-secondary">No events yet</span>
                 <?php endif; ?>
                 <?php if (!empty($w['last_error'])) : ?>
                   <small class="text-danger d-block text-truncate" style="max-width: 180px;" title="<?= e((string) $w['last_error']) ?>">
@@ -85,16 +85,16 @@ declare(strict_types=1);
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <a href="/webhooks/test?id=<?= (int) $w['id'] ?>" class="btn btn-outline-info" title="Uji Pengiriman Event (Ping)">
+                  <a href="/webhooks/test?id=<?= (int) $w['id'] ?>" class="btn btn-outline-info" title="Test Event Delivery (Ping)">
                     <i class="fa-solid fa-paper-plane"></i> Test
                   </a>
-                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-edit-webhook-<?= (int) $w['id'] ?>" title="Ubah Pengaturan">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-edit-webhook-<?= (int) $w['id'] ?>" title="Edit Settings">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  <form method="post" action="/webhooks/delete" class="d-inline" onsubmit="return confirm('Hapus webhook ini?');">
+                  <form method="post" action="/webhooks/delete" class="d-inline" onsubmit="return confirm('Delete this webhook?');">
                     <?= csrfField() ?>
                     <input type="hidden" name="id" value="<?= (int) $w['id'] ?>">
-                    <button type="submit" class="btn btn-outline-danger" title="Hapus">
+                    <button type="submit" class="btn btn-outline-danger" title="Delete">
                       <i class="fa-solid fa-trash"></i>
                     </button>
                   </form>
@@ -110,16 +110,16 @@ declare(strict_types=1);
                     <?= csrfField() ?>
                     <input type="hidden" name="id" value="<?= (int) $w['id'] ?>">
                     <div class="modal-header">
-                      <h5 class="modal-title h6">Ubah Webhook: <?= e((string) $w['name']) ?></h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                      <h5 class="modal-title h6">Edit Webhook: <?= e((string) $w['name']) ?></h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body stack">
                       <div>
-                        <label class="form-label small" for="edit-hook-name-<?= (int) $w['id'] ?>">Nama Webhook</label>
+                        <label class="form-label small" for="edit-hook-name-<?= (int) $w['id'] ?>">Webhook Name</label>
                         <input class="form-control form-control-sm" id="edit-hook-name-<?= (int) $w['id'] ?>" name="name" value="<?= e((string) $w['name']) ?>" required>
                       </div>
                       <div>
-                        <label class="form-label small" for="edit-hook-url-<?= (int) $w['id'] ?>">Payload URL (HTTPS disarankan)</label>
+                        <label class="form-label small" for="edit-hook-url-<?= (int) $w['id'] ?>">Payload URL (HTTPS recommended)</label>
                         <input class="form-control form-control-sm" id="edit-hook-url-<?= (int) $w['id'] ?>" name="url" value="<?= e((string) $w['url']) ?>" required>
                       </div>
                       <div>
@@ -127,7 +127,7 @@ declare(strict_types=1);
                         <input class="form-control form-control-sm" id="edit-hook-secret-<?= (int) $w['id'] ?>" name="secret" value="<?= e((string) $w['secret']) ?>" required>
                       </div>
                       <div>
-                        <span class="form-label small d-block mb-1 fw-medium">Pilih Event yang Dilanggan</span>
+                        <span class="form-label small d-block mb-1 fw-medium">Select Subscribed Events</span>
                         <div class="form-check form-check-inline">
                           <input class="form-check-input" type="checkbox" id="edit-ev-create-<?= (int) $w['id'] ?>" name="events[]" value="zone.created" <?= in_array('zone.created', $events, true) ? 'checked' : '' ?>>
                           <label class="form-check-label small" for="edit-ev-create-<?= (int) $w['id'] ?>">zone.created</label>
@@ -143,12 +143,12 @@ declare(strict_types=1);
                       </div>
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="edit-hook-active-<?= (int) $w['id'] ?>" name="is_active" value="1" <?= !empty($w['is_active']) ? 'checked' : '' ?>>
-                        <label class="form-check-label small" for="edit-hook-active-<?= (int) $w['id'] ?>">Aktifkan Pengiriman Webhook</label>
+                        <label class="form-check-label small" for="edit-hook-active-<?= (int) $w['id'] ?>">Enable Webhook Delivery</label>
                       </div>
                     </div>
                     <div class="modal-footer">
-                      <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                      <button type="submit" class="btn btn-sm btn-primary">Simpan Perubahan</button>
+                      <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-sm btn-primary">Save Changes</button>
                     </div>
                   </form>
                 </div>
@@ -168,25 +168,25 @@ declare(strict_types=1);
       <form method="post" action="/webhooks/add">
         <?= csrfField() ?>
         <div class="modal-header">
-          <h5 class="modal-title h6"><i class="fa-solid fa-plus me-1 text-primary"></i>Daftarkan Webhook Baru</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          <h5 class="modal-title h6"><i class="fa-solid fa-plus me-1 text-primary"></i>Register New Webhook</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body stack">
           <div>
-            <label class="form-label small" for="add-hook-name">Nama Webhook / Layanan</label>
-            <input class="form-control form-control-sm" id="add-hook-name" name="name" placeholder="Contoh: Slack DNS Alerts atau CI Sync" required>
+            <label class="form-label small" for="add-hook-name">Webhook Name / Service</label>
+            <input class="form-control form-control-sm" id="add-hook-name" name="name" placeholder="Example: Slack DNS Alerts or CI Sync" required>
           </div>
           <div>
             <label class="form-label small" for="add-hook-url">Payload URL (Target Endpoint)</label>
             <input class="form-control form-control-sm" id="add-hook-url" name="url" placeholder="https://api.example.com/webhooks/dns" required>
-            <div class="form-text small">Endpoint yang akan menerima HTTP POST JSON dengan header <code>X-PDNS-Signature</code>.</div>
+            <div class="form-text small">Endpoint that will receive HTTP POST JSON with <code>X-PDNS-Signature</code> header.</div>
           </div>
           <div>
-            <label class="form-label small" for="add-hook-secret">Signing Secret (Opsional - Dibuat otomatis jika kosong)</label>
-            <input class="form-control form-control-sm" id="add-hook-secret" name="secret" placeholder="Biarkan kosong untuk random 32-karakter secret">
+            <label class="form-label small" for="add-hook-secret">Signing Secret (Optional - Generated automatically if empty)</label>
+            <input class="form-control form-control-sm" id="add-hook-secret" name="secret" placeholder="Leave empty for random 32-character secret">
           </div>
           <div>
-            <span class="form-label small d-block mb-1 fw-medium">Pilih Event yang Dilanggan</span>
+            <span class="form-label small d-block mb-1 fw-medium">Select Subscribed Events</span>
             <div class="form-check form-check-inline">
               <input class="form-check-input" type="checkbox" id="add-ev-create" name="events[]" value="zone.created" checked>
               <label class="form-check-label small" for="add-ev-create">zone.created</label>
@@ -202,12 +202,12 @@ declare(strict_types=1);
           </div>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="add-hook-active" name="is_active" value="1" checked>
-            <label class="form-check-label small" for="add-hook-active">Aktifkan Segera</label>
+            <label class="form-check-label small" for="add-hook-active">Enable Immediately</label>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-sm btn-primary">Simpan Webhook</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-primary">Save Webhook</button>
         </div>
       </form>
     </div>

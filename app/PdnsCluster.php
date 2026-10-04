@@ -243,7 +243,7 @@ final class PdnsCluster
     {
         $server = self::getServer($id);
         if (!$server) {
-            return ['success' => false, 'latency_ms' => 0, 'message' => 'Server tidak ditemukan'];
+            return ['success' => false, 'latency_ms' => 0, 'message' => 'Server not found'];
         }
 
         $apiUrl = rtrim((string) $server['api_url'], '/');
@@ -254,7 +254,7 @@ final class PdnsCluster
         $endpoint = $apiUrl . '/api/v1/servers/' . rawurlencode($serverId);
         $ch = curl_init($endpoint);
         if ($ch === false) {
-            return ['success' => false, 'latency_ms' => 0, 'message' => 'Gagal inisialisasi cURL'];
+            return ['success' => false, 'latency_ms' => 0, 'message' => 'cURL initialization failed'];
         }
 
         $start = microtime(true);
@@ -278,7 +278,7 @@ final class PdnsCluster
 
         $success = ($httpCode >= 200 && $httpCode < 300 && $response !== false);
         if ($success) {
-            $msg = 'Terkoneksi (HTTP ' . $httpCode . ')';
+            $msg = 'Connected (HTTP ' . $httpCode . ')';
         } elseif ($curlError !== '') {
             $msg = $curlError;
         } else {

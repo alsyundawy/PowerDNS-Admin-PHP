@@ -17,7 +17,7 @@ if ($res1 !== null) {
     assertEq($res1['last_usable'], '192.168.1.254', 'IPv4 last usable calculation');
     assertEq($res1['total_hosts'], 256, 'IPv4 total hosts for /24');
     assertEq($res1['usable_hosts'], 254, 'IPv4 usable hosts for /24');
-    assertEq($res1['class'], 'Kelas C', 'IPv4 class detection');
+    assertEq($res1['class'], 'Class C', 'IPv4 class detection');
     assertEq($res1['scope'], 'Private (RFC 1918)', 'IPv4 scope detection RFC 1918');
     assertEq($res1['reverse_dns'], '50.1.168.192.in-addr.arpa.', 'IPv4 reverse DNS pointer');
 }

@@ -212,7 +212,7 @@ function validateRestoreStatements(array $statements): ?string
             continue;
         }
         if (!preg_match('/^(INSERT|TRUNCATE|DELETE|REPLACE|UPDATE)\b/i', $upper)) {
-            return 'Perintah SQL tidak diizinkan dalam restore: ' . substr($stmt, 0, 40) . '...';
+            return 'SQL statement not allowed in restore: ' . substr($stmt, 0, 40) . '...';
         }
     }
     return null;
@@ -260,12 +260,12 @@ function restoreDatabaseMetadata(string $sql): array
 {
     $trimmed = trim($sql);
     if ($trimmed === '') {
-        return ['success' => false, 'count' => 0, 'error' => 'File SQL cadangan kosong.'];
+        return ['success' => false, 'count' => 0, 'error' => 'SQL backup file is empty.'];
     }
 
     $statements = splitSqlStatements($trimmed);
     $validationError = empty($statements)
-        ? 'Tidak ada perintah SQL yang valid ditemukan.'
+        ? 'No valid SQL statements found.'
         : validateRestoreStatements($statements);
 
     if ($validationError !== null) {
@@ -313,7 +313,7 @@ function backupConfigSettings(): array
 function restoreConfigSettings(array $data): array
 {
     if (!isset($data['settings']) || !is_array($data['settings'])) {
-        return ['success' => false, 'count' => 0, 'error' => 'Format file konfigurasi JSON tidak valid.'];
+        return ['success' => false, 'count' => 0, 'error' => 'Invalid JSON configuration file format.'];
     }
 
     $pdo = db();
@@ -448,7 +448,7 @@ function restoreSingleZone(PdnsClient $pdns, array $zoneData, array $existing): 
 function restoreZones(PdnsClient $pdns, array $data): array
 {
     if (!isset($data['zones']) || !is_array($data['zones'])) {
-        return ['success' => false, 'total' => 0, 'restored' => 0, 'errors' => ['Format data zona tidak valid.']];
+        return ['success' => false, 'total' => 0, 'restored' => 0, 'errors' => ['Invalid zone data format.']];
     }
     /** @var list<array<string, mixed>> $zones */
     $zones = $data['zones'];
@@ -463,7 +463,7 @@ function restoreZones(PdnsClient $pdns, array $data): array
             $existing[dnsCanonical((string) ($ez['name'] ?? ''))] = true;
         }
     } catch (Throwable $e) {
-        $errors[] = 'Gagal membaca daftar zona yang ada: ' . $e->getMessage();
+        $errors[] = 'Failed to read existing zones list: ' . $e->getMessage();
     }
 
     foreach ($zones as $z) {
@@ -502,21 +502,21 @@ function validateUploadFileParams(array $file, string $label): ?string
 {
     $err = null;
     if (!isset($file['error']) || is_array($file['error'])) {
-        $err = sprintf('Parameter berkas %s tidak valid.', $label);
+        $err = sprintf('Invalid file parameters for %s.', $label);
     } elseif ($file['error'] !== UPLOAD_ERR_OK) {
         $msgs = [
-            UPLOAD_ERR_INI_SIZE => 'Ukuran berkas melebihi batas server.',
-            UPLOAD_ERR_FORM_SIZE => 'Ukuran berkas melebihi batas formulir.',
-            UPLOAD_ERR_PARTIAL => 'Berkas hanya terunggah sebagian.',
-            UPLOAD_ERR_NO_FILE => 'Tidak ada berkas yang diunggah.',
-            UPLOAD_ERR_NO_TMP_DIR => 'Folder sementara server hilang.',
-            UPLOAD_ERR_CANT_WRITE => 'Gagal menulis berkas ke penyimpanan.',
+            UPLOAD_ERR_INI_SIZE => 'File size exceeds server limit.',
+            UPLOAD_ERR_FORM_SIZE => 'File size exceeds form limit.',
+            UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing server temporary directory.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
         ];
-        $err = $msgs[(int) $file['error']] ?? sprintf('Unggah berkas %s gagal.', $label);
+        $err = $msgs[(int) $file['error']] ?? sprintf('File upload failed for %s.', $label);
     } elseif ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
-        $err = sprintf('Ukuran berkas %s maksimal 2MB.', $label);
+        $err = sprintf('File size for %s exceeds maximum 2MB limit.', $label);
     } elseif (!is_uploaded_file((string) ($file['tmp_name'] ?? ''))) {
-        $err = 'Berkas unggahan tidak sah.';
+        $err = 'Invalid uploaded file.';
     }
 
     return $err;
@@ -546,22 +546,22 @@ function validateImageMimeAndContent(string $tmp, string $label, bool $allowGif)
     }
 
     if (!isset($allowedMimes[$mime])) {
-        $allowedFormats = $allowGif ? 'PNG, JPG, WEBP, GIF, atau SVG' : 'PNG, JPG, WEBP, atau SVG';
-        return ['ok' => false, 'error' => sprintf('Format %s harus %s.', $label, $allowedFormats)];
+        $allowedFormats = $allowGif ? 'PNG, JPG, WEBP, GIF, or SVG' : 'PNG, JPG, WEBP, or SVG';
+        return ['ok' => false, 'error' => sprintf('Format for %s must be %s.', $label, $allowedFormats)];
     }
 
     $ext = $allowedMimes[$mime];
     $err = null;
     if ($ext !== 'svg') {
         if (@getimagesize($tmp) === false) {
-            $err = sprintf('Berkas %s tidak valid atau korup.', $label);
+            $err = sprintf('File %s is invalid or corrupted.', $label);
         }
     } else {
         $svgContent = (string) file_get_contents($tmp);
         $svgPattern = '/<script|javascript:|on\w+\s*=|data:\s*text\/html|'
             . 'xlink:href\s*=\s*[\'"\s]*javascript:|<\?php|<\?=/i';
         if (preg_match($svgPattern, $svgContent)) {
-            $err = sprintf('Berkas SVG %s mengandung skrip yang tidak diizinkan.', $label);
+            $err = sprintf('SVG file %s contains forbidden script tags.', $label);
         }
     }
 
@@ -578,7 +578,7 @@ function validateImageMimeAndContent(string $tmp, string $label, bool $allowGif)
  * @param array<string, mixed> $file
  * @param string $subDir Directory relative to /public/uploads/ (e.g. 'avatars' or 'branding')
  * @param string $fileBaseName Target base filename without extension
- * @param string $label Indonesian label for error messages (e.g. 'foto profil' or 'logo')
+ * @param string $label Label for error messages (e.g. 'profile picture' or 'logo')
  * @param bool $allowGif Whether GIF is permitted
  * @return array{ok: bool, path?: string, error?: string}
  */
@@ -586,7 +586,7 @@ function processUploadedImage(
     array $file,
     string $subDir,
     string $fileBaseName,
-    string $label = 'gambar',
+    string $label = 'image',
     bool $allowGif = true
 ): array {
     $paramErr = validateUploadFileParams($file, $label);
@@ -596,7 +596,7 @@ function processUploadedImage(
         : ['ok' => false, 'error' => $paramErr];
 
     if (!$val['ok']) {
-        return ['ok' => false, 'error' => $val['error'] ?? 'Validasi gambar gagal.'];
+        return ['ok' => false, 'error' => $val['error'] ?? 'Image validation failed.'];
     }
 
     $uploadDir = appRoot() . '/public/uploads/' . trim($subDir, '/');
@@ -613,7 +613,7 @@ function processUploadedImage(
 
     return $moved
         ? ['ok' => true, 'path' => '/uploads/' . trim($subDir, '/') . '/' . $filename]
-        : ['ok' => false, 'error' => sprintf('Gagal memindahkan berkas %s.', $label)];
+        : ['ok' => false, 'error' => sprintf('Failed to move %s file.', $label)];
 }
 
 /**

@@ -79,7 +79,7 @@ function executeInstall(array $dbParams, array $adminParams, array $pdnsParams):
         'appKey' => $appKey,
     ], true) . ";\n";
     if (file_put_contents(configPath(), $cfg) === false) {
-        throw new UnexpectedValueException('Tidak bisa menulis config.php. Periksa izin direktori.');
+        throw new UnexpectedValueException('Cannot write config.php. Check directory permissions.');
     }
     chmod(configPath(), 0640);
     config(true);
@@ -106,9 +106,9 @@ function handleInstall(): void
         $pdnsUrl = rtrim(trim((string) ($_POST['pdns_url'] ?? '')), '/');
         $pdnsKey = trim((string) ($_POST['pdns_key'] ?? ''));
         if (!preg_match('/^\w{3,32}$/', $admin) || strlen($adminPass) < 10) {
-            $error = 'Username admin 3-32 karakter. Sandi minimal 10 karakter.';
+            $error = 'Admin username must be 3-32 characters. Password minimum 10 characters.';
         } elseif (!preg_match('#^https?://#', $pdnsUrl) || $pdnsKey === '') {
-            $error = 'URL API PowerDNS dan API key wajib diisi.';
+            $error = 'PowerDNS API URL and API key are required.';
         } else {
             try {
                 $dbParams = [
@@ -125,11 +125,11 @@ function handleInstall(): void
                 );
                 redirect(PATH_LOGIN);
             } catch (Throwable $ex) {
-                $error = 'Instalasi gagal: ' . $ex->getMessage();
+                $error = 'Installation failed: ' . $ex->getMessage();
             }
         }
     }
-    view('install', ['title' => 'Instalasi', 'error' => $error]);
+    view('install', ['title' => 'Installation', 'error' => $error]);
 }
 
 function isLoginThrottled(string $ip, string $username): bool
@@ -167,7 +167,7 @@ function loginUserSession(array $user, string $password): void
 function executeLoginAttempt(string $username, string $password, string $ip): string
 {
     if (isLoginThrottled($ip, $username)) {
-        return 'Terlalu banyak percobaan. Tunggu 15 menit.';
+        return 'Too many login attempts. Please wait 15 minutes.';
     }
 
     $st = db()->prepare('SELECT * FROM users WHERE username = ?');
@@ -178,7 +178,7 @@ function executeLoginAttempt(string $username, string $password, string $ip): st
         ->execute([$username, $ip, $ok ? 1 : 0]);
 
     if (!$ok) {
-        return 'Username atau sandi salah.';
+        return 'Invalid username or password.';
     }
 
     if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
@@ -207,7 +207,7 @@ function handleLogin(): void
         $password = (string) ($_POST['password'] ?? '');
         $error = executeLoginAttempt($username, $password, clientIp());
     }
-    view('login', ['title' => 'Masuk', 'error' => $error]);
+    view('login', ['title' => 'Sign In', 'error' => $error]);
 }
 
 function handleLogin2Fa(): void
@@ -246,11 +246,11 @@ function handleLogin2Fa(): void
             loginUserSession($user, $password);
             return;
         }
-        $error = 'Kode verifikasi 2FA atau kode cadangan tidak valid.';
+        $error = 'Invalid 2FA verification code or backup code.';
     }
 
     view('login', [
-        'title' => 'Verifikasi 2FA',
+        'title' => '2FA Verification',
         'error' => $error,
         'is2FaChallenge' => true,
     ]);
@@ -333,7 +333,7 @@ function handleDashboard(array $user): void
             'phpVersion',
             'memoryUsage',
             'serverSoftware'
-        ) + ['title' => 'Dasbor']
+        ) + ['title' => 'Dashboard']
     );
 }
 
@@ -364,7 +364,7 @@ function handleZones(array $user): void
     $st = db()->prepare($sql);
     $st->execute($args);
     $zones = $st->fetchAll();
-    view('zones', ['title' => 'Zona', 'user' => $user, 'zones' => $zones, 'q' => $q, 'kind' => $kind]);
+    view('zones', ['title' => 'Zones', 'user' => $user, 'zones' => $zones, 'q' => $q, 'kind' => $kind]);
 }
 
 /**
@@ -376,8 +376,8 @@ function handleZoneSync(array $user): void
     requireRole($user, ['admin', 'operator']);
     try {
         $n = syncZonesFromPdns(PdnsClient::fromSettings());
-        audit($user, 'sync', '', 'Sinkron ' . $n . ' zona');
-        flash('success', 'Sinkron selesai: ' . $n . ' zona dari PowerDNS.');
+        audit($user, 'sync', '', 'Synced ' . $n . ' zones');
+        flash('success', 'Synchronization completed: ' . $n . ' zones from PowerDNS.');
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
     }
@@ -392,13 +392,13 @@ function validateZoneCreateInput(string $name, string $kind, array $masters, str
     $allowedSoa = ['DEFAULT', 'INCREASE', 'EPOCH', 'SOA-EDIT', 'SOA-EDIT-INCREASE'];
     $err = '';
     if (!str_ends_with($name, '.') || !preg_match('/^[a-z0-9_.*\/-]+\.$/', $name)) {
-        $err = 'Nama zona tidak valid. Contoh: example.com atau 10.in-addr.arpa';
+        $err = 'Invalid zone name. Example: example.com or 10.in-addr.arpa';
     } elseif (!in_array($kind, ['Native', 'Master', 'Slave', 'Producer', 'Consumer'], true)) {
-        $err = 'Jenis zona tidak dikenal.';
+        $err = 'Unknown zone kind.';
     } elseif ($kind === 'Slave' && !$masters) {
-        $err = 'Zona Slave wajib punya alamat primary.';
+        $err = 'Slave zone must have primary master addresses.';
     } elseif (!in_array($soaEdit, $allowedSoa, true)) {
-        $err = 'Mode SOA-EDIT-API tidak valid.';
+        $err = 'Invalid SOA-EDIT-API mode.';
     }
     return $err;
 }
@@ -425,7 +425,7 @@ function executeZoneCreation(
     )->execute([$name, $kind, $accountId > 0 ? $accountId : null]);
     if (!empty($initialRrsets)) {
         $pdns->patchRrsets($name, $initialRrsets);
-        audit($user, 'import-bind', $name, 'Impor ' . count($initialRrsets) . ' RRsets');
+        audit($user, 'import-bind', $name, 'Imported ' . count($initialRrsets) . ' RRsets');
     } elseif ($tpl > 0) {
         applyTemplate($pdns, $name, $tpl);
     }
@@ -437,9 +437,9 @@ function executeZoneCreation(
         'timestamp' => time(),
     ]);
     AppCache::invalidateZone($name);
-    $msg = 'Zona ' . dnsDisplay($name) . ' dibuat.';
+    $msg = 'Zone ' . dnsDisplay($name) . ' created.';
     if (!empty($initialRrsets)) {
-        $msg .= ' (' . count($initialRrsets) . ' RRset diimpor dari berkas BIND).';
+        $msg .= ' (' . count($initialRrsets) . ' RRsets imported from BIND zone file).';
     }
     flash('success', $msg);
     redirectZone($name);
@@ -482,7 +482,7 @@ function processZoneCreateSubmission(array $user): string
                 $name = $parsedBind['origin'];
             }
         } catch (Throwable $e) {
-            $error = 'Format berkas BIND tidak valid: ' . $e->getMessage();
+            $error = 'Invalid BIND zone file format: ' . $e->getMessage();
         }
     }
 
@@ -536,7 +536,7 @@ function handleZoneCreate(array $user): void
     }
 
     view('zone_create', [
-        'title' => 'Zona baru',
+        'title' => 'New Zone',
         'user' => $user,
         'error' => $error,
         'accounts' => $accounts,
@@ -589,7 +589,7 @@ function handleZoneShow(array $user, string $zoneRaw): void
             return $pdns->zone($zone);
         }, 30);
     } catch (Throwable $ex) {
-        view('error', ['title' => 'Zona', 'message' => $ex->getMessage(), 'user' => $user]);
+        view('error', ['title' => 'Zone', 'message' => $ex->getMessage(), 'user' => $user]);
         return;
     }
     $meta = db()->prepare(
@@ -642,7 +642,7 @@ function parseRecordPostRows(array $post): array
         $err = validateRecord($type, $content);
         if ($err) {
             $lineNum = is_numeric($idx) ? ((int) $idx + 1) : $idx;
-            throw new UnexpectedValueException('Baris ' . $lineNum . ': ' . $err);
+            throw new UnexpectedValueException('Line ' . $lineNum . ': ' . $err);
         }
         $rows[] = [
             'name' => $name,
@@ -672,7 +672,7 @@ function handleZoneSave(array $user, string $zoneRaw): void
         $current = $pdns->zone($zone);
         $diff = diffRrsets($zone, $current['rrsets'] ?? [], $rows);
         if ($diff) {
-            saveZoneSnapshot($zone, $current, $user, 'Pembaruan record zona');
+            saveZoneSnapshot($zone, $current, $user, 'Zone records update');
             $pdns->patchRrsets($zone, $diff);
             dispatchWebhookEvent('record.updated', [
                 'zone' => $zone,
@@ -695,10 +695,10 @@ function handleZoneSave(array $user, string $zoneRaw): void
             }
         }
 
-        audit($user, 'update-records', $zone, count($rows) . ' baris dikirim');
-        $msg = 'Perubahan record diterapkan ke PowerDNS.';
+        audit($user, 'update-records', $zone, count($rows) . ' rows submitted');
+        $msg = 'Record changes applied to PowerDNS.';
         if ($ptrSynced > 0) {
-            $msg .= ' (' . $ptrSynced . ' record PTR disinkronkan otomatis).';
+            $msg .= ' (' . $ptrSynced . ' PTR records automatically synchronized).';
         }
         flash('success', $msg);
     } catch (Throwable $ex) {
@@ -725,7 +725,7 @@ function handleZoneDelete(array $user, string $zoneRaw): void
             'timestamp' => time(),
         ]);
         AppCache::invalidateZone($zone);
-        flash('success', 'Zona dihapus dari PowerDNS.');
+        flash('success', 'Zone deleted from PowerDNS.');
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
     }
@@ -745,13 +745,13 @@ function handleZoneAction(array $user, string $zoneRaw, string $action): void
         $pdns = PdnsClient::fromSettings();
         if ($action === 'notify') {
             $pdns->notify($zone);
-            flash('success', 'NOTIFY dikirim.');
+            flash('success', 'NOTIFY sent.');
         } elseif ($action === 'axfr') {
             $pdns->axfrRetrieve($zone);
-            flash('success', 'AXFR retrieve diminta. Hanya berlaku untuk zona Slave.');
+            flash('success', 'AXFR retrieve requested. Only valid for Slave zones.');
         } elseif ($action === 'rectify') {
             $pdns->rectify($zone);
-            flash('success', 'Rectify selesai.');
+            flash('success', 'Zone rectify completed.');
         }
         audit($user, $action, $zone, '');
     } catch (Throwable $ex) {
@@ -776,7 +776,7 @@ function handleZoneHistory(array $user, string $zoneRaw): void
     $current = $pdns->zone($zone);
 
     view('zone_history', [
-        'title' => 'Riwayat & Rollback: ' . $zone,
+        'title' => 'History & Rollback: ' . $zone,
         'user' => $user,
         'zone' => $zone,
         'snapshots' => $snapshots,
@@ -798,9 +798,9 @@ function handleZoneRollback(array $user, string $zoneRaw, string $snapshotIdRaw)
     try {
         $pdns = PdnsClient::fromSettings();
         rollbackZoneSnapshot($pdns, $user, $zone, $snapshotId);
-        flash('success', 'Zona ' . $zone . ' berhasil di-rollback ke revisi #' . $snapshotId . '.');
+        flash('success', 'Zone ' . $zone . ' successfully rolled back to revision #' . $snapshotId . '.');
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal rollback: ' . $ex->getMessage());
+        flash('danger', 'Rollback failed: ' . $ex->getMessage());
     }
 
     redirectZone($zone, '/history');
@@ -821,10 +821,10 @@ function handleZoneExport(array $user, string $zoneRaw): void
         $filename = rtrim($zone, '.') . '.zone';
         sendAttachmentHeaders($filename, HEADER_TEXT_PLAIN, strlen($bindText));
         echo $bindText;
-        audit($user, 'export-zone', $zone, 'Ekspor berkas BIND RFC 1035');
+        audit($user, 'export-zone', $zone, 'Export RFC 1035 BIND zone file');
         exit;
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal ekspor zona: ' . $ex->getMessage());
+        flash('danger', 'Failed to export zone: ' . $ex->getMessage());
         redirectZone($zone);
     }
 }
@@ -916,7 +916,7 @@ function handleDnssecEnable(array $user, string $zoneRaw): void
         audit($user, 'dnssec-enable', $zone, $mode . ' (' . $algo . ')');
         flash(
             'success',
-            'DNSSEC diaktifkan dengan algoritma ' . strtoupper($algo) . ' (' . strtoupper($mode) . ').'
+            'DNSSEC enabled with algorithm ' . strtoupper($algo) . ' (' . strtoupper($mode) . ').'
         );
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
@@ -940,17 +940,17 @@ function handleDnssecToggleCds(array $user, string $zoneRaw): void
         if ($enable) {
             $pdns->setMetadata($zone, 'PUBLISH-CDS', ['2']);
             $pdns->setMetadata($zone, 'PUBLISH-CDNSKEY', ['1']);
-            flash('success', 'Publikasi otomatis CDS & CDNSKEY (RFC 7344) diaktifkan.');
+            flash('success', 'Automatic publication of CDS & CDNSKEY (RFC 7344) enabled.');
             audit($user, 'dnssec-cds-enable', $zone, 'PUBLISH-CDS & PUBLISH-CDNSKEY');
         } else {
             $pdns->deleteMetadata($zone, 'PUBLISH-CDS');
             $pdns->deleteMetadata($zone, 'PUBLISH-CDNSKEY');
-            flash('success', 'Publikasi CDS & CDNSKEY dinonaktifkan.');
+            flash('success', 'CDS & CDNSKEY publication disabled.');
             audit($user, 'dnssec-cds-disable', $zone, '');
         }
         $pdns->rectify($zone);
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal mengubah pengaturan CDS: ' . $ex->getMessage());
+        flash('danger', 'Failed to update CDS settings: ' . $ex->getMessage());
     }
     redirectZone($zone, '/dnssec');
 }
@@ -972,7 +972,7 @@ function handleZoneGrant(array $user, string $zoneRaw): void
     $zst->execute([$zone]);
     $z = $zst->fetch();
     if (!$target || !$z) {
-        flash('danger', 'User atau zona tidak ditemukan di cache panel. Sinkronkan zona dulu.');
+        flash('danger', 'User or zone not found in local cache. Synchronize zones first.');
         redirectZone($zone);
     }
     db()->prepare(
@@ -980,7 +980,7 @@ function handleZoneGrant(array $user, string $zoneRaw): void
          ON DUPLICATE KEY UPDATE can_edit = VALUES(can_edit)'
     )->execute([(int) $z['id'], (int) $target['id'], $canEdit]);
     audit($user, 'grant-zone', $zone, $username);
-    flash('success', 'Akses zona diperbarui.');
+    flash('success', 'Zone access permissions updated.');
     redirectZone($zone);
 }
 
@@ -994,7 +994,7 @@ function handleUsers(array $user): void
         'SELECT id, username, display_name, email, avatar_url, role, active, last_login_at FROM users ORDER BY username'
     );
     $users = $st ? $st->fetchAll() : [];
-    view('users', ['title' => 'Pengguna', 'user' => $user, 'users' => $users]);
+    view('users', ['title' => 'Users', 'user' => $user, 'users' => $users]);
 }
 
 /**
@@ -1011,7 +1011,7 @@ function createNewUser(array $user, array $data): void
     $password = (string) ($data['password'] ?? '');
 
     if (strlen($password) < 10) {
-        flash('danger', 'Sandi awal minimal 10 karakter.');
+        flash('danger', 'Initial password must be at least 10 characters.');
         redirect(PATH_USERS);
     }
     db()->prepare(
@@ -1039,7 +1039,7 @@ function updateExistingUser(array $user, int $id, array $data): void
     )->execute([$username, $display, $email, $role, $active, $id]);
     if ($password !== '') {
         if (strlen($password) < 10) {
-            flash('danger', 'Sandi baru minimal 10 karakter.');
+            flash('danger', 'New password must be at least 10 characters.');
             redirect(PATH_USERS);
         }
         db()->prepare(SQL_UPDATE_USER_AUTH_HASH)
@@ -1063,7 +1063,7 @@ function handleUserSave(array $user): void
     $password = (string) ($_POST['password'] ?? '');
     $active = isset($_POST['active']) ? 1 : 0;
     if (!preg_match('/^[a-zA-Z0-9_.-]{3,64}$/', $username) || !in_array($role, ['admin', 'operator', 'user'], true)) {
-        flash('danger', 'Data pengguna tidak valid. Username 3-64 karakter alfanumerik.');
+        flash('danger', 'Invalid user data. Username must be 3-64 alphanumeric characters.');
         redirect(PATH_USERS);
     }
     $userData = [
@@ -1080,11 +1080,11 @@ function handleUserSave(array $user): void
         } else {
             updateExistingUser($user, $id, $userData);
         }
-        flash('success', 'Pengguna disimpan.');
+        flash('success', 'User saved successfully.');
     } catch (PDOException $ex) {
         $msg = $ex->getCode() === SQLSTATE_DUPLICATE
-            ? 'Username sudah terdaftar. Gunakan username lain.'
-            : 'Gagal menyimpan pengguna: ' . $ex->getMessage();
+            ? 'Username already registered. Please choose another username.'
+            : 'Failed to save user: ' . $ex->getMessage();
         flash('danger', $msg);
     }
     redirect(PATH_USERS);
@@ -1101,7 +1101,7 @@ function handleAccounts(array $user): void
          FROM accounts a ORDER BY a.name'
     );
     $accounts = $st ? $st->fetchAll() : [];
-    view('accounts', ['title' => 'Akun', 'user' => $user, 'accounts' => $accounts]);
+    view('accounts', ['title' => 'Accounts', 'user' => $user, 'accounts' => $accounts]);
 }
 
 /**
@@ -1115,19 +1115,19 @@ function handleAccountSave(array $user): void
     $contact = trim((string) ($_POST['contact'] ?? ''));
     $notes = trim((string) ($_POST['notes'] ?? ''));
     if ($name === '') {
-        flash('danger', 'Nama akun wajib.');
+        flash('danger', 'Account name is required.');
         redirect('/accounts');
     }
     try {
         db()->prepare('INSERT INTO accounts (name, contact, notes) VALUES (?, ?, ?)')
             ->execute([$name, $contact, $notes]);
         audit($user, 'create-account', '', $name);
-        flash('success', 'Akun dibuat.');
+        flash('success', 'Account created.');
     } catch (PDOException $ex) {
         if ($ex->getCode() === SQLSTATE_DUPLICATE) {
-            flash('danger', 'Nama akun sudah terdaftar.');
+            flash('danger', 'Account name is already registered.');
         } else {
-            flash('danger', 'Gagal membuat akun: ' . $ex->getMessage());
+            flash('danger', 'Failed to create account: ' . $ex->getMessage());
         }
     }
     redirect('/accounts');
@@ -1144,7 +1144,7 @@ function handleTemplates(array $user): void
          FROM templates t ORDER BY t.name'
     );
     $templates = $st ? $st->fetchAll() : [];
-    view('templates', ['title' => 'Template', 'user' => $user, 'templates' => $templates, 'types' => RECORD_TYPES]);
+    view('templates', ['title' => 'Templates', 'user' => $user, 'templates' => $templates, 'types' => RECORD_TYPES]);
 }
 
 /**
@@ -1157,7 +1157,7 @@ function handleTemplateSave(array $user): void
     $name = trim((string) ($_POST['name'] ?? ''));
     $desc = trim((string) ($_POST['description'] ?? ''));
     if ($name === '') {
-        flash('danger', 'Nama template wajib.');
+        flash('danger', 'Template name is required.');
         redirect('/templates');
     }
     try {
@@ -1186,12 +1186,12 @@ function handleTemplateSave(array $user): void
                 ]);
             }
         }
-        flash('success', 'Template disimpan. Gunakan [ZONE] sebagai pengganti nama zona.');
+        flash('success', 'Template saved. Use [ZONE] as a placeholder for the zone name.');
     } catch (PDOException $ex) {
         if ($ex->getCode() === SQLSTATE_DUPLICATE) {
-            flash('danger', 'Nama template sudah terdaftar.');
+            flash('danger', 'Template name is already registered.');
         } else {
-            flash('danger', 'Gagal menyimpan template: ' . $ex->getMessage());
+            flash('danger', 'Failed to save template: ' . $ex->getMessage());
         }
     }
     redirect('/templates');
@@ -1210,7 +1210,7 @@ function handleApikeys(array $user): void
     $keys = $st ? $st->fetchAll() : [];
     $plain = $_SESSION['new_api_key'] ?? '';
     unset($_SESSION['new_api_key']);
-    view('apikeys', ['title' => 'API key', 'user' => $user, 'keys' => $keys, 'plain' => $plain]);
+    view('apikeys', ['title' => 'API Keys', 'user' => $user, 'keys' => $keys, 'plain' => $plain]);
 }
 
 /**
@@ -1234,7 +1234,7 @@ function handleApikeyCreate(array $user): void
         ->execute([$name, $prefix, hash('sha256', $raw), $role, (int) ($user['id'] ?? 0)]);
     $_SESSION['new_api_key'] = $raw;
     audit($user, 'create-apikey', '', $name);
-    flash('success', 'API key dibuat. Salin sekarang. Nilai ini tidak ditampilkan lagi.');
+    flash('success', 'API key generated. Copy it now. It will not be shown again.');
     redirect('/apikeys');
 }
 
@@ -1246,7 +1246,7 @@ function handleAudit(array $user): void
     requireRole($user, ['admin']);
     $st = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 200');
     $rows = $st ? $st->fetchAll() : [];
-    view('audit', ['title' => 'Audit', 'user' => $user, 'rows' => $rows]);
+    view('audit', ['title' => 'Audit Log', 'user' => $user, 'rows' => $rows]);
 }
 
 function processSettingsBrandingLogo(): void
@@ -1273,7 +1273,7 @@ function processSettingsBrandingLogo(): void
         if ($logoRes['ok'] && !empty($logoRes['path'])) {
             settingSet('app_logo_url', $logoRes['path']);
         } else {
-            flash('danger', 'Logo gagal diunggah: ' . ($logoRes['error'] ?? 'Berkas tidak valid.'));
+            flash('danger', 'Logo upload failed: ' . ($logoRes['error'] ?? 'Invalid file.'));
             redirect(PATH_SETTINGS);
         }
     } elseif ($appLogoUrl !== '') {
@@ -1338,7 +1338,7 @@ function updateApplicationSettings(array $user): void
     $theme = (isset($_POST['app_default_theme']) && $_POST['app_default_theme'] === 'light') ? 'light' : 'dark';
 
     if (!preg_match('#^https?://#', $url)) {
-        flash('danger', 'URL API harus http atau https.');
+        flash('danger', 'API URL must use http or https protocol.');
         redirect(PATH_SETTINGS);
     }
     settingSet('pdns_api_url', $url);
@@ -1356,8 +1356,8 @@ function updateApplicationSettings(array $user): void
     saveDnsPolicySettings();
     saveSecurityAndOperationalSettings();
 
-    audit($user, 'settings', '', 'Pengaturan global aplikasi diperbarui');
-    flash('success', 'Seluruh konfigurasi sistem berhasil disimpan.');
+    audit($user, 'settings', '', 'Global application settings updated');
+    flash('success', 'All system configurations successfully saved.');
     redirect(PATH_SETTINGS);
 }
 
@@ -1371,7 +1371,7 @@ function handleSettings(array $user): void
         updateApplicationSettings($user);
     }
     view('settings', [
-        'title' => 'Pengaturan',
+        'title' => 'Settings',
         'user' => $user,
         'url' => (string) setting('pdns_api_url', ''),
         'server' => (string) setting('pdns_server_id', 'localhost'),
@@ -1414,7 +1414,7 @@ function handleSearch(array $user): void
             $error = $ex->getMessage();
         }
     }
-    view('search', ['title' => 'Cari', 'user' => $user, 'q' => $q, 'results' => $results, 'error' => $error]);
+    view('search', ['title' => 'Search', 'user' => $user, 'q' => $q, 'results' => $results, 'error' => $error]);
 }
 
 /**
@@ -1430,7 +1430,7 @@ function handleRdnsCreateZone(array $user): never
 
     $zone = ($family === 'ipv6') ? ipv6ToReverseZone64($subnet) : ipv4ToReverseZone24($subnet);
     if ($zone === null) {
-        flash('danger', 'Format subnet tidak valid.');
+        flash('danger', 'Invalid subnet format.');
         redirect(PATH_TOOLS_RDNS);
     }
 
@@ -1452,10 +1452,10 @@ function handleRdnsCreateZone(array $user): never
         );
         $st->execute([$zone, $kind, $accountId > 0 ? $accountId : null]);
         audit($user, 'create-reverse-zone', $zone, "Subnet: $subnet");
-        flash('success', "Zona reverse $zone berhasil dibuat di PowerDNS.");
+        flash('success', "Reverse zone $zone successfully created in PowerDNS.");
         redirectZone($zone);
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal membuat zona reverse: ' . $ex->getMessage());
+        flash('danger', 'Failed to create reverse zone: ' . $ex->getMessage());
         redirect(PATH_TOOLS_RDNS);
     }
 }
@@ -1481,7 +1481,7 @@ function handleRdnsGeneratePtr(array $user): never
         : generateIpv4SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end);
 
     if (!$batch) {
-        flash('danger', 'Gagal membangkitkan baris PTR. Periksa subnet dan domain tujuan.');
+        flash('danger', 'Failed to generate PTR records. Verify subnet and target domain.');
         redirect(PATH_TOOLS_RDNS);
     }
 
@@ -1504,11 +1504,11 @@ function handleRdnsGeneratePtr(array $user): never
             ];
         }
         $pdns->patchRrsets($zone, $rrsets);
-        audit($user, 'batch-ptr-generate', $zone, count($rrsets) . " record PTR dibangkitkan untuk $subnet");
-        flash('success', count($rrsets) . " record PTR berhasil diterapkan ke zona $zone.");
+        audit($user, 'batch-ptr-generate', $zone, count($rrsets) . " PTR records generated for $subnet");
+        flash('success', count($rrsets) . " PTR records successfully applied to zone $zone.");
         redirectZone($zone);
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal menerapkan record PTR: ' . $ex->getMessage());
+        flash('danger', 'Failed to apply PTR records: ' . $ex->getMessage());
         redirect(PATH_TOOLS_RDNS);
     }
 }
@@ -1597,25 +1597,25 @@ function handleRdnsScanForward(array $user): never
 
         $matched = collectMatchingForwardIps($pdns, $isV4, $v4Prefix);
         if (!$matched) {
-            flash('warning', 'Tidak ditemukan record A/AAAA yang cocok dengan subnet ' . $subnet);
+            flash('warning', 'No A/AAAA records found matching subnet ' . $subnet);
             redirect(PATH_TOOLS_RDNS);
         }
 
         $rrsets = buildBatchImportPtrRrsets($matched, $zone, $isV4);
         if ($rrsets) {
             $pdns->patchRrsets($zone, $rrsets);
-            audit($user, 'scan-forward-ptr', $zone, count($rrsets) . " record PTR diimpor dari zona forward");
-            flash('success', count($rrsets) . " record PTR berhasil diimpor otomatis ke zona $zone.");
+            audit($user, 'scan-forward-ptr', $zone, count($rrsets) . " PTR records imported from forward zone");
+            flash('success', count($rrsets) . " PTR records successfully imported to zone $zone.");
         }
         redirectZone($zone);
     } catch (Throwable $ex) {
-        flash('danger', 'Gagal memindai forward zone: ' . $ex->getMessage());
+        flash('danger', 'Failed to scan forward zone: ' . $ex->getMessage());
         redirect(PATH_TOOLS_RDNS);
     }
 }
 
 /**
- * Handler untuk Modul Generator Reverse DNS (rDNS) & Subnet PTR.
+ * Handler for Reverse DNS (rDNS) & Subnet PTR Generator module.
  *
  * @param array<string, mixed> $user
  */
@@ -1642,7 +1642,7 @@ function handleRdnsTool(array $user, string $path, string $method): void
     $accounts = $stAcc ? $stAcc->fetchAll() : [];
 
     view('tools_rdns', [
-        'title' => 'Generator Subnet rDNS & PTR',
+        'title' => 'rDNS & PTR Subnet Generator',
         'user' => $user,
         'reverseZones' => $reverseZones,
         'accounts' => $accounts,
@@ -1673,7 +1673,7 @@ function handleApi(array $userFromKey): void
     if (preg_match('#^/api/v1/zones/(.+)$#', $path, $m) && $method === 'GET') {
         $zone = dnsCanonical(rawurldecode($m[1]));
         if (!userCanZone($userFromKey, $zone, false)) {
-            jsonOut(403, ['error' => 'Akses zona ditolak']);
+            jsonOut(403, ['error' => 'Zone access denied']);
         }
         try {
             jsonOut(200, PdnsClient::fromSettings()->zone($zone));
@@ -1681,7 +1681,7 @@ function handleApi(array $userFromKey): void
             jsonOut(502, ['error' => $ex->getMessage()]);
         }
     }
-    jsonOut(404, ['error' => 'Endpoint tidak dikenal']);
+    jsonOut(404, ['error' => 'Endpoint not found']);
 }
 
 /**
@@ -1919,7 +1919,7 @@ function handleIpcalcTool(array $user): void
     }
 
     if ($result === null) {
-        $error = 'Format CIDR tidak valid. Contoh: 192.168.1.0/24 atau 2001:db8::/32';
+        $error = 'Invalid CIDR format. Example: 192.168.1.0/24 or 2001:db8::/32';
     }
 
     view('tools_ipcalc', [
@@ -1949,14 +1949,14 @@ function handleIpv6SplitterTool(array $user): void
     $totalCount = 0;
 
     if ($parsed === null) {
-        $error = 'Format prefix IPv6 tidak valid. Contoh: 2001:db8::/32';
+        $error = 'Invalid IPv6 prefix format. Example: 2001:db8::/32';
     } elseif ($targetMask < $parsed['mask']) {
-        $error = 'Target prefix (/' . $targetMask . ') harus lebih spesifik atau sama dengan prefix sumber (/'
+        $error = 'Target prefix (/' . $targetMask . ') must be more specific than or equal to source prefix (/'
             . $parsed['mask'] . ')';
     } elseif ($targetMask > 128) {
-        $error = 'Target prefix tidak boleh lebih dari /128';
+        $error = 'Target prefix cannot exceed /128';
     } elseif (($targetMask - $parsed['mask']) > 16) {
-        $error = 'Perbedaan prefix maksimal 16 bit (maksimum 65.536 subnet per operasi).';
+        $error = 'Prefix difference cannot exceed 16 bits (maximum 65,536 subnets per operation).';
     } else {
         $totalCount = (int) (2 ** ($targetMask - $parsed['mask']));
 
@@ -2006,7 +2006,7 @@ function executeWhoisLookup(string $query, string $customServer, string $mode): 
 {
     if ($mode === 'socket' || $customServer !== '') {
         $socketResult = whoisQuerySocket($query, $customServer !== '' ? $customServer : null);
-        $error = !$socketResult['success'] ? ($socketResult['error'] ?? 'Gagal query WHOIS socket.') : null;
+        $error = !$socketResult['success'] ? ($socketResult['error'] ?? 'WHOIS socket query failed.') : null;
         return ['rdap' => null, 'socket' => $socketResult, 'error' => $error];
     }
 
@@ -2016,7 +2016,7 @@ function executeWhoisLookup(string $query, string $customServer, string $mode): 
     }
 
     $socketResult = whoisQuerySocket($query);
-    $error = !$socketResult['success'] ? 'RDAP & WHOIS Socket tidak menemukan data untuk query tersebut.' : null;
+    $error = !$socketResult['success'] ? 'Neither RDAP nor WHOIS Socket found data for this query.' : null;
     return ['rdap' => $rdapResult, 'socket' => $socketResult, 'error' => $error];
 }
 
@@ -2082,7 +2082,7 @@ function handleDnsLookupTool(array $user): void
                 );
             }
         } else {
-            $error = $result['message'] ?? 'Tidak dapat melakukan query DNS.';
+            $error = $result['message'] ?? 'Unable to perform DNS query.';
         }
     }
 
@@ -2107,13 +2107,13 @@ function updateProfileInfo(int $userId, array $user): void
     $displayName = trim((string) ($_POST['display_name'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        flash('danger', 'Format email tidak valid.');
+        flash('danger', 'Invalid email address format.');
         redirect(PATH_PROFILE);
     }
     $up = db()->prepare('UPDATE users SET display_name = ?, email = ? WHERE id = ?');
     $up->execute([$displayName, $email, $userId]);
-    audit($user, 'profile', '', 'Memperbarui profil (nama/email)');
-    flash('success', 'Profil pengguna berhasil diperbarui.');
+    audit($user, 'profile', '', 'Updated profile details (name/email)');
+    flash('success', 'User profile successfully updated.');
     redirect(PATH_PROFILE);
 }
 
@@ -2130,23 +2130,23 @@ function updateProfilePassword(int $userId, array $user): void
     $currentHash = (string) ($hashRow['password_hash'] ?? '');
 
     if (!password_verify($currPass, $currentHash)) {
-        flash('danger', 'Kata sandi saat ini tidak cocok.');
+        flash('danger', 'Current password does not match.');
         redirect(PATH_PROFILE);
     }
     if (strlen($newPass) < 8) {
-        flash('danger', 'Kata sandi baru minimal 8 karakter.');
+        flash('danger', 'New password must be at least 8 characters.');
         redirect(PATH_PROFILE);
     }
     if ($newPass !== $confirmPass) {
-        flash('danger', 'Konfirmasi kata sandi baru tidak cocok.');
+        flash('danger', 'New password confirmation does not match.');
         redirect(PATH_PROFILE);
     }
 
     $newHash = password_hash($newPass, PASSWORD_ARGON2ID);
     $up = db()->prepare(SQL_UPDATE_USER_AUTH_HASH);
     $up->execute([$newHash, $userId]);
-    audit($user, 'profile', '', 'Mengubah kata sandi');
-    flash('success', 'Kata sandi berhasil diubah.');
+    audit($user, 'profile', '', 'Changed password');
+    flash('success', 'Password successfully changed.');
     redirect(PATH_PROFILE);
 }
 
@@ -2154,12 +2154,12 @@ function updateProfileAvatar(int $userId, array $user, array $freshUser): void
 {
     csrfCheck();
     if (empty($_FILES['avatar']) || !is_array($_FILES['avatar'])) {
-        flash('danger', 'Silakan pilih berkas gambar foto profil.');
+        flash('danger', 'Please select a profile avatar image file.');
         redirect(PATH_PROFILE);
     }
     $res = saveUserAvatar($_FILES['avatar'], $userId);
     if (!$res['ok']) {
-        flash('danger', $res['error'] ?? 'Gagal mengunggah foto profil.');
+        flash('danger', $res['error'] ?? 'Failed to upload profile photo.');
         redirect(PATH_PROFILE);
     }
 
@@ -2174,8 +2174,8 @@ function updateProfileAvatar(int $userId, array $user, array $freshUser): void
     $newAvatarUrl = (string) ($res['path'] ?? '');
     $up = db()->prepare('UPDATE users SET avatar_url = ? WHERE id = ?');
     $up->execute([$newAvatarUrl, $userId]);
-    audit($user, 'profile', '', 'Mengunggah foto profil baru');
-    flash('success', 'Foto profil berhasil diperbarui.');
+    audit($user, 'profile', '', 'Uploaded new profile avatar');
+    flash('success', 'Profile photo successfully updated.');
     redirect(PATH_PROFILE);
 }
 
@@ -2191,8 +2191,8 @@ function deleteProfileAvatar(int $userId, array $user, array $freshUser): void
     }
     $up = db()->prepare("UPDATE users SET avatar_url = '' WHERE id = ?");
     $up->execute([$userId]);
-    audit($user, 'profile', '', 'Menghapus foto profil');
-    flash('success', 'Foto profil telah dihapus.');
+    audit($user, 'profile', '', 'Deleted profile photo');
+    flash('success', 'Profile photo removed.');
     redirect(PATH_PROFILE);
 }
 
@@ -2205,7 +2205,7 @@ function verifyProfile2fa(int $userId, array $user): void
 {
     $setup = $_SESSION['pending_totp_setup'] ?? null;
     if (!$setup || empty($setup['secret'])) {
-        flash('danger', 'Sesi setup 2FA telah berakhir.');
+        flash('danger', '2FA setup session has expired.');
         return;
     }
     $code = trim((string) ($_POST['code'] ?? ''));
@@ -2219,11 +2219,11 @@ function verifyProfile2fa(int $userId, array $user): void
             $userId,
         ]);
         unset($_SESSION['pending_totp_setup']);
-        audit($user, 'profile', '', 'Mengaktifkan Autentikasi Dua Faktor (2FA TOTP)');
-        flash('success', 'Autentikasi Dua Faktor (2FA) berhasil diaktifkan!');
+        audit($user, 'profile', '', 'Enabled Two-Factor Authentication (2FA TOTP)');
+        flash('success', 'Two-Factor Authentication (2FA) successfully enabled!');
         return;
     }
-    flash('danger', 'Kode 6-digit tidak valid. Pastikan waktu jam perangkat Anda akurat.');
+    flash('danger', 'Invalid 6-digit code. Please verify your device clock is accurate.');
 }
 
 /**
@@ -2239,11 +2239,11 @@ function disableProfile2fa(int $userId, array $user, string $passwordHash): void
             'UPDATE users SET totp_secret = NULL, totp_enabled = 0, totp_backup_codes = NULL WHERE id = ?'
         );
         $stUp->execute([$userId]);
-        audit($user, 'profile', '', 'Menonaktifkan Autentikasi Dua Faktor (2FA)');
-        flash('success', 'Autentikasi Dua Faktor (2FA) telah dinonaktifkan.');
+        audit($user, 'profile', '', 'Disabled Two-Factor Authentication (2FA)');
+        flash('success', 'Two-Factor Authentication (2FA) has been disabled.');
         return;
     }
-    flash('danger', 'Kata sandi saat ini salah.');
+    flash('danger', 'Current password is incorrect.');
 }
 
 /**
@@ -2310,7 +2310,7 @@ function handleProfile(array $user, string $path, string $method): void
     /** @var array<string, mixed>|false $freshUser */
     $freshUser = $st->fetch();
     if (!$freshUser) {
-        flash('danger', 'Pengguna tidak ditemukan.');
+        flash('danger', 'User not found.');
         redirect('/');
     }
 
@@ -2331,7 +2331,7 @@ function handleProfile(array $user, string $path, string $method): void
     }
 
     view('profile', [
-        'title' => 'Profil Pengguna',
+        'title' => 'User Profile',
         'user' => $user,
         'profile' => $freshUser,
         'totpSetup' => $totpSetup,
@@ -2344,7 +2344,7 @@ function downloadDatabaseBackup(array $user): never
     $filename = 'pdns_admin_db_backup_' . gmdate('Ymd_His') . '.sql';
     sendAttachmentHeaders($filename, 'application/sql; charset=utf-8', strlen($sql));
     echo $sql;
-    audit($user, 'backup', '', 'Mengunduh cadangan SQL database metadata');
+    audit($user, 'backup', '', 'Downloaded SQL database metadata backup');
     exit;
 }
 
@@ -2353,13 +2353,13 @@ function downloadConfigBackup(array $user): never
     $config = backupConfigSettings();
     $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if ($json === false) {
-        flash('danger', 'Gagal mengenkode JSON konfigurasi.');
+        flash('danger', 'Failed to encode configuration JSON.');
         redirect(PATH_BACKUP);
     }
     $filename = 'pdns_admin_config_' . gmdate('Ymd_His') . '.json';
     sendAttachmentHeaders($filename, 'application/json; charset=utf-8', strlen($json));
     echo $json;
-    audit($user, 'backup', '', 'Mengunduh cadangan konfigurasi JSON');
+    audit($user, 'backup', '', 'Downloaded JSON configuration backup');
     exit;
 }
 
@@ -2370,15 +2370,15 @@ function downloadZonesBackup(array $user): never
         $zonesData = backupAllZones($pdns);
         $json = json_encode($zonesData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
-            throw new UnexpectedValueException('Gagal mengenkode JSON zona.');
+            throw new UnexpectedValueException('Failed to encode zones JSON.');
         }
         $filename = 'pdns_admin_zones_' . gmdate('Ymd_His') . '.json';
         sendAttachmentHeaders($filename, 'application/json; charset=utf-8', strlen($json));
         echo $json;
-        audit($user, 'backup', '', 'Mengunduh cadangan zona PowerDNS JSON (' . $zonesData['count'] . ' zona)');
+        audit($user, 'backup', '', 'Downloaded PowerDNS JSON zones backup (' . $zonesData['count'] . ' zones)');
         exit;
     } catch (Throwable $e) {
-        flash('danger', 'Gagal mencadangkan zona PowerDNS: ' . $e->getMessage());
+        flash('danger', 'Failed to backup PowerDNS zones: ' . $e->getMessage());
         redirect(PATH_BACKUP);
     }
 }
@@ -2402,17 +2402,17 @@ function restoreDatabaseBackup(array $user): void
         !is_array($_FILES['db_file']) ||
         ($_FILES['db_file']['error'] ?? 1) !== UPLOAD_ERR_OK
     ) {
-        flash('danger', 'Pilih berkas cadangan SQL yang valid.');
+        flash('danger', 'Please select a valid SQL backup file.');
         redirect(PATH_BACKUP);
     }
     $tmp = (string) ($_FILES['db_file']['tmp_name'] ?? '');
     $sql = (string) file_get_contents($tmp);
     $res = restoreDatabaseMetadata($sql);
     if ($res['success']) {
-        audit($user, 'restore', '', 'Memulihkan database metadata (' . $res['count'] . ' kueri)');
-        flash('success', 'Database metadata berhasil dipulihkan (' . $res['count'] . ' perintah SQL dieksekusi).');
+        audit($user, 'restore', '', 'Restored database metadata (' . $res['count'] . ' queries)');
+        flash('success', 'Database metadata successfully restored (' . $res['count'] . ' SQL statements executed).');
     } else {
-        flash('danger', 'Pemulihan database gagal: ' . ($res['error'] ?? 'Kesalahan tidak diketahui.'));
+        flash('danger', 'Database restore failed: ' . ($res['error'] ?? 'Unknown error.'));
     }
     redirect(PATH_BACKUP);
 }
@@ -2425,7 +2425,7 @@ function restoreConfigBackup(array $user): void
         !is_array($_FILES['config_file']) ||
         ($_FILES['config_file']['error'] ?? 1) !== UPLOAD_ERR_OK
     ) {
-        flash('danger', 'Pilih berkas konfigurasi JSON yang valid.');
+        flash('danger', 'Please select a valid JSON configuration file.');
         redirect(PATH_BACKUP);
     }
     $tmp = (string) ($_FILES['config_file']['tmp_name'] ?? '');
@@ -2435,13 +2435,13 @@ function restoreConfigBackup(array $user): void
         $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         $res = restoreConfigSettings($data);
         if ($res['success']) {
-            audit($user, 'restore', '', 'Memulihkan konfigurasi settings (' . $res['count'] . ' opsi)');
-            flash('success', 'Konfigurasi berhasil dipulihkan (' . $res['count'] . ' pengaturan diperbarui).');
+            audit($user, 'restore', '', 'Restored configuration settings (' . $res['count'] . ' options)');
+            flash('success', 'Configuration successfully restored (' . $res['count'] . ' settings updated).');
         } else {
-            flash('danger', 'Pemulihan konfigurasi gagal: ' . ($res['error'] ?? 'Format tidak valid.'));
+            flash('danger', 'Configuration restore failed: ' . ($res['error'] ?? 'Invalid format.'));
         }
     } catch (Throwable $e) {
-        flash('danger', 'Berkas JSON rusak atau tidak valid: ' . $e->getMessage());
+        flash('danger', 'Corrupted or invalid JSON file: ' . $e->getMessage());
     }
     redirect(PATH_BACKUP);
 }
@@ -2454,7 +2454,7 @@ function restoreZonesBackup(array $user): void
         !is_array($_FILES['zones_file']) ||
         ($_FILES['zones_file']['error'] ?? 1) !== UPLOAD_ERR_OK
     ) {
-        flash('danger', 'Pilih berkas cadangan zona JSON yang valid.');
+        flash('danger', 'Please select a valid JSON zones backup file.');
         redirect(PATH_BACKUP);
     }
     $tmp = (string) ($_FILES['zones_file']['tmp_name'] ?? '');
@@ -2465,17 +2465,17 @@ function restoreZonesBackup(array $user): void
         $pdns = PdnsClient::fromSettings();
         $res = restoreZones($pdns, $data);
         if ($res['success']) {
-            audit($user, 'restore', '', 'Memulihkan zona (' . $res['restored'] . ' zona)');
+            audit($user, 'restore', '', 'Restored zones (' . $res['restored'] . ' zones)');
             flash(
                 'success',
-                'Pemulihan zona selesai: ' . $res['restored'] . ' dari ' . $res['total'] .
-                ' zona berhasil dipulihkan.'
+                'Zone restore completed: ' . $res['restored'] . ' of ' . $res['total'] .
+                ' zones successfully restored.'
             );
         } else {
-            flash('danger', 'Pemulihan zona mengalami masalah: ' . implode('; ', $res['errors']));
+            flash('danger', 'Zone restore encountered issues: ' . implode('; ', $res['errors']));
         }
     } catch (Throwable $e) {
-        flash('danger', 'Gagal memproses berkas zona: ' . $e->getMessage());
+        flash('danger', 'Failed to process zone file: ' . $e->getMessage());
     }
     redirect(PATH_BACKUP);
 }
@@ -2545,7 +2545,7 @@ function handleBackup(array $user, string $path, string $method): void
 
     $overview = getBackupOverview();
     view('backup', array_merge([
-        'title' => 'Cadangan & Pemulihan',
+        'title' => 'Backup & Restore',
         'user' => $user,
     ], $overview));
 }
@@ -2564,7 +2564,7 @@ function handleServersPost(string $path): void
         $isActive = !empty($_POST['is_active']);
 
         if ($name === '' || $apiUrl === '' || $apiKey === '') {
-            flash('danger', 'Nama, API URL, dan API Key wajib diisi.');
+            flash('danger', 'Name, API URL, and API Key are required.');
         } else {
             PdnsCluster::addServer(
                 $name,
@@ -2574,7 +2574,7 @@ function handleServersPost(string $path): void
                 $isDefault,
                 $isActive
             );
-            flash('success', 'Node server ' . $name . ' berhasil ditambahkan ke cluster.');
+            flash('success', 'Server node ' . $name . ' successfully added to cluster.');
         }
     } elseif ($path === '/servers/update') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -2594,11 +2594,11 @@ function handleServersPost(string $path): void
             $isDefault,
             $isActive
         );
-        flash('success', 'Pengaturan node server berhasil diperbarui.');
+        flash('success', 'Server node settings successfully updated.');
     } elseif ($path === '/servers/delete') {
         $id = (int) ($_POST['id'] ?? 0);
         PdnsCluster::deleteServer($id);
-        flash('success', 'Node server berhasil dihapus.');
+        flash('success', 'Server node successfully deleted.');
     }
 }
 
@@ -2610,14 +2610,14 @@ function handleServersGet(string $path): void
     if ($path === '/servers/switch') {
         $id = (int) ($_GET['id'] ?? 0);
         PdnsCluster::setActiveServerId($id);
-        flash('success', 'Target node cluster aktif dialihkan.');
+        flash('success', 'Active cluster node switched.');
     } elseif ($path === '/servers/ping') {
         $id = (int) ($_GET['id'] ?? 0);
         $res = PdnsCluster::pingServer($id);
         if ($res['success']) {
-            flash('success', "Koneksi node server berhasil diuji. Latensi: {$res['latency_ms']} ms.");
+            flash('success', "Server node connection successfully tested. Latency: {$res['latency_ms']} ms.");
         } else {
-            flash('danger', 'Gagal menghubungi node server: ' . $res['message']);
+            flash('danger', 'Failed to reach server node: ' . $res['message']);
         }
     }
 }
@@ -2643,7 +2643,7 @@ function handleServers(array $user, string $path, string $method): void
     }
 
     view('servers', [
-        'title' => 'Node PowerDNS Cluster',
+        'title' => 'PowerDNS Cluster Nodes',
         'user' => $user,
         'servers' => PdnsCluster::listServers(),
         'activeServer' => PdnsCluster::getActiveServer(),
@@ -2665,7 +2665,7 @@ function handleWebhookAdd(): void
     $isActive = !empty($_POST['is_active']);
 
     if ($name === '' || $url === '') {
-        flash('danger', 'Nama dan URL webhook wajib diisi.');
+        flash('danger', 'Webhook name and URL are required.');
         return;
     }
 
@@ -2676,7 +2676,7 @@ function handleWebhookAdd(): void
         $events,
         $isActive
     );
-    flash('success', 'Webhook baru berhasil didaftarkan.');
+    flash('success', 'New webhook registered successfully.');
 }
 
 /**
@@ -2700,7 +2700,7 @@ function handleWebhookUpdate(): void
         $events,
         $isActive
     );
-    flash('success', 'Pengaturan webhook diperbarui.');
+    flash('success', 'Webhook settings updated.');
 }
 
 /**
@@ -2710,7 +2710,7 @@ function handleWebhookDelete(): void
 {
     $id = (int) ($_POST['id'] ?? 0);
     deleteWebhook($id);
-    flash('success', 'Webhook berhasil dihapus.');
+    flash('success', 'Webhook deleted successfully.');
 }
 
 /**
@@ -2746,15 +2746,15 @@ function handleWebhooks(array $user, string $path, string $method): void
         $id = (int) ($_GET['id'] ?? 0);
         $res = testWebhookDelivery($id);
         if ($res['success']) {
-            flash('success', 'Uji coba payload webhook berhasil dikirim (' . $res['message'] . ').');
+            flash('success', 'Webhook test payload sent successfully (' . $res['message'] . ').');
         } else {
-            flash('danger', 'Gagal mengirim uji coba webhook: ' . $res['message']);
+            flash('danger', 'Failed to send webhook test: ' . $res['message']);
         }
         redirect(PATH_WEBHOOKS);
     }
 
     view('webhooks', [
-        'title' => 'Webhooks CI/CD & Integrasi',
+        'title' => 'Webhooks & CI/CD Integration',
         'user' => $user,
         'webhooks' => listWebhooks(),
     ]);
@@ -2781,7 +2781,7 @@ function handleBulkRecords(array $user, string $path, string $method): void
         $type = trim((string) ($_POST['type'] ?? ''));
 
         if ($target === '') {
-            flash('danger', 'Konten target penggantian tidak boleh kosong.');
+            flash('danger', 'Replacement target content cannot be empty.');
             redirect('/bulk-records');
         }
 
@@ -2797,19 +2797,19 @@ function handleBulkRecords(array $user, string $path, string $method): void
             $query = $replacement;
             $results = bulkSearchRecords($pdns, $replacement, $type !== '' ? $type : null);
         } catch (Throwable $e) {
-            flash('danger', 'Gagal menjalankan penggantian massal: ' . $e->getMessage());
+            flash('danger', 'Failed to execute bulk replacement: ' . $e->getMessage());
         }
     } elseif ($query !== '') {
         try {
             $pdns = PdnsClient::fromSettings();
             $results = bulkSearchRecords($pdns, $query, $typeFilter !== '' ? $typeFilter : null);
         } catch (Throwable $e) {
-            flash('danger', 'Gagal mencari record DNS: ' . $e->getMessage());
+            flash('danger', 'Failed to search DNS records: ' . $e->getMessage());
         }
     }
 
     view('bulk_records', [
-        'title' => 'Operasi Rekam Massal (Bulk Records)',
+        'title' => 'Bulk Records Operations',
         'user' => $user,
         'query' => $query,
         'typeFilter' => $typeFilter,
@@ -2842,7 +2842,7 @@ function handleAnalytics(array $user, string $path): void
             echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             exit;
         } catch (Throwable $e) {
-            flash('danger', 'Gagal mengekspor data telemetri: ' . $e->getMessage());
+            flash('danger', 'Failed to export telemetry data: ' . $e->getMessage());
             redirect('/analytics');
         }
     }
@@ -2872,11 +2872,11 @@ function handleAnalytics(array $user, string $path): void
             $topRemotes = parseRingBuffer($metrics['remotes'], 10, $mask);
         }
     } catch (Throwable $e) {
-        flash('warning', 'Gagal memuat telemetri PowerDNS: ' . $e->getMessage());
+        flash('warning', 'Failed to load PowerDNS telemetry: ' . $e->getMessage());
     }
 
     view('analytics', [
-        'title' => 'Telemetri & Analitik DNS',
+        'title' => 'DNS Telemetry & Analytics',
         'user' => $user,
         'metrics' => $metrics,
         'topQueries' => $topQueries,

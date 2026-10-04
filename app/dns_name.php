@@ -76,7 +76,7 @@ function isReverseZone(string $zone): bool
 }
 
 /**
- * Menghasilkan nama zona reverse untuk subnet /24 (misal: "192.0.2.0/24" -> "2.0.192.in-addr.arpa.").
+ * Generate reverse zone name for a /24 subnet (e.g., "192.0.2.0/24" -> "2.0.192.in-addr.arpa.").
  */
 function ipv4ToReverseZone24(string $ipOrCidr): ?string
 {
@@ -89,7 +89,7 @@ function ipv4ToReverseZone24(string $ipOrCidr): ?string
 }
 
 /**
- * Menghasilkan nama relatif record PTR di dalam zona /24 (oktet ke-4).
+ * Generate relative PTR record name within a /24 zone (4th octet).
  */
 function ipv4ToRelativePtr24(string $ipv4): ?string
 {
@@ -101,7 +101,7 @@ function ipv4ToRelativePtr24(string $ipv4): ?string
 }
 
 /**
- * Menghasilkan FQDN kanonikal record PTR IPv4 lengkap (misal: "15.2.0.192.in-addr.arpa.").
+ * Generate full canonical IPv4 PTR record FQDN (e.g., "15.2.0.192.in-addr.arpa.").
  */
 function ipv4ToPtrFqdn(string $ipv4): ?string
 {
@@ -111,8 +111,8 @@ function ipv4ToPtrFqdn(string $ipv4): ?string
 }
 
 /**
- * Menghasilkan nama zona reverse untuk prefix IPv6 /64 (RFC 3596 Nibble Format).
- * Contoh: "2001:db8:1234:5678::/64" -> "8.7.6.5.4.3.2.1.8.b.d.0.1.0.0.2.ip6.arpa."
+ * Generate reverse zone name for an IPv6 /64 prefix (RFC 3596 Nibble Format).
+ * Example: "2001:db8:1234:5678::/64" -> "8.7.6.5.4.3.2.1.8.b.d.0.1.0.0.2.ip6.arpa."
  */
 function ipv6ToReverseZone64(string $ipv6OrPrefix): ?string
 {
@@ -128,8 +128,8 @@ function ipv6ToReverseZone64(string $ipv6OrPrefix): ?string
 }
 
 /**
- * Menghasilkan nama relatif record PTR di dalam zona /64 (16 nibble host terakhir yang dibalik).
- * Contoh: "2001:db8:1234:5678::1" -> "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
+ * Generate relative PTR record name within a /64 zone (reversed last 16 host nibbles).
+ * Example: "2001:db8:1234:5678::1" -> "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
  */
 function ipv6ToRelativePtr64(string $ipv6): ?string
 {

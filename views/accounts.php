@@ -10,36 +10,36 @@ declare(strict_types=1);
 ?>
 <form method="post" action="/accounts" class="panel stack mb-3">
   <?= csrfField() ?>
-  <h2 class="h6 mb-2">Tambah Akun Organisasi / Grup</h2>
+  <h2 class="h6 mb-2">Add Organization / Group Account</h2>
   <div class="row g-2 align-items-end">
     <div class="col-md-4">
-      <label class="form-label small" for="account-name">Nama Akun</label>
-      <input class="form-control" id="account-name" name="name" placeholder="Nama organisasi / klien" required>
+      <label class="form-label small" for="account-name">Account Name</label>
+      <input class="form-control" id="account-name" name="name" placeholder="Organization / client name" required>
     </div>
     <div class="col-md-3">
-      <label class="form-label small" for="account-contact">Kontak</label>
-      <input class="form-control" id="account-contact" name="contact" placeholder="Email / Telepon">
+      <label class="form-label small" for="account-contact">Contact</label>
+      <input class="form-control" id="account-contact" name="contact" placeholder="Email / Phone">
     </div>
     <div class="col-md-3">
-      <label class="form-label small" for="account-notes">Catatan</label>
-      <input class="form-control" id="account-notes" name="notes" placeholder="Catatan internal">
+      <label class="form-label small" for="account-notes">Notes</label>
+      <input class="form-control" id="account-notes" name="notes" placeholder="Internal notes">
     </div>
     <div class="col-md-2">
-      <button class="btn btn-primary w-100" type="submit">Tambah Akun</button>
+      <button class="btn btn-primary w-100" type="submit">Add Account</button>
     </div>
   </div>
 </form>
 
 <div class="panel">
-  <h2 class="h6 mb-3">Daftar Akun</h2>
+  <h2 class="h6 mb-3">Accounts List</h2>
   <div class="table-responsive">
     <table class="table align-middle">
       <thead>
         <tr>
-          <th scope="col">Nama Akun</th>
-          <th scope="col">Kontak</th>
-          <th scope="col">Catatan</th>
-          <th scope="col">Jumlah Zona</th>
+          <th scope="col">Account Name</th>
+          <th scope="col">Contact</th>
+          <th scope="col">Notes</th>
+          <th scope="col">Zone Count</th>
         </tr>
       </thead>
       <tbody>
@@ -53,7 +53,7 @@ declare(strict_types=1);
       <?php endforeach; ?>
       <?php if (!$accounts) : ?>
         <tr>
-          <td colspan="4" class="text-center py-4 muted">Belum ada akun.</td>
+          <td colspan="4" class="text-center py-4 muted">No accounts yet.</td>
         </tr>
       <?php endif; ?>
       </tbody>

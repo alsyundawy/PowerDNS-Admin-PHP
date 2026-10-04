@@ -18,15 +18,15 @@ const WHOIS_TIMEOUT_SECS = 6;
  */
 function ipcalcGetIpv4Class(int $firstOctet): string
 {
-    $class = 'Kelas E (Eksperimental)';
+    $class = 'Class E (Experimental)';
     if ($firstOctet < 128) {
-        $class = 'Kelas A';
+        $class = 'Class A';
     } elseif ($firstOctet < 192) {
-        $class = 'Kelas B';
+        $class = 'Class B';
     } elseif ($firstOctet < 224) {
-        $class = 'Kelas C';
+        $class = 'Class C';
     } elseif ($firstOctet < 240) {
-        $class = 'Kelas D (Multicast)';
+        $class = 'Class D (Multicast)';
     }
     return $class;
 }
@@ -309,7 +309,7 @@ function fetchRdapJson(string $url): array
 {
     $ch = curl_init($url);
     if ($ch === false) {
-        return ['success' => false, 'error' => 'Inisialisasi cURL gagal.'];
+        return ['success' => false, 'error' => 'cURL initialization failed.'];
     }
 
     curl_setopt_array($ch, [
@@ -317,7 +317,7 @@ function fetchRdapJson(string $url): array
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_TIMEOUT => RDAP_TIMEOUT_SECS,
         CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_USERAGENT => 'PowerDNS-Admin-PHP/0.2.1 RDAP-Client',
+        CURLOPT_USERAGENT => 'PowerDNS-Admin-PHP/0.3.0 RDAP-Client',
         CURLOPT_HTTPHEADER => ['Accept: application/rdap+json, application/json'],
         CURLOPT_SSL_VERIFYPEER => true,
     ]);
@@ -329,13 +329,13 @@ function fetchRdapJson(string $url): array
 
     $errorMsg = null;
     if ($res === false || $err !== '') {
-        $errorMsg = 'Kueri RDAP gagal: ' . $err;
+        $errorMsg = 'RDAP query failed: ' . $err;
     } elseif ($httpCode !== 200) {
-        $errorMsg = 'Server RDAP mengembalikan status HTTP ' . $httpCode;
+        $errorMsg = 'RDAP server returned HTTP status ' . $httpCode;
     } else {
         $json = json_decode((string) $res, true);
         if (!is_array($json)) {
-            $errorMsg = 'Respons RDAP bukan format JSON yang valid.';
+            $errorMsg = 'RDAP response is not a valid JSON format.';
         }
     }
 
@@ -358,7 +358,7 @@ function whoisQueryRdap(string $query): array
 
     $res = fetchRdapJson($url);
     if (!$res['success']) {
-        return ['success' => false, 'error' => $res['error'] ?? 'Gagal kueri RDAP.', 'data' => []];
+        return ['success' => false, 'error' => $res['error'] ?? 'RDAP query failed.', 'data' => []];
     }
 
     return [
@@ -377,7 +377,7 @@ function whoisQuerySocket(string $query, ?string $server = null): array
     $targetServer = $server ?: 'whois.iana.org';
     $cleanQuery = trim(preg_replace('/[^a-zA-Z0-9.\-:]/', '', $query) ?? '');
     if ($cleanQuery === '') {
-        return ['success' => false, 'server' => $targetServer, 'error' => 'Input kueri tidak valid.', 'raw' => ''];
+        return ['success' => false, 'server' => $targetServer, 'error' => 'Invalid query input.', 'raw' => ''];
     }
 
     $fp = @fsockopen($targetServer, WHOIS_PORT, $errno, $errstr, WHOIS_TIMEOUT_SECS);
@@ -385,7 +385,7 @@ function whoisQuerySocket(string $query, ?string $server = null): array
         return [
             'success' => false,
             'server' => $targetServer,
-            'error' => "Gagal terhubung ke $targetServer: $errstr ($errno)",
+            'error' => "Failed to connect to $targetServer: $errstr ($errno)",
             'raw' => '',
         ];
     }
@@ -401,7 +401,7 @@ function whoisQuerySocket(string $query, ?string $server = null): array
         }
         $out .= $line;
         if (strlen($out) > 65536) {
-            $out .= "\n[Output dipotong karena batas ukuran]";
+            $out .= "\n[Output truncated due to size limit]";
             break;
         }
     }
@@ -418,7 +418,7 @@ function dnsLookupAll(string $domain): array
     $domain = trim($domain);
     $domain = rtrim($domain, '.');
     if ($domain === '') {
-        return ['status' => 'error', 'message' => 'Nama domain tidak boleh kosong.'];
+        return ['status' => 'error', 'message' => 'Domain name cannot be empty.'];
     }
 
     $types = [

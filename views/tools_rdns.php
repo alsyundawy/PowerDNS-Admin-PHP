@@ -11,9 +11,9 @@ declare(strict_types=1);
 <div class="panel mb-4">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
     <div>
-      <h2 class="h5 mb-1">Generator Subnet Reverse DNS &amp; PTR</h2>
+      <h2 class="h5 mb-1">Reverse DNS Subnet &amp; PTR Generator</h2>
       <p class="muted mb-0 small">
-        Kalkulasi dan manajemen zona reverse IPv4 (/24) dan IPv6 (/64 RFC 3596 Nibble Format) dengan PowerDNS API.
+        IPv4 (/24) and IPv6 (/64 RFC 3596 Nibble Format) reverse zone calculation and management with PowerDNS API.
       </p>
     </div>
     <span class="badge bg-primary px-3 py-2">RFC 1035 &amp; RFC 3596</span>
@@ -22,47 +22,47 @@ declare(strict_types=1);
 
 <!-- Interactive Live Calculator -->
 <div class="panel mb-4">
-  <h3 class="h6 mb-3">Kalkulator Interaktif Subnet rDNS</h3>
+  <h3 class="h6 mb-3">Interactive rDNS Subnet Calculator</h3>
   <div class="row g-3">
     <div class="col-md-3">
-      <label class="form-label small" for="calc-family">Family IP</label>
+      <label class="form-label small" for="calc-family">IP Family</label>
       <select class="form-select" id="calc-family">
         <option value="ipv4" selected>IPv4 (/24 Subnet)</option>
         <option value="ipv6">IPv6 (/64 Prefix)</option>
       </select>
     </div>
     <div class="col-md-5">
-      <label class="form-label small" for="calc-input">Alamat IP / Subnet</label>
+      <label class="form-label small" for="calc-input">IP Address / Subnet</label>
       <input
         class="form-control font-monospace"
         id="calc-input"
-        placeholder="192.0.2.0/24 atau 192.0.2.1"
+        placeholder="192.0.2.0/24 or 192.0.2.1"
         value="192.0.2.0/24"
       >
     </div>
     <div class="col-md-4">
-      <label class="form-label small" for="calc-output-zone">Nama Zona Reverse (Canonical)</label>
+      <label class="form-label small" for="calc-output-zone">Reverse Zone Name (Canonical)</label>
       <div class="input-group">
         <input
           class="form-control font-monospace bg-dark text-success"
           id="calc-output-zone"
-          aria-label="Nama Zona Reverse Canonical"
+          aria-label="Canonical Reverse Zone Name"
           readonly
         >
-        <button class="btn btn-outline-secondary btn-sm" id="btn-copy-zone" type="button" title="Salin">Salin</button>
+        <button class="btn btn-outline-secondary btn-sm" id="btn-copy-zone" type="button" title="Copy">Copy</button>
       </div>
     </div>
   </div>
   <div class="mt-3 p-3 rounded bg-dark border border-secondary small font-monospace" id="calc-telemetry">
     <div class="row">
       <div class="col-md-6">
-        <span class="text-secondary">Contoh Host #1 :</span>
+        <span class="text-secondary">Example Host #1:</span>
         <span class="text-light" id="tel-host1">192.0.2.1</span><br>
-        <span class="text-secondary">Nama PTR Relatif:</span>
+        <span class="text-secondary">Relative PTR Name:</span>
         <span class="text-info" id="tel-rel1">1</span>
       </div>
       <div class="col-md-6">
-        <span class="text-secondary">Full PTR FQDN :</span>
+        <span class="text-secondary">Full PTR FQDN:</span>
         <span class="text-warning" id="tel-fqdn1">1.2.0.192.in-addr.arpa.</span>
       </div>
     </div>
@@ -70,14 +70,14 @@ declare(strict_types=1);
 </div>
 
 <div class="row g-4">
-  <!-- Card 1: Buat Zona Reverse Baru -->
+  <!-- Card 1: Create New Reverse Zone -->
   <div class="col-lg-6">
     <div class="panel h-100">
-      <h3 class="h6 mb-3">1. Buat Zona Reverse Baru di PowerDNS</h3>
+      <h3 class="h6 mb-3">1. Create New Reverse Zone in PowerDNS</h3>
       <form method="post" action="/tools/rdns/create-zone" class="stack">
         <?= csrfField() ?>
         <div>
-          <label class="form-label small" for="create-family">Family IP</label>
+          <label class="form-label small" for="create-family">IP Family</label>
           <select class="form-select" id="create-family" name="family">
             <option value="ipv4" selected>IPv4 (/24 Subnet)</option>
             <option value="ipv6">IPv6 (/64 Prefix)</option>
@@ -89,25 +89,25 @@ declare(strict_types=1);
             class="form-control font-monospace"
             id="create-subnet"
             name="subnet"
-            placeholder="192.0.2.0/24 atau 2001:db8:1234:5678::/64"
+            placeholder="192.0.2.0/24 or 2001:db8:1234:5678::/64"
             required
           >
           <div class="form-text small muted">
-            Zona otomatis dikonversi (misal: <code>2.0.192.in-addr.arpa.</code>).
+            Zone is automatically converted (e.g. <code>2.0.192.in-addr.arpa.</code>).
           </div>
         </div>
         <div class="row g-2">
           <div class="col-sm-6">
-            <label class="form-label small" for="create-kind">Jenis Zona</label>
+            <label class="form-label small" for="create-kind">Zone Type</label>
             <select class="form-select" id="create-kind" name="kind">
               <option value="Native" selected>Native</option>
               <option value="Master">Master / Primary</option>
             </select>
           </div>
           <div class="col-sm-6">
-            <label class="form-label small" for="create-account">Akun Tenant</label>
+            <label class="form-label small" for="create-account">Tenant Account</label>
             <select class="form-select" id="create-account" name="account_id">
-              <option value="0">Tanpa akun</option>
+              <option value="0">No account</option>
               <?php foreach ($accounts as $a) : ?>
                 <option value="<?= (int) $a['id'] ?>"><?= e($a['name']) ?></option>
               <?php endforeach; ?>
@@ -115,7 +115,7 @@ declare(strict_types=1);
           </div>
         </div>
         <div>
-          <label class="form-label small" for="create-ns">Nameservers Awal (Pisahkan Koma)</label>
+          <label class="form-label small" for="create-ns">Initial Nameservers (Comma separated)</label>
           <input
             class="form-control"
             id="create-ns"
@@ -124,22 +124,22 @@ declare(strict_types=1);
           >
         </div>
         <div class="pt-2">
-          <button class="btn btn-primary w-100" type="submit">Buat Zona Reverse</button>
+          <button class="btn btn-primary w-100" type="submit">Create Reverse Zone</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Card 2: Batch Generator Record PTR -->
+  <!-- Card 2: Batch PTR Record Generator -->
   <div class="col-lg-6">
     <div class="panel h-100">
-      <h3 class="h6 mb-3">2. Generator Record PTR Massal (Batch Template)</h3>
+      <h3 class="h6 mb-3">2. Bulk PTR Record Generator (Batch Template)</h3>
       <form method="post" action="/tools/rdns/generate-ptr" class="stack">
         <?= csrfField() ?>
         <div>
-          <label class="form-label small" for="gen-zone">Pilih Zona Reverse Tujuan</label>
+          <label class="form-label small" for="gen-zone">Select Target Reverse Zone</label>
           <select class="form-select font-monospace" id="gen-zone" name="zone" required>
-            <option value="">-- Pilih Zona Reverse Terdaftar --</option>
+            <option value="">-- Select Registered Reverse Zone --</option>
             <?php foreach ($reverseZones as $rz) : ?>
               <option value="<?= e($rz['name']) ?>"><?= e($rz['name']) ?> (<?= e($rz['kind']) ?>)</option>
             <?php endforeach; ?>
@@ -147,14 +147,14 @@ declare(strict_types=1);
         </div>
         <div class="row g-2">
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-family">Family IP</label>
+            <label class="form-label small" for="gen-family">IP Family</label>
             <select class="form-select" id="gen-family" name="family">
               <option value="ipv4" selected>IPv4 (/24)</option>
               <option value="ipv6">IPv6 (/64)</option>
             </select>
           </div>
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-subnet">Subnet Acuan</label>
+            <label class="form-label small" for="gen-subnet">Reference Subnet</label>
             <input
               class="form-control font-monospace"
               id="gen-subnet"
@@ -166,7 +166,7 @@ declare(strict_types=1);
         </div>
         <div class="row g-2">
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-domain">Domain Tujuan</label>
+            <label class="form-label small" for="gen-domain">Target Domain</label>
             <input
               class="form-control"
               id="gen-domain"
@@ -176,7 +176,7 @@ declare(strict_types=1);
             >
           </div>
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-ttl">TTL (Detik)</label>
+            <label class="form-label small" for="gen-ttl">TTL (Seconds)</label>
             <input
               class="form-control"
               type="number"
@@ -188,7 +188,7 @@ declare(strict_types=1);
           </div>
         </div>
         <div>
-          <label class="form-label small" for="gen-pattern">Pola Naming Template</label>
+          <label class="form-label small" for="gen-pattern">Naming Pattern Template</label>
           <input
             class="form-control font-monospace"
             id="gen-pattern"
@@ -197,58 +197,58 @@ declare(strict_types=1);
             required
           >
           <div class="form-text small muted">
-            Gunakan makro: <code>[ID]</code> (nomor urut), <code>[HEX]</code>, <code>[HEX16]</code>,
+            Use macros: <code>[ID]</code> (sequential number), <code>[HEX]</code>, <code>[HEX16]</code>,
             <code>[IP]</code>, <code>[IP_DASH]</code>, <code>[OCTET4]</code>, <code>[DOMAIN]</code>.
           </div>
         </div>
         <div class="row g-2">
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-start">Host Mulai</label>
+            <label class="form-label small" for="gen-start">Start Host</label>
             <input class="form-control" type="number" id="gen-start" name="start" value="1" min="1">
           </div>
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-end">Host Akhir</label>
+            <label class="form-label small" for="gen-end">End Host</label>
             <input class="form-control" type="number" id="gen-end" name="end" value="254" min="1">
           </div>
         </div>
         <div class="pt-2">
-          <button class="btn btn-outline-primary w-100" type="submit">Bangkis &amp; Terapkan PTR Massal</button>
+          <button class="btn btn-outline-primary w-100" type="submit">Generate &amp; Apply Bulk PTR</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Card 3: Auto-Populate dari Zona Forward -->
+  <!-- Card 3: Auto-Populate from Forward Zones -->
   <div class="col-12">
     <div class="panel">
-      <h3 class="h6 mb-2">3. Auto-Populate PTR dari Record Forward (A / AAAA)</h3>
+      <h3 class="h6 mb-2">3. Auto-Populate PTR from Forward Records (A / AAAA)</h3>
       <p class="muted small mb-3">
-        Memindai seluruh zona forward lokal di PowerDNS untuk mendeteksi record <code>A</code> atau <code>AAAA</code>
-        yang berada di dalam subnet target, lalu secara otomatis menyusun dan menyuntikkan record PTR ke zona reverse.
+        Scans all local forward zones in PowerDNS to detect <code>A</code> or <code>AAAA</code> records
+        matching the target subnet, then automatically composes and injects PTR records into the reverse zone.
       </p>
       <form method="post" action="/tools/rdns/scan-forward" class="row g-3 align-items-end">
         <?= csrfField() ?>
         <div class="col-md-4">
-          <label class="form-label small" for="scan-zone">Zona Reverse Tujuan</label>
+          <label class="form-label small" for="scan-zone">Target Reverse Zone</label>
           <select class="form-select font-monospace" id="scan-zone" name="zone" required>
-            <option value="">-- Pilih Zona Reverse --</option>
+            <option value="">-- Select Reverse Zone --</option>
             <?php foreach ($reverseZones as $rz) : ?>
               <option value="<?= e($rz['name']) ?>"><?= e($rz['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
         <div class="col-md-5">
-          <label class="form-label small" for="scan-subnet">Subnet Yang Dipindai</label>
+          <label class="form-label small" for="scan-subnet">Scanned Subnet</label>
           <input
             class="form-control font-monospace"
             id="scan-subnet"
             name="subnet"
-            placeholder="192.0.2.0/24 atau 2001:db8:1234:5678::/64"
+            placeholder="192.0.2.0/24 or 2001:db8:1234:5678::/64"
             required
           >
         </div>
         <div class="col-md-3">
-          <button class="btn btn-primary w-100" type="submit">Pindai &amp; Sinkronkan PTR</button>
+          <button class="btn btn-primary w-100" type="submit">Scan &amp; Synchronize PTR</button>
         </div>
       </form>
     </div>
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       // IPv6 calculation approximation for preview
       var ip6 = raw.split('/')[0].trim();
-      outputZone.value = 'Kalkulasi Nibble RFC 3596 Aktif (.ip6.arpa.)';
+      outputZone.value = 'RFC 3596 Nibble Calculation Active (.ip6.arpa.)';
       telHost1.textContent = ip6 ? (ip6 + '1') : '::1';
       telRel1.textContent = '1.0.0.0...';
       telFqdn1.textContent = '1.0.0.0...ip6.arpa.';
@@ -303,8 +303,8 @@ document.addEventListener('DOMContentLoaded', function () {
   btnCopy.addEventListener('click', function () {
     if (outputZone.value) {
       navigator.clipboard.writeText(outputZone.value);
-      btnCopy.textContent = 'Tersalin!';
-      setTimeout(function () { btnCopy.textContent = 'Salin'; }, 2000);
+      btnCopy.textContent = 'Copied!';
+      setTimeout(function () { btnCopy.textContent = 'Copy'; }, 2000);
     }
   });
 

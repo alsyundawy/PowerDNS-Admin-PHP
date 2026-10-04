@@ -21,11 +21,11 @@ $tab = $activeTab ?? 'ipcalc';
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <div>
     <h2 class="h4 mb-1 text-light">
-      <i class="fa-solid fa-calculator text-info me-2"></i>Kalkulator Subnet IPCalc &amp; IPv6 Splitter
+      <i class="fa-solid fa-calculator text-info me-2"></i>IPCalc Subnet Calculator &amp; IPv6 Splitter
     </h2>
-    <p class="text-secondary small mb-0">Perhitungan bitwise subnetting IPv4, ekspansi 128-bit IPv6, reverse DNS (PTR), dan generator subnetting.</p>
+    <p class="text-secondary small mb-0">Bitwise IPv4 subnetting calculation, 128-bit IPv6 expansion, reverse DNS (PTR), and subnetting generator.</p>
   </div>
-  <nav class="btn-group" aria-label="Navigasi Tab Tools">
+  <nav class="btn-group" aria-label="Tools Tab Navigation">
     <a href="/tools/ipcalc" class="btn btn-sm <?= $tab === 'ipcalc' ? 'btn-primary' : 'btn-outline-secondary' ?>">
       <i class="fa-solid fa-network-wired me-1"></i>IPCalc
     </a>
@@ -46,24 +46,24 @@ $tab = $activeTab ?? 'ipcalc';
   <div class="panel">
     <form method="get" action="/tools/ipcalc" class="row g-2 align-items-end mb-3">
       <div class="col-md-9 col-12">
-        <label for="cidr-input" class="form-label small fw-semibold">Masukkan Alamat IP / CIDR Prefix</label>
+        <label for="cidr-input" class="form-label small fw-semibold">Enter IP Address / CIDR Prefix</label>
         <div class="input-group">
           <span class="input-group-text bg-dark border-secondary text-secondary">
             <i class="fa-solid fa-hashtag"></i>
           </span>
           <input type="text" class="form-control" id="cidr-input" name="cidr"
                  value="<?= e($cidr) ?>"
-                 placeholder="Contoh: 192.168.1.0/24 atau 2001:db8::/32" required autofocus>
+                 placeholder="Example: 192.168.1.0/24 or 2001:db8::/32" required autofocus>
         </div>
       </div>
       <div class="col-md-3 col-12">
         <button type="submit" class="btn btn-primary w-100">
-          <i class="fa-solid fa-magnifying-glass me-1"></i>Hitung Subnet
+          <i class="fa-solid fa-magnifying-glass me-1"></i>Calculate Subnet
         </button>
       </div>
     </form>
     <div class="d-flex flex-wrap gap-2 pt-1">
-      <span class="text-secondary small align-self-center">Contoh cepat:</span>
+      <span class="text-secondary small align-self-center">Quick examples:</span>
       <a href="/tools/ipcalc?cidr=10.0.0.0%2F8" class="badge bg-secondary-subtle text-light text-decoration-none">10.0.0.0/8</a>
       <a href="/tools/ipcalc?cidr=172.16.0.0%2F12" class="badge bg-secondary-subtle text-light text-decoration-none">172.16.0.0/12</a>
       <a href="/tools/ipcalc?cidr=192.168.1.0%2F24" class="badge bg-secondary-subtle text-light text-decoration-none">192.168.1.0/24</a>
@@ -78,10 +78,10 @@ $tab = $activeTab ?? 'ipcalc';
       <div class="panel">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <h3 class="h6 mb-0 text-info fw-bold">
-            <i class="fa-solid fa-circle-nodes me-2"></i>Hasil Analisis IPv4: <?= e((string) $result['cidr']) ?>
+            <i class="fa-solid fa-circle-nodes me-2"></i>IPv4 Analysis Results: <?= e((string) $result['cidr']) ?>
           </h3>
           <span class="pill <?= ($result['scope'] ?? '') === 'Private (RFC 1918)' ? 'accent' : 'ok' ?>">
-            <i class="fa-solid fa-shield me-1"></i><?= e((string) ($result['scope'] ?? 'Public')) ?> &bull; Kelas <?= e((string) ($result['class'] ?? 'N/A')) ?>
+            <i class="fa-solid fa-shield me-1"></i><?= e((string) ($result['scope'] ?? 'Public')) ?> &bull; <?= e((string) ($result['class'] ?? 'N/A')) ?>
           </span>
         </div>
 
@@ -103,19 +103,19 @@ $tab = $activeTab ?? 'ipcalc';
             <div class="ipcalc-card-value text-danger"><?= e((string) $result['broadcast']) ?></div>
           </div>
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Host Pertama (Usable)</div>
+            <div class="ipcalc-card-title">First Host (Usable)</div>
             <div class="ipcalc-card-value text-success"><?= e((string) $result['first_usable']) ?></div>
           </div>
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Host Terakhir (Usable)</div>
+            <div class="ipcalc-card-title">Last Host (Usable)</div>
             <div class="ipcalc-card-value text-success"><?= e((string) $result['last_usable']) ?></div>
           </div>
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Jumlah Usable Hosts</div>
+            <div class="ipcalc-card-title">Usable Hosts Count</div>
             <div class="ipcalc-card-value text-warning"><?= number_format((int) $result['usable_hosts']) ?></div>
           </div>
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Total Alamat (Termasuk Net/Bcast)</div>
+            <div class="ipcalc-card-title">Total Addresses (Inc. Net/Bcast)</div>
             <div class="ipcalc-card-value"><?= number_format((int) $result['total_hosts']) ?></div>
           </div>
         </div>
@@ -128,7 +128,7 @@ $tab = $activeTab ?? 'ipcalc';
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <code class="fs-6" id="rdns-ipv4-val"><?= e((string) $result['reverse_dns']) ?></code>
               <button class="btn btn-sm btn-outline-secondary btn-copy-target" data-target="rdns-ipv4-val" type="button">
-                <i class="fa-solid fa-copy me-1"></i>Salin Zone rDNS
+                <i class="fa-solid fa-copy me-1"></i>Copy rDNS Zone
               </button>
             </div>
           </div>
@@ -136,15 +136,15 @@ $tab = $activeTab ?? 'ipcalc';
 
         <div class="card border-secondary">
           <div class="card-header py-2 small fw-semibold text-secondary">
-            <i class="fa-solid fa-binary me-1"></i>Representasi Bitwise Biner 32-Bit
+            <i class="fa-solid fa-binary me-1"></i>32-Bit Binary Bitwise Representation
           </div>
           <div class="card-body py-2">
             <div class="table-responsive">
               <table class="table table-sm mb-0">
                 <thead>
                   <tr>
-                    <th scope="col" class="text-secondary" style="width: 140px;">Properti</th>
-                    <th scope="col" class="text-secondary">Nilai Biner</th>
+                    <th scope="col" class="text-secondary" style="width: 140px;">Property</th>
+                    <th scope="col" class="text-secondary">Binary Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -167,7 +167,7 @@ $tab = $activeTab ?? 'ipcalc';
       <div class="panel">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
           <h3 class="h6 mb-0 text-info fw-bold">
-            <i class="fa-solid fa-network-wired me-2"></i>Hasil Analisis IPv6: <?= e((string) $result['cidr']) ?>
+            <i class="fa-solid fa-network-wired me-2"></i>IPv6 Analysis Results: <?= e((string) $result['cidr']) ?>
           </h3>
           <span class="pill accent">
             <i class="fa-solid fa-globe me-1"></i><?= e((string) ($result['scope'] ?? 'Global')) ?>
@@ -176,7 +176,7 @@ $tab = $activeTab ?? 'ipcalc';
 
         <div class="ipcalc-result-grid mb-3">
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Alamat Network</div>
+            <div class="ipcalc-card-title">Network Address</div>
             <div class="ipcalc-card-value text-info"><?= e((string) $result['network']) ?>/<?= e((string) $result['mask']) ?></div>
           </div>
           <div class="ipcalc-card">
@@ -188,20 +188,20 @@ $tab = $activeTab ?? 'ipcalc';
             <div class="ipcalc-card-value">/<?= e((string) $result['mask']) ?> bit</div>
           </div>
           <div class="ipcalc-card">
-            <div class="ipcalc-card-title">Total Subnet /64 Tersedia</div>
+            <div class="ipcalc-card-title">Total /64 Subnets Available</div>
             <div class="ipcalc-card-value text-warning"><?= e((string) $result['subnets_slash_64']) ?></div>
           </div>
         </div>
 
         <div class="card mb-3 border-secondary">
           <div class="card-header py-2 small fw-semibold text-secondary">
-            <i class="fa-solid fa-expand me-1"></i>Format Full Expanded (32-Digit Hex, 8 Kelompok)
+            <i class="fa-solid fa-expand me-1"></i>Full Expanded Format (32-Digit Hex, 8 Groups)
           </div>
           <div class="card-body py-2">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <code class="fs-6" id="expanded-ipv6-val"><?= e((string) $result['uncompressed']) ?></code>
               <button class="btn btn-sm btn-outline-secondary btn-copy-target" data-target="expanded-ipv6-val" type="button">
-                <i class="fa-solid fa-copy me-1"></i>Salin
+                <i class="fa-solid fa-copy me-1"></i>Copy
               </button>
             </div>
           </div>
@@ -215,7 +215,7 @@ $tab = $activeTab ?? 'ipcalc';
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <code class="fs-6" id="rdns-ipv6-val"><?= e((string) $result['reverse_dns']) ?></code>
               <button class="btn btn-sm btn-outline-secondary btn-copy-target" data-target="rdns-ipv6-val" type="button">
-                <i class="fa-solid fa-copy me-1"></i>Salin Zone rDNS
+                <i class="fa-solid fa-copy me-1"></i>Copy rDNS Zone
               </button>
             </div>
           </div>
@@ -224,7 +224,7 @@ $tab = $activeTab ?? 'ipcalc';
         <div class="d-flex justify-content-end">
           <a href="/tools/ipv6-splitter?subnet=<?= urlencode((string) $result['cidr']) ?>&target_mask=<?= min(128, (int) $result['mask'] + 16) ?>"
              class="btn btn-sm btn-outline-primary">
-            <i class="fa-solid fa-diagram-project me-1"></i>Bagi Prefix Ini di IPv6 Splitter &raquo;
+            <i class="fa-solid fa-diagram-project me-1"></i>Split This Prefix in IPv6 Splitter &raquo;
           </a>
         </div>
       </div>
@@ -236,18 +236,18 @@ $tab = $activeTab ?? 'ipcalc';
   <div class="panel">
     <form method="get" action="/tools/ipv6-splitter" class="row g-3 align-items-end mb-3">
       <div class="col-md-6 col-12">
-        <label for="subnet-input" class="form-label small fw-semibold">Base Subnet IPv6 (Sumber)</label>
+        <label for="subnet-input" class="form-label small fw-semibold">Base IPv6 Subnet (Source)</label>
         <div class="input-group">
           <span class="input-group-text bg-dark border-secondary text-secondary">
             <i class="fa-solid fa-sitemap"></i>
           </span>
           <input type="text" class="form-control" id="subnet-input" name="subnet"
                  value="<?= e($subnet ?? '2001:db8::/32') ?>"
-                 placeholder="Contoh: 2001:db8::/32" required autofocus>
+                 placeholder="Example: 2001:db8::/32" required autofocus>
         </div>
       </div>
       <div class="col-md-3 col-6">
-        <label for="target-mask-select" class="form-label small fw-semibold">Target Prefix Tujuan</label>
+        <label for="target-mask-select" class="form-label small fw-semibold">Target Prefix Mask</label>
         <select class="form-select" id="target-mask-select" name="target_mask">
           <?php for ($m = 32; $m <= 128; $m += 4) : ?>
             <?php
@@ -272,10 +272,10 @@ $tab = $activeTab ?? 'ipcalc';
     </form>
 
     <div class="d-flex flex-wrap gap-2 pt-1">
-      <span class="text-secondary small align-self-center">Preset Populer:</span>
-      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F32&target_mask=48" class="badge bg-secondary-subtle text-light text-decoration-none">/32 ke /48 (65.536 subnet)</a>
-      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F48&target_mask=64" class="badge bg-secondary-subtle text-light text-decoration-none">/48 ke /64 (65.536 subnet)</a>
-      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F56&target_mask=64" class="badge bg-secondary-subtle text-light text-decoration-none">/56 ke /64 (256 subnet)</a>
+      <span class="text-secondary small align-self-center">Popular Presets:</span>
+      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F32&target_mask=48" class="badge bg-secondary-subtle text-light text-decoration-none">/32 to /48 (65,536 subnets)</a>
+      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F48&target_mask=64" class="badge bg-secondary-subtle text-light text-decoration-none">/48 to /64 (65,536 subnets)</a>
+      <a href="/tools/ipv6-splitter?subnet=2001%3Adb8%3A%3A%2F56&target_mask=64" class="badge bg-secondary-subtle text-light text-decoration-none">/56 to /64 (256 subnets)</a>
     </div>
   </div>
 
@@ -284,22 +284,22 @@ $tab = $activeTab ?? 'ipcalc';
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
           <h3 class="h6 mb-0 text-info fw-bold">
-            <i class="fa-solid fa-list-check me-2"></i>Daftar Subnet yang Dihasilkan
+            <i class="fa-solid fa-list-check me-2"></i>Generated Subnets List
           </h3>
           <small class="text-secondary">
-            Total: <strong><?= number_format((int) ($totalCount ?? count($previewSubnets))) ?></strong> subnet /<?= e((string) ($targetMask ?? 48)) ?>
+            Total: <strong><?= number_format((int) ($totalCount ?? count($previewSubnets))) ?></strong> subnets /<?= e((string) ($targetMask ?? 48)) ?>
             <?php if (($totalCount ?? 0) > count($previewSubnets)) : ?>
-              (Menampilkan <?= count($previewSubnets) ?> subnet pertama dalam pratinjau)
+              (Displaying first <?= count($previewSubnets) ?> subnets in preview)
             <?php endif; ?>
           </small>
         </div>
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-secondary btn-copy-target" data-target="subnet-preview-box" type="button">
-            <i class="fa-solid fa-copy me-1"></i>Salin Pratinjau
+            <i class="fa-solid fa-copy me-1"></i>Copy Preview
           </button>
           <a href="/tools/ipv6-splitter?subnet=<?= urlencode((string) $subnet) ?>&target_mask=<?= e((string) $targetMask) ?>&download=1"
              class="btn btn-sm btn-success">
-            <i class="fa-solid fa-download me-1"></i>Download Semua (.txt)
+            <i class="fa-solid fa-download me-1"></i>Download All (.txt)
           </a>
         </div>
       </div>

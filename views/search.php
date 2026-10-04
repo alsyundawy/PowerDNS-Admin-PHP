@@ -11,8 +11,8 @@ declare(strict_types=1);
 ?>
 <form class="search-inline mb-3" method="get" action="/search">
   <input class="form-control" name="q" value="<?= e($q) ?>"
-         placeholder="Cari nama host, tipe record, zona, atau konten..." aria-label="Query pencarian">
-  <button class="btn btn-primary" type="submit">Cari Data</button>
+         placeholder="Search hostname, record type, zone, or content..." aria-label="Search query">
+  <button class="btn btn-primary" type="submit">Search</button>
 </form>
 
 <?php if (!empty($error)) : ?>
@@ -21,16 +21,16 @@ declare(strict_types=1);
 
 <div class="panel">
   <header>
-    <h2>Hasil Pencarian Data</h2>
+    <h2>Search Results</h2>
   </header>
   <div class="table-responsive">
     <table class="table align-middle">
       <thead>
         <tr>
-          <th scope="col">Tipe Objek</th>
-          <th scope="col">Nama</th>
-          <th scope="col">Zona Otoritatif</th>
-          <th scope="col">Isi Data</th>
+          <th scope="col">Object Type</th>
+          <th scope="col">Name</th>
+          <th scope="col">Authoritative Zone</th>
+          <th scope="col">Content</th>
         </tr>
       </thead>
       <tbody>
@@ -53,12 +53,12 @@ declare(strict_types=1);
       <?php endforeach; ?>
       <?php if (!$results && $q !== '') : ?>
         <tr>
-          <td colspan="4" class="text-center py-4 muted">Tidak ditemukan data yang cocok dengan kueri Anda.</td>
+          <td colspan="4" class="text-center py-4 muted">No records matching your search query were found.</td>
         </tr>
       <?php elseif (!$results) : ?>
         <tr>
           <td colspan="4" class="text-center py-4 muted">
-            Ketik kata kunci di atas untuk mencari lintas seluruh zona PowerDNS.
+            Enter a search term above to search across all PowerDNS zones.
           </td>
         </tr>
       <?php endif; ?>

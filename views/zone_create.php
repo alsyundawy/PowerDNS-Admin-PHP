@@ -14,26 +14,26 @@ declare(strict_types=1);
 
 <form method="post" action="/zones/new" enctype="multipart/form-data" class="panel stack">
   <?= csrfField() ?>
-  <h2 class="h6 mb-0">Parameter Zona Baru</h2>
+  <h2 class="h6 mb-0">New Zone Parameters</h2>
 
   <div>
-    <label class="form-label" for="zone-name">Nama Zona</label>
+    <label class="form-label" for="zone-name">Zone Name</label>
     <input
       class="form-control"
       id="zone-name"
       name="name"
-      placeholder="example.com atau 10.in-addr.arpa"
+      placeholder="example.com or 10.in-addr.arpa"
       required
       aria-describedby="zone-name-help"
     >
     <div id="zone-name-help" class="form-text">
-      Masukkan domain FQDN atau zona reverse ARPA. Sistem otomatis menyesuaikan titik akhir (canonical).
+      Enter an FQDN domain or ARPA reverse zone. Canonical trailing dots are handled automatically.
     </div>
   </div>
 
   <div class="row g-3">
     <div class="col-md-4">
-      <label class="form-label" for="zone-kind">Jenis Zona</label>
+      <label class="form-label" for="zone-kind">Zone Type</label>
       <select class="form-select" id="zone-kind" name="kind">
         <?php foreach (['Native', 'Master', 'Slave', 'Producer', 'Consumer'] as $k) : ?>
           <option value="<?= e($k) ?>"><?= e($k) ?></option>
@@ -49,9 +49,9 @@ declare(strict_types=1);
       </select>
     </div>
     <div class="col-md-4">
-      <label class="form-label" for="zone-account">Akun Pemilik</label>
+      <label class="form-label" for="zone-account">Account Owner</label>
       <select class="form-select" id="zone-account" name="account_id">
-        <option value="0">Tanpa akun</option>
+        <option value="0">No account</option>
         <?php foreach ($accounts as $a) : ?>
           <option value="<?= (int) $a['id'] ?>"><?= e($a['name']) ?></option>
         <?php endforeach; ?>
@@ -60,7 +60,7 @@ declare(strict_types=1);
   </div>
 
   <div>
-    <label class="form-label" for="zone-ns">Nameserver Otoritatif (Pisahkan dengan koma)</label>
+    <label class="form-label" for="zone-ns">Authoritative Nameservers (Comma separated)</label>
     <input
       class="form-control"
       id="zone-ns"
@@ -71,14 +71,14 @@ declare(strict_types=1);
   </div>
 
   <div>
-    <label class="form-label" for="zone-masters">IP Primary / Master (Wajib untuk zona Slave, pisahkan koma)</label>
+    <label class="form-label" for="zone-masters">Primary / Master IPs (Required for Slave zones, comma separated)</label>
     <input class="form-control" id="zone-masters" name="masters" placeholder="192.0.2.53, 198.51.100.53">
   </div>
 
   <div>
-    <label class="form-label" for="zone-template">Terapkan Template Awal</label>
+    <label class="form-label" for="zone-template">Apply Initial Template</label>
     <select class="form-select" id="zone-template" name="template_id">
-      <option value="0">Tanpa template (zona kosong)</option>
+      <option value="0">No template (empty zone)</option>
       <?php foreach ($templates as $t) : ?>
         <option value="<?= (int) $t['id'] ?>"><?= e($t['name']) ?></option>
       <?php endforeach; ?>
@@ -87,15 +87,15 @@ declare(strict_types=1);
 
   <div class="panel border p-3 bg-light">
     <h3 class="h6 mb-2">
-      Impor File Zona BIND (RFC 1035 / AXFR) <span class="badge bg-secondary">Opsional</span>
+      Import BIND Zone File (RFC 1035 / AXFR) <span class="badge bg-secondary">Optional</span>
     </h3>
     <p class="muted small mb-3">
-      Unggah file <code>.zone</code> / <code>.txt</code> atau tempel teks zona BIND standar.
-      Sistem akan otomatis mem-parsing <code>$ORIGIN</code>, <code>$TTL</code>, SOA,
-      dan semua Resource Record (RR).
+      Upload a <code>.zone</code> / <code>.txt</code> file or paste standard BIND zone text.
+      The system automatically parses <code>$ORIGIN</code>, <code>$TTL</code>, SOA,
+      and all Resource Records (RRs).
     </p>
     <div class="mb-3">
-      <label class="form-label" for="zone-bind-file">Unggah Berkas Zona (.zone, .txt, .db)</label>
+      <label class="form-label" for="zone-bind-file">Upload Zone File (.zone, .txt, .db)</label>
       <input
         type="file"
         class="form-control"
@@ -105,19 +105,19 @@ declare(strict_types=1);
       >
     </div>
     <div>
-      <label class="form-label" for="zone-bind-content">Atau Tempel Isi File Zona BIND di sini</label>
+      <label class="form-label" for="zone-bind-content">Or Paste BIND Zone File Content Here</label>
       <textarea
         class="form-control font-monospace"
         id="zone-bind-content"
         name="bind_content"
         rows="5"
-        placeholder="; Tempel isi konfigurasi zona BIND di sini..."
+        placeholder="; Paste BIND zone configuration here..."
       ></textarea>
     </div>
   </div>
 
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2">
-    <p class="muted small mb-0">Record akan langsung dibuat di Authoritative Server melalui HTTP API v1.</p>
-    <button class="btn btn-primary" type="submit">Buat Zona</button>
+    <p class="muted small mb-0">Records will be created immediately on the Authoritative Server via HTTP API v1.</p>
+    <button class="btn btn-primary" type="submit">Create Zone</button>
   </div>
 </form>

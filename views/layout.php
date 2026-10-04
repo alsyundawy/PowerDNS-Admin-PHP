@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 ?>
 <!doctype html>
-<html lang="id" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -44,11 +44,11 @@ declare(strict_types=1);
     </a>
     <div class="d-flex align-items-center gap-2">
       <button class="btn btn-sm btn-outline-light theme-toggle-btn"
-              type="button" aria-label="Ganti mode tema">
+              type="button" aria-label="Toggle theme mode">
         <i class="fa-solid fa-moon text-warning"></i>
       </button>
       <button class="btn btn-sm btn-outline-light" id="sidebar-toggle"
-              type="button" aria-label="Toggle navigasi" aria-expanded="false" aria-controls="app-sidebar">
+              type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="app-sidebar">
         <i class="fa-solid fa-bars"></i>
       </button>
     </div>
@@ -65,83 +65,83 @@ declare(strict_types=1);
         <small>PHP native &bull; v0.3.0</small>
       </span>
     </a>
-    <nav aria-label="Menu navigasi utama">
-      <a class="<?= ($title ?? '') === 'Dasbor' ? 'active' : '' ?>" href="/">
-        <i class="fa-solid fa-gauge fa-fw"></i> Dasbor
+    <nav aria-label="Main navigation menu">
+      <a class="<?= ($title ?? '') === 'Dashboard' ? 'active' : '' ?>" href="/">
+        <i class="fa-solid fa-gauge fa-fw"></i> Dashboard
       </a>
-      <a class="<?= ($title ?? '') === 'Zona' ? 'active' : '' ?>" href="/zones">
-        <i class="fa-solid fa-globe fa-fw"></i> Zona
+      <a class="<?= ($title ?? '') === 'Zones' ? 'active' : '' ?>" href="/zones">
+        <i class="fa-solid fa-globe fa-fw"></i> Zones
       </a>
-      <a class="<?= ($title ?? '') === 'Pencarian' ? 'active' : '' ?>" href="/search">
-        <i class="fa-solid fa-magnifying-glass fa-fw"></i> Pencarian
+      <a class="<?= ($title ?? '') === 'Search' ? 'active' : '' ?>" href="/search">
+        <i class="fa-solid fa-magnifying-glass fa-fw"></i> Search
       </a>
-      <a class="<?= ($title ?? '') === 'Profil Pengguna' ? 'active' : '' ?>" href="/profile">
-        <i class="fa-solid fa-user fa-fw"></i> Profil Saya
+      <a class="<?= ($title ?? '') === 'User Profile' ? 'active' : '' ?>" href="/profile">
+        <i class="fa-solid fa-user fa-fw"></i> My Profile
       </a>
 
-      <div class="nav-section-title">Alat Jaringan</div>
+      <div class="nav-section-title">Network Tools</div>
       <?php if (in_array($user['role'] ?? '', ['admin', 'operator'], true)) : ?>
         <a class="<?= str_contains($title ?? '', 'rDNS') ? 'active' : '' ?>" href="/tools/rdns">
           <i class="fa-solid fa-network-wired fa-fw"></i> Subnet rDNS
         </a>
       <?php endif; ?>
       <a class="<?= str_contains($title ?? '', 'IPCalc') ? 'active' : '' ?>" href="/tools/ipcalc">
-        <i class="fa-solid fa-calculator fa-fw"></i> IPCalc & IPv6
+        <i class="fa-solid fa-calculator fa-fw"></i> IPCalc &amp; IPv6
       </a>
       <a class="<?= str_contains($title ?? '', 'WHOIS') ? 'active' : '' ?>" href="/tools/whois">
-        <i class="fa-solid fa-id-card fa-fw"></i> WHOIS & RDAP
+        <i class="fa-solid fa-id-card fa-fw"></i> WHOIS &amp; RDAP
       </a>
       <a class="<?= str_contains($title ?? '', 'DNS Lookup') ? 'active' : '' ?>" href="/tools/dns-lookup">
         <i class="fa-solid fa-satellite-dish fa-fw"></i> DNS Lookup
       </a>
 
       <?php if (in_array($user['role'] ?? '', ['admin', 'operator'], true)) : ?>
-        <div class="nav-section-title">Manajemen</div>
-        <a class="<?= ($title ?? '') === 'Template' ? 'active' : '' ?>" href="/templates">
-          <i class="fa-solid fa-layer-group fa-fw"></i> Template
+        <div class="nav-section-title">Management</div>
+        <a class="<?= ($title ?? '') === 'Templates' ? 'active' : '' ?>" href="/templates">
+          <i class="fa-solid fa-layer-group fa-fw"></i> Templates
         </a>
-        <a class="<?= ($title ?? '') === 'Akun' ? 'active' : '' ?>" href="/accounts">
-          <i class="fa-solid fa-users fa-fw"></i> Akun
+        <a class="<?= ($title ?? '') === 'Accounts' ? 'active' : '' ?>" href="/accounts">
+          <i class="fa-solid fa-users fa-fw"></i> Accounts
         </a>
-        <a class="<?= ($title ?? '') === 'API key' ? 'active' : '' ?>" href="/apikeys">
-          <i class="fa-solid fa-key fa-fw"></i> API key
+        <a class="<?= ($title ?? '') === 'API Keys' ? 'active' : '' ?>" href="/apikeys">
+          <i class="fa-solid fa-key fa-fw"></i> API Keys
         </a>
-        <a class="<?= str_contains($title ?? '', 'Rekam Massal') ? 'active' : '' ?>" href="/bulk-records">
-          <i class="fa-solid fa-list-check fa-fw"></i> Rekam Massal
+        <a class="<?= str_contains($title ?? '', 'Bulk Records') ? 'active' : '' ?>" href="/bulk-records">
+          <i class="fa-solid fa-list-check fa-fw"></i> Bulk Records
         </a>
       <?php endif; ?>
 
       <?php if (($user['role'] ?? '') === 'admin') : ?>
-        <div class="nav-section-title">Sistem</div>
+        <div class="nav-section-title">System</div>
         <a class="<?= str_contains($title ?? '', 'Cluster') || str_contains($title ?? '', 'Node') ? 'active' : '' ?>" href="/servers">
-          <i class="fa-solid fa-server fa-fw"></i> Node Server
+          <i class="fa-solid fa-server fa-fw"></i> Server Nodes
         </a>
         <a class="<?= str_contains($title ?? '', 'Webhooks') ? 'active' : '' ?>" href="/webhooks">
           <i class="fa-solid fa-bolt fa-fw"></i> Webhooks
         </a>
-        <a class="<?= str_contains($title ?? '', 'Analitik') ? 'active' : '' ?>" href="/analytics">
-          <i class="fa-solid fa-chart-pie fa-fw"></i> Analitik DNS
+        <a class="<?= str_contains($title ?? '', 'Analytics') ? 'active' : '' ?>" href="/analytics">
+          <i class="fa-solid fa-chart-pie fa-fw"></i> DNS Analytics
         </a>
-        <a class="<?= ($title ?? '') === 'Pengguna' ? 'active' : '' ?>" href="/users">
-          <i class="fa-solid fa-user-shield fa-fw"></i> Pengguna
+        <a class="<?= ($title ?? '') === 'Users' ? 'active' : '' ?>" href="/users">
+          <i class="fa-solid fa-user-shield fa-fw"></i> Users
         </a>
-        <a class="<?= ($title ?? '') === 'Cadangan & Pemulihan' ? 'active' : '' ?>" href="/backup">
-          <i class="fa-solid fa-database fa-fw"></i> Cadangan & Restore
+        <a class="<?= ($title ?? '') === 'Backup & Restore' ? 'active' : '' ?>" href="/backup">
+          <i class="fa-solid fa-database fa-fw"></i> Backup &amp; Restore
         </a>
-        <a class="<?= ($title ?? '') === 'Audit' ? 'active' : '' ?>" href="/audit">
+        <a class="<?= ($title ?? '') === 'Audit Log' ? 'active' : '' ?>" href="/audit">
           <i class="fa-solid fa-clipboard-list fa-fw"></i> Audit
         </a>
-        <a class="<?= ($title ?? '') === 'Pengaturan' ? 'active' : '' ?>" href="/settings">
-          <i class="fa-solid fa-sliders fa-fw"></i> Pengaturan
+        <a class="<?= ($title ?? '') === 'Settings' ? 'active' : '' ?>" href="/settings">
+          <i class="fa-solid fa-sliders fa-fw"></i> Settings
         </a>
       <?php endif; ?>
     </nav>
 
     <div class="sidebar-foot">
-      <button class="theme-toggle-btn" type="button" aria-label="Ganti tema">
+      <button class="theme-toggle-btn" type="button" aria-label="Toggle theme">
         <span class="d-flex align-items-center gap-2">
           <i class="fa-solid fa-sun text-warning"></i>
-          <span class="theme-label">Mode Gelap</span>
+          <span class="theme-label">Dark Mode</span>
         </span>
         <span class="badge bg-secondary-subtle text-secondary small">2026</span>
       </button>
@@ -157,7 +157,7 @@ declare(strict_types=1);
           <?php endif; ?>
         </div>
         <div class="sidebar-user-info">
-          <div class="who"><?= e((string) (!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'Pengguna'))) ?></div>
+          <div class="who"><?= e((string) (!empty($user['display_name']) ? $user['display_name'] : ($user['username'] ?? 'User'))) ?></div>
           <div class="role"><?= e((string) ($user['role'] ?? 'user')) ?></div>
         </div>
       </a>
@@ -165,7 +165,7 @@ declare(strict_types=1);
       <form method="post" action="/logout">
         <?= csrfField() ?>
         <button class="btn btn-sm btn-outline-light w-100" type="submit">
-          <i class="fa-solid fa-right-from-bracket me-1"></i> Keluar
+          <i class="fa-solid fa-right-from-bracket me-1"></i> Sign Out
         </button>
       </form>
     </div>
@@ -175,7 +175,7 @@ declare(strict_types=1);
     <header class="topbar d-flex flex-wrap justify-content-between align-items-center gap-2">
       <div>
         <h1 class="mb-0 fs-5"><?= e($title ?? '') ?></h1>
-        <p class="mb-0 small text-secondary">Panel otoritatif. Record hidup di PowerDNS, bukan di database ini.</p>
+        <p class="mb-0 small text-secondary">Authoritative panel. Records live in PowerDNS, not in this database.</p>
       </div>
       <?php if (!empty($user) && in_array($user['role'] ?? '', ['admin', 'operator'], true)) : ?>
         <?php
@@ -190,7 +190,7 @@ declare(strict_types=1);
               <span>Node: <strong><?= e((string) ($activeServer['name'] ?? 'Default')) ?></strong></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-              <li><h6 class="dropdown-header">Pilih PowerDNS Node</h6></li>
+              <li><h6 class="dropdown-header">Select PowerDNS Node</h6></li>
               <?php foreach ($clusterServers as $srv) : ?>
                 <li>
                   <a class="dropdown-item d-flex justify-content-between align-items-center <?= ((int) ($activeServer['id'] ?? 0) === (int) $srv['id']) ? 'active' : '' ?>" href="/servers/switch?id=<?= (int) $srv['id'] ?>">
@@ -202,7 +202,7 @@ declare(strict_types=1);
                 </li>
               <?php endforeach; ?>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item small text-primary" href="/servers"><i class="fa-solid fa-gear me-1"></i> Kelola Node Cluster</a></li>
+              <li><a class="dropdown-item small text-primary" href="/servers"><i class="fa-solid fa-gear me-1"></i> Manage Cluster Nodes</a></li>
             </ul>
           </div>
         <?php endif; ?>
@@ -221,8 +221,8 @@ declare(strict_types=1);
         <div class="d-flex gap-3">
           <span>v0.3.0</span>
           <?php if (($user['role'] ?? '') === 'admin') : ?>
-            <a href="/backup" class="text-secondary text-decoration-none">Cadangan</a>
-            <a href="/settings" class="text-secondary text-decoration-none">Pengaturan</a>
+            <a href="/backup" class="text-secondary text-decoration-none">Backup</a>
+            <a href="/settings" class="text-secondary text-decoration-none">Settings</a>
           <?php endif; ?>
         </div>
       </div>

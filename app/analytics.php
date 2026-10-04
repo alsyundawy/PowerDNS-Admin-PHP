@@ -169,7 +169,7 @@ function renderSvgHorizontalBarChart(array $items, int $width = 460, int $rowHei
 {
     if (empty($items)) {
         return '<div class="text-secondary small py-3 text-center">'
-            . 'Tidak ada data ring buffer telemetry saat ini.</div>';
+            . 'No ring buffer telemetry data available at this time.</div>';
     }
 
     $height = count($items) * $rowHeight;

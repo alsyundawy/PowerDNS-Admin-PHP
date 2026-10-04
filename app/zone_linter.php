@@ -61,9 +61,9 @@ function lintCheckApexCname(string $zoneFqdn, array $typesByName): array
     return [[
         'severity' => 'error',
         'code' => 'RFC-1912-APEX-CNAME',
-        'message' => "Record CNAME pada apex zona ('{$zoneFqdn}') bertentangan dengan SOA dan NS.",
+        'message' => "CNAME record at zone apex ('{$zoneFqdn}') conflicts with SOA and NS records.",
         'record_name' => $zoneFqdn,
-        'suggestion' => 'Ganti CNAME apex dengan record ALIAS (PowerDNS native) atau record A/AAAA langsung.',
+        'suggestion' => 'Replace apex CNAME with native PowerDNS ALIAS record or direct A/AAAA records.',
     ]];
 }
 
@@ -82,10 +82,10 @@ function lintCheckCnameCoexistence(string $zoneFqdn, array $typesByName): array
             $issues[] = [
                 'severity' => 'error',
                 'code' => 'RFC-2181-CNAME-COEXISTENCE',
-                'message' => "Record CNAME pada '{$name}' tidak boleh berdampingan dengan "
-                    . 'tipe record lain (' . implode(', ', $otherTypes) . ').',
+                'message' => "CNAME record at '{$name}' cannot co-exist with "
+                    . 'other record types (' . implode(', ', $otherTypes) . ').',
                 'record_name' => $name,
-                'suggestion' => 'Hapus CNAME atau hapus record tipe lain pada nama host yang sama.',
+                'suggestion' => 'Remove CNAME or delete other record types at the same hostname.',
             ];
         }
     }
@@ -110,9 +110,9 @@ function lintCheckMissingGlue(string $zoneFqdn, array $nsTargets, array $typesBy
                 $issues[] = [
                     'severity' => 'warning',
                     'code' => 'RFC-1035-MISSING-GLUE',
-                    'message' => "Nameserver internal '{$nsTarget}' belum memiliki glue record A atau AAAA dalam zona.",
+                    'message' => "Internal nameserver '{$nsTarget}' lacks in-bailiwick glue A or AAAA records.",
                     'record_name' => $nsTarget,
-                    'suggestion' => "Tambahkan record A atau AAAA untuk nameserver '{$nsTarget}'.",
+                    'suggestion' => "Add an A or AAAA address record for nameserver '{$nsTarget}'.",
                 ];
             }
         }
@@ -136,10 +136,10 @@ function lintCheckMxCname(array $mxTargets, array $cnames): array
                 $issues[] = [
                     'severity' => 'warning',
                     'code' => 'RFC-2181-MX-CNAME',
-                    'message' => "Exchange MX pada '{$mxOwner}' menunjuk ke host CNAME '{$target}'.",
+                    'message' => "MX exchange for '{$mxOwner}' points to CNAME target '{$target}'.",
                     'record_name' => $mxOwner,
-                    'suggestion' => "Arahkan target MX langsung ke hostname A/AAAA ('{$cnames[$target]}') "
-                        . 'bukan ke CNAME.',
+                    'suggestion' => "Point MX target directly to canonical A/AAAA hostname ('{$cnames[$target]}') "
+                        . 'rather than a CNAME.',
                 ];
             }
         }
@@ -162,10 +162,10 @@ function lintCheckDanglingCnames(string $zoneFqdn, array $cnames, array $names):
             $issues[] = [
                 'severity' => 'warning',
                 'code' => 'DNS-DANGLING-CNAME',
-                'message' => "CNAME '{$cnameOwner}' menunjuk ke host internal '{$target}' "
-                    . 'yang tidak terdaftar dalam zona ini.',
+                'message' => "CNAME '{$cnameOwner}' points to internal target host '{$target}' "
+                    . 'which does not exist in this zone.',
                 'record_name' => $cnameOwner,
-                'suggestion' => "Pastikan host tujuan '{$target}' dibuat di zona atau perbaiki target CNAME.",
+                'suggestion' => "Ensure target host '{$target}' is created in zone or correct the CNAME target.",
             ];
         }
     }

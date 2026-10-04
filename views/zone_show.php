@@ -18,7 +18,7 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
   <div>
     <p class="muted mb-1">
       <?= e((string) ($data['kind'] ?? '')) ?> · serial <?= e((string) ($data['serial'] ?? '')) ?>
-      · <?= e(!empty($local['account_name']) ? (string) $local['account_name'] : 'tanpa akun') ?>
+      · <?= e(!empty($local['account_name']) ? (string) $local['account_name'] : 'no account') ?>
     </p>
     <code><?= e($soa) ?></code>
   </div>
@@ -29,13 +29,13 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
     <a
       class="btn btn-outline-secondary"
       href="/zones/<?= e($cleanZone) ?>/history"
-      title="Riwayat versi & 1-Click Rollback"
-    ><i class="fa-solid fa-clock-rotate-left me-1"></i>Riwayat</a>
+      title="Version history &amp; 1-Click Rollback"
+    ><i class="fa-solid fa-clock-rotate-left me-1"></i>History</a>
     <a
       class="btn btn-outline-secondary"
       href="/zones/<?= e($cleanZone) ?>/export"
-      title="Ekspor file zona BIND RFC 1035"
-    ><i class="fa-solid fa-file-export me-1"></i>Ekspor BIND</a>
+      title="Export BIND RFC 1035 zone file"
+    ><i class="fa-solid fa-file-export me-1"></i>Export BIND</a>
     <?php if ($canEdit) : ?>
       <form method="post" action="/zones/<?= e($cleanZone) ?>/notify" class="d-inline">
         <?= csrfField() ?>
@@ -51,7 +51,7 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
       </form>
       <form method="post" action="/zones/<?= e($cleanZone) ?>/rectify" class="d-inline">
         <?= csrfField() ?>
-        <button class="btn btn-outline-secondary" type="submit" title="Rectify zona DNSSEC">
+        <button class="btn btn-outline-secondary" type="submit" title="Rectify DNSSEC zone">
           <i class="fa-solid fa-wrench me-1"></i>Rectify
         </button>
       </form>
@@ -61,11 +61,11 @@ $cleanZone = rawurlencode(rtrim($zone, '.'));
         method="post"
         action="/zones/<?= e($cleanZone) ?>/delete"
         class="d-inline"
-        onsubmit="return confirm('Hapus zona ini dari PowerDNS?')"
+        onsubmit="return confirm('Delete this zone from PowerDNS?')"
       >
         <?= csrfField() ?>
         <button class="btn btn-outline-danger" type="submit">
-          <i class="fa-solid fa-trash me-1"></i>Hapus
+          <i class="fa-solid fa-trash me-1"></i>Delete
         </button>
       </form>
     <?php endif; ?>
@@ -80,10 +80,10 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
   <div class="alert alert-warning mb-3" role="alert">
     <div class="d-flex justify-content-between align-items-center mb-1">
       <strong class="d-flex align-items-center gap-1">
-        <i class="fa-solid fa-triangle-exclamation"></i> Diagnostik Kepatuhan RFC (<?= count($rfcIssues) ?> Catatan)
+        <i class="fa-solid fa-triangle-exclamation"></i> RFC Compliance Diagnostics (<?= count($rfcIssues) ?> Notes)
       </strong>
       <button class="btn btn-xs btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#rfc-issues-collapse">
-        Detail & Solusi
+        Details &amp; Solutions
       </button>
     </div>
     <div class="collapse show mt-2" id="rfc-issues-collapse">
@@ -108,8 +108,8 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
         <input
           class="form-control"
           id="record-filter"
-          placeholder="Saring nama, tipe, atau isi record..."
-          aria-label="Saring record"
+          placeholder="Filter name, type, or record content..."
+          aria-label="Filter records"
         >
         <div class="d-flex gap-2 flex-wrap align-items-center">
           <?php if (!isReverseZone($zone)) : ?>
@@ -125,17 +125,17 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
               <label
                 class="form-check-label small"
                 for="auto_ptr_sync"
-                title="Sinkronkan A/AAAA ke zona reverse otomatis jika tersedia"
+                title="Synchronize A/AAAA to reverse zones automatically if available"
               >
                 Auto-PTR
               </label>
             </div>
           <?php endif; ?>
           <button class="btn btn-outline-primary" type="button" id="add-row">
-            <i class="fa-solid fa-plus me-1"></i>Tambah baris
+            <i class="fa-solid fa-plus me-1"></i>Add row
           </button>
           <button class="btn btn-primary" type="submit">
-            <i class="fa-solid fa-check me-1"></i>Terapkan ke PowerDNS
+            <i class="fa-solid fa-check me-1"></i>Apply to PowerDNS
           </button>
         </div>
       </div>
@@ -143,12 +143,12 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
         <table class="table align-middle" id="record-table">
           <thead>
             <tr>
-              <th scope="col" style="min-width: 140px;">Nama</th>
-              <th scope="col" style="width: 110px;">Tipe</th>
+              <th scope="col" style="min-width: 140px;">Name</th>
+              <th scope="col" style="width: 110px;">Type</th>
               <th scope="col" style="width: 90px;">TTL</th>
-              <th scope="col" style="min-width: 220px;">Isi</th>
+              <th scope="col" style="min-width: 220px;">Content</th>
               <th scope="col" style="width: 60px; text-align: center;">Off</th>
-              <th scope="col" style="min-width: 150px;">Catatan</th>
+              <th scope="col" style="min-width: 150px;">Comment</th>
               <th scope="col" style="width: 50px;"></th>
             </tr>
           </thead>
@@ -160,12 +160,12 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
                   class="form-control"
                   name="r_name[<?= (int) $i ?>]"
                   value="<?= e($row['name']) ?>"
-                  placeholder="@ atau subdomain"
-                  aria-label="Nama host"
+                  placeholder="@ or subdomain"
+                  aria-label="Hostname"
                 >
               </td>
               <td>
-                <select class="form-select" name="r_type[<?= (int) $i ?>]" aria-label="Tipe record">
+                <select class="form-select" name="r_type[<?= (int) $i ?>]" aria-label="Record type">
                   <?php foreach ($types as $t) : ?>
                     <option value="<?= e($t) ?>" <?= $row['type'] === $t ? 'selected' : '' ?>><?= e($t) ?></option>
                   <?php endforeach; ?>
@@ -186,8 +186,8 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
                   class="form-control"
                   name="r_content[<?= (int) $i ?>]"
                   value="<?= e($row['content']) ?>"
-                  placeholder="Nilai record"
-                  aria-label="Isi record"
+                  placeholder="Record value"
+                  aria-label="Record content"
                 >
               </td>
               <td class="text-center">
@@ -198,7 +198,7 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
                   name="r_disabled[<?= (int) $i ?>]"
                   value="1"
                   <?= !empty($row['disabled']) ? 'checked' : '' ?>
-                  aria-label="Nonaktifkan record"
+                  aria-label="Disable record"
                 >
               </td>
               <td>
@@ -206,15 +206,15 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
                   class="form-control"
                   name="r_comment[<?= (int) $i ?>]"
                   value="<?= e($row['comment']) ?>"
-                  placeholder="Keterangan opsional"
-                  aria-label="Catatan"
+                  placeholder="Optional comment"
+                  aria-label="Comment"
                 >
               </td>
               <td class="text-center">
                 <button
                   class="btn btn-sm btn-outline-danger rm-row"
                   type="button"
-                  aria-label="Hapus baris"
+                  aria-label="Delete row"
                 ><i class="fa-solid fa-trash-can"></i></button>
               </td>
             </tr>
@@ -227,9 +227,9 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
 
   <template id="row-template">
     <tr>
-      <td><input class="form-control" name="r_name[]" placeholder="@ atau www" aria-label="Nama host"></td>
+      <td><input class="form-control" name="r_name[]" placeholder="@ or www" aria-label="Hostname"></td>
       <td>
-        <select class="form-select" name="r_type[]" aria-label="Tipe record">
+        <select class="form-select" name="r_type[]" aria-label="Record type">
           <?php foreach ($types as $t) : ?>
                 <?php if ($t !== 'SOA') : ?>
               <option value="<?= e($t) ?>"><?= e($t) ?></option>
@@ -238,16 +238,16 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
         </select>
       </td>
       <td><input class="form-control" type="number" min="30" name="r_ttl[]" value="3600" aria-label="TTL"></td>
-      <td><input class="form-control" name="r_content[]" placeholder="Nilai record" aria-label="Isi record"></td>
+      <td><input class="form-control" name="r_content[]" placeholder="Record value" aria-label="Record content"></td>
       <td class="text-center">
-        <input type="checkbox" class="form-check-input" name="r_disabled[]" value="1" aria-label="Nonaktifkan record">
+        <input type="checkbox" class="form-check-input" name="r_disabled[]" value="1" aria-label="Disable record">
       </td>
-      <td><input class="form-control" name="r_comment[]" placeholder="Keterangan opsional" aria-label="Catatan"></td>
+      <td><input class="form-control" name="r_comment[]" placeholder="Optional comment" aria-label="Comment"></td>
       <td class="text-center">
         <button
           class="btn btn-sm btn-outline-danger rm-row"
           type="button"
-          aria-label="Hapus baris"
+          aria-label="Delete row"
         ><i class="fa-solid fa-trash-can"></i></button>
       </td>
     </tr>
@@ -258,10 +258,10 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
       <table class="table align-middle">
         <thead>
           <tr>
-            <th scope="col">Nama</th>
-            <th scope="col">Tipe</th>
+            <th scope="col">Name</th>
+            <th scope="col">Type</th>
             <th scope="col">TTL</th>
-            <th scope="col">Isi</th>
+            <th scope="col">Content</th>
           </tr>
         </thead>
         <tbody>
@@ -282,18 +282,18 @@ $rfcIssues = function_exists('lintZoneRrsets') ? lintZoneRrsets($zone, $zoneRrse
 <?php if (($user['role'] ?? '') === 'admin') : ?>
   <form method="post" action="/zones/<?= e($cleanZone) ?>/grant" class="panel stack">
     <?= csrfField() ?>
-    <h2 class="h6 mb-2">Akses zona</h2>
+    <h2 class="h6 mb-2">Zone Access</h2>
     <div class="row g-2 align-items-center">
       <div class="col-md-5">
-        <input class="form-control" name="username" placeholder="Username panel" required aria-label="Username">
+        <input class="form-control" name="username" placeholder="Panel username" required aria-label="Username">
       </div>
       <div class="col-md-4">
         <label class="form-check-label small d-flex align-items-center gap-2">
-          <input type="checkbox" class="form-check-input" name="can_edit" value="1" checked> Boleh sunting record
+          <input type="checkbox" class="form-check-input" name="can_edit" value="1" checked> Allow record editing
         </label>
       </div>
       <div class="col-md-3">
-        <button class="btn btn-outline-primary w-100" type="submit">Berikan izin</button>
+        <button class="btn btn-outline-primary w-100" type="submit">Grant Permission</button>
       </div>
     </div>
   </form>

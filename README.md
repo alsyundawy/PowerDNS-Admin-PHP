@@ -484,19 +484,19 @@ Ensure your host environment satisfies the minimum requirements:
 
 ### 2. Method 1: Automated Shell Installation (Debian / Ubuntu)
 
-Repositori ini menyertakan skrip installer non-interaktif yang siap pakai:
+This repository includes an unattended, production-ready installation script:
 
 ```bash
-# 1. Unduh repositori ke direktori web server
+# 1. Clone repository to web server root
 git clone https://github.com/alsyundawy/PowerDNS-Admin-PHP.git /var/www/PowerDNS-Admin-PHP
 cd /var/www/PowerDNS-Admin-PHP
 
-# 2. Jalankan skrip instalasi dengan hak akses root/sudo
+# 2. Run automated installer with root/sudo privileges
 sudo bash deploy/install-debian.sh
 ```
 
-Skrip ini secara otomatis memasang seluruh paket dependensi, mengonfigurasi pool PHP-FPM dedicated, menyetel vhost Nginx,
-dan mengatur perizinan direktori.
+This script automatically installs all required system packages, provisions a dedicated PHP-FPM pool,
+configures the Nginx virtual host, and sets up strict file permissions.
 
 ---
 
@@ -513,18 +513,18 @@ sudo apt update && sudo apt install -y \
 
 #### Step B: Create Panel Database & User
 
-Masuk ke console MariaDB/MySQL:
+Log in to the MariaDB/MySQL console:
 
 ```bash
 sudo mysql -u root
 ```
 
-Jalankan perintah SQL pembuatan database (dengan hak akses ganda localhost dan 127.0.0.1):
+Execute database and user provisioning commands (granting access to both `localhost` and `127.0.0.1`):
 
 ```sql
 CREATE DATABASE pda CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'pda_user'@'localhost' IDENTIFIED BY 'GantiDenganSandiKuat_123!';
-CREATE USER 'pda_user'@'127.0.0.1' IDENTIFIED BY 'GantiDenganSandiKuat_123!';
+CREATE USER 'pda_user'@'localhost' IDENTIFIED BY 'ReplaceWithStrongPassword_123!';
+CREATE USER 'pda_user'@'127.0.0.1' IDENTIFIED BY 'ReplaceWithStrongPassword_123!';
 GRANT ALL ON pda.* TO 'pda_user'@'localhost';
 GRANT ALL ON pda.* TO 'pda_user'@'127.0.0.1';
 FLUSH PRIVILEGES;
@@ -541,7 +541,7 @@ sudo chmod -R 750 /var/www/PowerDNS-Admin-PHP
 
 #### Step D: Configure Nginx Virtual Host
 
-Salin konfigurasi vhost siap pakai dari [`deploy/nginx.conf`](deploy/nginx.conf):
+Copy the production virtual host template from [`deploy/nginx.conf`](deploy/nginx.conf):
 
 ```bash
 sudo cp /var/www/PowerDNS-Admin-PHP/deploy/nginx.conf /etc/nginx/sites-available/powerdns-admin.conf
@@ -550,35 +550,37 @@ sudo nginx -t && sudo systemctl reload nginx
 ```
 
 > [!IMPORTANT]
-> Pastikan direktori `root` Nginx diarahkan ke subdirektori **`public/`** (`/var/www/PowerDNS-Admin-PHP/public`),
-> bukan ke direktori root repositori, untuk melindungi berkas logika aplikasi dan konfigurasi dari akses HTTP langsung.
+> Ensure the Nginx `root` directive points strictly to the **`public/`** subdirectory
+> (`/var/www/PowerDNS-Admin-PHP/public`), never the repository root, protecting application code
+> and configuration files from unauthorized direct HTTP access.
 
 #### Step E: Run the Web Installer Wizard
 
-1. Buka peramban dan akses: `http://ip-server-anda/install`
-2. Masukkan informasi koneksi database MariaDB:
+1. Open your browser and navigate to: `http://your-server-ip/install`
+2. Enter your MariaDB/MySQL connection parameters:
    - **Database Host:** `127.0.0.1`
    - **Database Port:** `3306`
    - **Database Name:** `pda`
    - **Database User:** `pda_user`
-   - **Database Password:** `GantiDenganSandiKuat_123!`
-3. Tentukan akun Administrator awal dan kredensial API PowerDNS:
+   - **Database Password:** `ReplaceWithStrongPassword_123!`
+3. Configure the initial Administrator account and PowerDNS API credentials:
    - **PowerDNS API URL:** `http://127.0.0.1:8081`
-   - **PowerDNS API Key:** `SandiRahasiaApiPowerDNS_456!`
-4. Klik **Pasang Sekarang**. Skrip akan otomatis menginisialisasi tabel database [`sql/schema.sql`](sql/schema.sql),
-   membangkitkan encryption key di `/etc/pda/config.php`, dan mengarahkan Anda ke halaman login `/login`.
+   - **PowerDNS API Key:** `PowerDnsApiSecretKey_456!`
+4. Click **Install Now**. The installer will provision database tables from [`sql/schema.sql`](sql/schema.sql),
+   generate a secure encryption key in `/etc/pda/config.php`, and redirect you to `/login`.
 
 ---
 
 ### 4. Method 3: Hardened Docker Container Deployment
 
-Aplikasi dilengkapi [`Dockerfile`](Dockerfile) berbasis Alpine Linux minimalis yang aman dan telah diperkeras (_hardened non-root www-data_):
+The application includes a minimal, security-hardened Alpine Linux [`Dockerfile`](Dockerfile)
+running under a non-root `www-data` account:
 
 ```bash
-# 1. Build image Docker
+# 1. Build Docker image
 docker build -t powerdns-admin-php:0.3.0 .
 
-# 2. Jalankan container
+# 2. Run container
 docker run -d \
   --name powerdns-admin \
   --restart unless-stopped \
@@ -594,20 +596,20 @@ docker run -d \
 
 ### Development & Local Testing
 
-Untuk menjalankan dan menguji aplikasi secara mandiri menggunakan server web internal PHP:
+To run and test the application independently using PHP's built-in development web server:
 
 ```bash
 php -S 127.0.0.1:8000 -t public
 ```
 
-Buka peramban web pada alamat `http://127.0.0.1:8000` untuk mengakses antarmuka panel administrasi.
+Open your browser at `http://127.0.0.1:8000` to access the administration panel.
 
 ### Production Service Management
 
-Pada server produksi Linux (Debian, Ubuntu, RHEL, AlmaLinux), aplikasi berjalan di bawah Nginx dan PHP-FPM:
+On production Linux distributions (Debian, Ubuntu, RHEL, AlmaLinux), services run under Nginx and PHP-FPM:
 
 ```bash
-# Memeriksa status dan menjalankan ulang layanan
+# Verify status and restart services
 sudo systemctl restart php8.3-fpm
 sudo systemctl restart nginx
 sudo systemctl status pdns
@@ -617,121 +619,129 @@ sudo systemctl status pdns
 
 ## ⚙️ Configuration Reference
 
-Konfigurasi aplikasi dibagi menjadi dua lapisan: konfigurasi sistem pada berkas `config.php` dan pengaturan dinamis melalui Web Dashboard (`/settings`).
+Application configuration is organized into two tiers: filesystem environment settings in `config.php`
+and dynamic operational settings managed through the Web Dashboard (`/settings`).
 
-### 1. Konfigurasi Berkas Sistem (`/etc/pda/config.php` atau `config.php`)
+### 1. Filesystem Configuration (`/etc/pda/config.php` or `config.php`)
 
-Disimpan pada berkas konfigurasi lokal terlindungi (dengan izin `640` milik `www-data`):
+Stored in a secured local configuration file (`chmod 640`, owned by `www-data`):
 
-| Setting Key  | Tipe Data | Default / Contoh Nilai | Keterangan                                                    |
-| :----------- | :-------- | :--------------------- | :------------------------------------------------------------ |
-| `db.host`    | `string`  | `"127.0.0.1"`          | Alamat host database MariaDB/MySQL panel.                     |
-| `db.port`    | `int`     | `3306`                 | Port koneksi database.                                        |
-| `db.name`    | `string`  | `"pda"`                | Nama database panel.                                          |
-| `db.user`    | `string`  | `"pda_user"`           | Username database panel.                                      |
-| `db.pass`    | `string`  | `"[REDACTED]"`         | Kata sandi database.                                          |
-| `db.charset` | `string`  | `"utf8mb4"`            | Set karakter database (mendukung emoji & multilingual penuh). |
-| `appKey`     | `string`  | `"[Base64 32 bytes]"`  | Kunci master simetris enkripsi AES-256-GCM (Wajib rahasia).   |
-| `installed`  | `bool`    | `true`                 | Flag penanda status instalasi wizard web.                     |
-
----
-
-### 2. Pengaturan Dinamis Web Dashboard (`/settings` — `views/settings.php`)
-
-Dikelola langsung oleh peran `admin` dan disimpan secara terpusat pada tabel metadata `settings`:
-
-#### A. Koneksi PowerDNS Authoritative API
-
-- **`pdns_api_url`**: Endpoint webserver API PowerDNS Authoritative (contoh: `http://127.0.0.1:8081`).
-- **`pdns_server_id`**: Server ID PowerDNS (standar: `localhost`).
-- **`pdns_api_key`**: Kunci rahasia API daemon PowerDNS (dienkripsi simetris menggunakan `AES-256-GCM`).
-- **`pdns_verify_tls`**: Verifikasi sertifikat TLS/SSL untuk endpoint HTTPS jarak jauh.
-
-#### B. Parameter & Kebijakan Default DNS
-
-- **`dns_default_ttl`**: TTL bawaan untuk record baru atau impor zona tanpa TTL eksplisit (30 – 604800 detik, standar: `3600`).
-- **`dns_default_ns`**: Daftar nameserver otoritatif default yang otomatis dipra-isi saat pembuatan zona baru (contoh: `ns1.example.com, ns2.example.com`).
-- **`dns_default_soa_email`**: Format email penanggung jawab zona RNAME (standar: `hostmaster.example.com`).
-- **`dns_default_soa_refresh` / `retry` / `expire` / `minimum`**: Parameter siklus waktu SOA standar RFC 1035 (`10800`, `3600`, `604800`, `3600`).
-- **`dns_auto_ptr_default`**: Status default checkbox sinkronisasi otomatis record A/AAAA ke zona reverse PTR (`1` aktif / `0` nonaktif).
-
-#### C. Identitas, Tema & Kustomisasi Branding
-
-- **`app_name`**: Nama instansi atau aplikasi yang tampil di navbar, sidebar, dan judul tab browser.
-- **`app_logo_url`**: URL logo kustom atau jalur berkas logo hasil unggah (`PNG`, `SVG`, `WEBP` maks 2MB).
-- **`app_footer_text`**: Teks copyright atau informasi kepatuhan pada bagian bawah panel dan form login.
-- **`app_default_theme`**: Tema bawaan antarmuka untuk pengunjung baru (`dark` OLED Dark atau `light` Daylight Light).
-
-#### D. Keamanan, Sesi & Kebijakan Login
-
-- **`session_lifetime_minutes`**: Waktu kedaluwarsa sesi idle pengguna (5 – 10080 menit, standar: `120`).
-- **`login_max_attempts`**: Batas kesalahan autentikasi berturut-turut sebelum pemicuan lockout brute-force (standar: `5`).
-- **`login_lockout_seconds`**: Durasi penalti lockout brute-force IP dan akun (standar: `900` detik / 15 menit).
-- **`security_force_hsts`**: Pengiriman header keamanan `Strict-Transport-Security (HSTS)` (`max-age=31536000`).
-
-#### E. Retensi Riwayat Zona & Jejak Audit
-
-- **`history_max_snapshots`**: Batas kuota rollback snapshot per zona DNS (standar: `25`).
-- **`audit_retention_days`**: Durasi penyimpanan log aktivitas pada tabel audit log (standar: `90` hari).
-
-#### F. Alat Diagnostik Jaringan & rDNS
-
-- **`rdns_default_naming_pattern`**: Pola naming template generator record PTR massal (standar: `host-[ID].[DOMAIN]`).
-  - _Makro yang didukung:_ `[ID]` (nomor urut), `[HEX]` (hexadecimal host), `[HEX16]` (16 nibble), `[IP]` (alamat IP lengkap), `[IP_DASH]` (IP pemisah tanda hubung), `[OCTET4]` (oktet ke-4 IPv4), `[DOMAIN]`.
-- **`dns_public_resolvers`**: Daftar recursive resolver pembanding untuk alat DNS Lookup & Propagation Inspector (`1.1.1.1, 8.8.8.8, 9.9.9.9`).
+| Setting Key  | Data Type | Default / Example Value | Description                                                   |
+| :----------- | :-------- | :---------------------- | :------------------------------------------------------------ |
+| `db.host`    | `string`  | `"127.0.0.1"`           | MariaDB/MySQL database host address.                          |
+| `db.port`    | `int`     | `3306`                  | Database connection port.                                     |
+| `db.name`    | `string`  | `"pda"`                 | Panel database name.                                          |
+| `db.user`    | `string`  | `"pda_user"`            | Database username.                                            |
+| `db.pass`    | `string`  | `"[REDACTED]"`          | Database password.                                            |
+| `db.charset` | `string`  | `"utf8mb4"`             | Database character set (full UTF-8 multilingual & emoji).     |
+| `appKey`     | `string`  | `"[Base64 32 bytes]"`   | AES-256-GCM symmetric master encryption key (must be secret). |
+| `installed`  | `bool`    | `true`                  | Web installer completion flag.                                |
 
 ---
 
-### 3. Arsitektur Web Server & Paritas Konfigurasi Nginx vs Apache
+### 2. Dynamic Web Dashboard Settings (`/settings` — `views/settings.php`)
 
-PowerDNS-Admin-PHP menyediakan konfigurasi siap produksi untuk **Nginx** (`deploy/nginx.conf`) dan **Apache** (`public/.htaccess`) dengan paritas fungsional 100%:
+Managed directly by `admin` users and centrally persisted in the `settings` database table:
 
-| Aspek Keamanan & Performa            | Arahan Apache (`public/.htaccess`)                                          | Padanan Nginx (`deploy/nginx.conf`)                                                    |
-| :----------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
-| **Front Controller Routing**         | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`           | `location / { try_files $uri $uri/ /index.php?$query_string; }`                        |
-| **Sandboxing Upload Berkas**         | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }`     |
-| **Proteksi Berkas Sensitif**         | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`           | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }`    |
-| **Blokir Direktori Tersembunyi**     | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                                | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                         |
-| **Proteksi Clickjacking & Sniffing** | `Header always set X-Frame-Options "DENY"`                                  | `add_header X-Frame-Options "DENY" always;`                                            |
-| **Kebijakan Keamanan Konten (CSP)**  | `Header always set Content-Security-Policy "default-src 'self'..."`         | `add_header Content-Security-Policy "default-src 'self'..." always;`                   |
-| **Caching Aset Statis Lokal**        | `ExpiresByType text/css "access plus 7 days"`                               | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }` |
-| **PHP-FPM Auto-Detection**           | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"`       | `fastcgi_pass pda_php_fpm;` (didukung symlink universal `/run/php/php-fpm-pda.sock`)   |
+#### A. PowerDNS Authoritative API Connection
 
-#### Deteksi Otomatis Versi PHP-FPM
+- **`pdns_api_url`**: PowerDNS Authoritative API webserver endpoint (e.g. `http://127.0.0.1:8081`).
+- **`pdns_server_id`**: PowerDNS Server ID (default: `localhost`).
+- **`pdns_api_key`**: PowerDNS daemon API secret key (symmetrically encrypted using `AES-256-GCM`).
+- **`pdns_verify_tls`**: TLS/SSL certificate verification flag for remote HTTPS endpoints.
 
-Skrip `deploy/detect-php-fpm.sh` dapat dijalankan kapan saja untuk memindai versi PHP yang terpasang dan memperbarui symlink universal:
+#### B. DNS Policy & Default Parameters
+
+- **`dns_default_ttl`**: Default TTL for newly created records or zone imports without explicit TTL
+  (30–604800s, default: `3600`).
+- **`dns_default_ns`**: Authoritative nameservers automatically pre-filled on zone creation
+  (e.g. `ns1.example.com, ns2.example.com`).
+- **`dns_default_soa_email`**: Default SOA administrator email / RNAME format (default: `hostmaster.example.com`).
+- **`dns_default_soa_refresh` / `retry` / `expire` / `minimum`**: RFC 1035 compliant SOA time parameters
+  (`10800`, `3600`, `604800`, `3600`).
+- **`dns_auto_ptr_default`**: Default toggle for automatic A/AAAA forward-to-reverse PTR synchronization
+  (`1` active / `0` disabled).
+
+#### C. Branding, Identity & Theme Customization
+
+- **`app_name`**: Organization or application title displayed in navigation headers and browser title bars.
+- **`app_logo_url`**: Custom brand logo URL or uploaded asset path (`PNG`, `SVG`, `WEBP`, max 2MB).
+- **`app_footer_text`**: Custom copyright attribution or regulatory compliance notice displayed on panel footers.
+- **`app_default_theme`**: Default theme for first-time visitors (`dark` OLED Dark or `light` Daylight Light).
+
+#### D. Security, Session & Authentication Policies
+
+- **`session_lifetime_minutes`**: User inactivity idle timeout in minutes (5–10080 min, default: `120`).
+- **`login_max_attempts`**: Consecutive failed authentication threshold triggering IP/account lockout (default: `5`).
+- **`login_lockout_seconds`**: Lockout cooldown duration for brute-force defense (default: `900`s / 15 minutes).
+- **`security_force_hsts`**: Enforce HTTP Strict Transport Security (`Strict-Transport-Security: max-age=31536000`).
+
+#### E. Zone History Retention & Audit Logging
+
+- **`history_max_snapshots`**: Maximum rollback snapshots retained per DNS zone (default: `25`).
+- **`audit_retention_days`**: Retention period in days for records in the `audit_logs` table (default: `90`).
+
+#### F. Network Diagnostics & rDNS Tools
+
+- **`rdns_default_naming_pattern`**: Default naming pattern for bulk PTR generator (default: `host-[ID].[DOMAIN]`).
+  - _Supported macros:_ `[ID]`, `[HEX]`, `[HEX16]`, `[IP]`, `[IP_DASH]`, `[OCTET4]`, `[DOMAIN]`.
+- **`dns_public_resolvers`**: Reference public recursive resolvers for DNS lookup and propagation auditing
+  (`1.1.1.1, 8.8.8.8, 9.9.9.9`).
+
+---
+
+### 3. Web Server Architecture & Nginx vs. Apache Configuration Parity
+
+PowerDNS-Admin-PHP provides production-ready configurations for **Nginx** (`deploy/nginx.conf`) and
+**Apache** (`public/.htaccess`) with 100% functional parity:
+
+| Security & Performance Aspect       | Apache Directive (`public/.htaccess`)                                       | Nginx Equivalent (`deploy/nginx.conf`)                                                 |
+| :---------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **Front Controller Routing**        | `RewriteCond %{REQUEST_FILENAME} !-f ... RewriteRule ^ index.php`           | `location / { try_files $uri $uri/ /index.php?$query_string; }`                        |
+| **Upload Directory Sandboxing**     | `<FilesMatch "\.(php\|cgi...)"> Require all denied ... php_flag engine off` | `location ^~ /uploads/ { location ~* \.(php\|cgi...)$ { deny all; return 404; } }`     |
+| **Sensitive File Protection**       | `<FilesMatch "(^\.\|\.(sql\|md\|sh\|conf)$)"> Require all denied`           | `location ~* \.(sql\|md\|log\|sh\|json\|lock\|neon\|xml\|bak\|conf)$ { deny all; }`    |
+| **Hidden Directory Blocking**       | `RewriteRule "(^\|/)\.(?!well-known)" - [F]`                                | `location ~ /\.(?!well-known).* { deny all; access_log off; }`                         |
+| **Clickjacking & Sniffing Defense** | `Header always set X-Frame-Options "DENY"`                                  | `add_header X-Frame-Options "DENY" always;`                                            |
+| **Content Security Policy (CSP)**   | `Header always set Content-Security-Policy "default-src 'self'..."`         | `add_header Content-Security-Policy "default-src 'self'..." always;`                   |
+| **Static Asset Caching**            | `ExpiresByType text/css "access plus 7 days"`                               | `location /assets/ { expires 7d; add_header Cache-Control "public, max-age=604800"; }` |
+| **PHP-FPM Auto-Detection**          | `SetHandler "proxy:unix:/run/php/php-fpm-pda.sock\|fcgi://localhost"`       | `fastcgi_pass pda_php_fpm;` (symlink `/run/php/php-fpm-pda.sock`)                      |
+
+#### Automated PHP-FPM Version Detection
+
+Run `deploy/detect-php-fpm.sh` at any time to scan installed PHP versions and refresh the FastCGI socket symlink:
 
 ```bash
 sudo ./deploy/detect-php-fpm.sh
 ```
 
-Skrip instalasi `deploy/install-debian.sh` juga secara otomatis mendeteksi apakah sistem menggunakan PHP 8.1, 8.2, 8.3, atau 8.4 dan menghubungkan socket secara dinamis.
+The automated installer `deploy/install-debian.sh` dynamically detects whether the host runs PHP 8.1, 8.2, 8.3,
+8.4, or 8.5 and binds the socket automatically.
 
 ---
 
 ## 🌐 REST API & Automation Layer
 
-PowerDNS-Admin-PHP menyediakan antarmuka REST API yang aman untuk integrasi otomatisasi (Terraform, Ansible, skrip Python/Bash):
+PowerDNS-Admin-PHP provides a secure REST API for infrastructure-as-code automation (Terraform, Ansible, Python, Bash):
 
-### Autentikasi
+### Authentication
 
-Semua request API memerlukan header `X-API-Key` dengan token yang dibangkitkan dari menu **API Keys**:
+All API requests require an `X-API-Key` header with a bearer token provisioned via the **API Keys** console:
 
 ```http
 X-API-Key: pda_live_9f83ac7b12d5e4a8b7c6d5e4f3a2b1c0
 ```
 
-### Endpoint Utama
+### Core Endpoints
 
-| Method   | Endpoint               | Scope Minimal | Deskripsi                                                       |
-| :------- | :--------------------- | :------------ | :-------------------------------------------------------------- |
-| `GET`    | `/api/v1/zones`        | `user`        | Mengambil daftar seluruh zona yang diizinkan untuk API key ini. |
-| `GET`    | `/api/v1/zones/{name}` | `user`        | Mengambil metadata dan seluruh RRSet dari zona tertentu.        |
-| `POST`   | `/api/v1/zones`        | `operator`    | Membuat zona authoritative baru.                                |
-| `PUT`    | `/api/v1/zones/{name}` | `operator`    | Memperbarui metadata zona.                                      |
-| `DELETE` | `/api/v1/zones/{name}` | `admin`       | Menghapus zona dari PowerDNS.                                   |
+| Method   | Endpoint               | Minimum Scope | Description                                                    |
+| :------- | :--------------------- | :------------ | :------------------------------------------------------------- |
+| `GET`    | `/api/v1/zones`        | `user`        | Retrieve all DNS zones accessible to this API key.             |
+| `GET`    | `/api/v1/zones/{name}` | `user`        | Retrieve zone metadata and complete RRset collection.          |
+| `POST`   | `/api/v1/zones`        | `operator`    | Create a new authoritative DNS zone.                           |
+| `PUT`    | `/api/v1/zones/{name}` | `operator`    | Update zone metadata.                                          |
+| `DELETE` | `/api/v1/zones/{name}` | `admin`       | Delete an authoritative zone from PowerDNS.                    |
 
-### Contoh Request via cURL
+### Example cURL Request
 
 ```bash
 curl -s -X GET https://dns.example.com/api/v1/zones \
@@ -739,7 +749,7 @@ curl -s -X GET https://dns.example.com/api/v1/zones \
   -H "Accept: application/json"
 ```
 
-**Contoh Response Payload (HTTP 200):**
+**Example Response Payload (HTTP 200):**
 
 ```json
 {
@@ -759,9 +769,9 @@ curl -s -X GET https://dns.example.com/api/v1/zones \
 
 ## 📊 Quality Assurance & Verification Gates
 
-Setiap berkas dalam PowerDNS-Admin-PHP diaudit secara ketat melalui quality gate otomatis:
+Every file in PowerDNS-Admin-PHP is audited through rigorous, automated quality gates:
 
-| Quality Gate              | Engine / Tool                                                     | Standar Target                    | Kriteria Lolos            |       Status        |
+| Quality Gate              | Engine / Tool                                                     | Target Standard                   | Passing Criteria          |       Status        |
 | :------------------------ | :---------------------------------------------------------------- | :-------------------------------- | :------------------------ | :-----------------: |
 | **PHP Syntax Check**      | `php -l` (Lint 44 PHP source files)                               | PHP 8.2+ Syntax Compliance        | 0 syntax errors           |  **✔ 44/44 PASS**   |
 | **Coding Standards**      | [`PHP_CodeSniffer`](https://github.com/squizlabs/PHP_CodeSniffer) | PSR-12 strict & PSR-1 SideEffects | 0 errors, 0 warnings      |  **✔ PSR-12 PASS**  |
@@ -797,28 +807,31 @@ QUALITY GATE VERIFICATION RESULTS
 
 ## 📋 Engineering Standards & Invariants
 
-Untuk menjamin keandalan, pemeliharaan jangka panjang, dan keamanan sistem, standar rekayasa berikut diterapkan secara ketat:
+To ensure deterministic reliability, long-term maintainability, and enterprise-grade security,
+the following engineering standards are strictly enforced:
 
-- **Zero-CDN Invariant**: Tidak boleh ada aset frontend yang dimuat dari CDN eksternal. Semua berkas CSS, JS, dan ikon
-  harus berada di dalam `public/assets/`.
-- **Prepared Statements Exclusive**: Seluruh kueri SQL wajib menggunakan prepared statements PDO dengan parameter binding.
-  Penggabungan string mentah ke dalam kueri dilarang tanpa kecuali.
-- **Fail-Safe Session Cookies**: Cookie sesi wajib mengaktifkan atribut `HttpOnly`, `SameSite=Strict`, dan `Secure`
-  (pada koneksi HTTPS) untuk mencegah pencurian sesi dan serangan XSS (SonarLint S3330).
-- **Line Length Bound**: Kode sumber dan berkas template dioptimalkan agar tetap terbaca rapi dengan batas
-  maksimum $\le 120$ karakter per baris.
-- **Strict Canonical DNS Naming**: Seluruh nama domain dan FQDN diproses secara kanonikal dengan trailing dot (`.`)
-  sesuai dengan spesifikasi PowerDNS HTTP API v1.
+- **Zero-CDN Invariant**: No frontend assets are loaded from third-party CDNs. All CSS, JS, font, and icon
+  assets reside locally in `public/assets/`.
+- **Prepared Statements Exclusive**: All SQL queries strictly utilize PDO prepared statements with parameter
+  binding. Raw string concatenation in SQL queries is prohibited without exception.
+- **Fail-Safe Session Cookies**: Session cookies enforce `HttpOnly`, `SameSite=Strict`, and `Secure` flags
+  (over HTTPS) to eliminate session hijacking and XSS vectors (SonarLint S3330).
+- **Line Length Bound**: Source code and template files are kept readable, strictly bounded to $\le 120$
+  characters per line.
+- **Strict Canonical DNS Naming**: All domain names and FQDNs are normalized with canonical trailing dots (`.`)
+  matching PowerDNS HTTP API v1 specifications.
 
 ---
 
 ## 🔒 Security & Content Safety
 
-- **OWASP Top 10:2025 Hardened**: Dirancang tahan terhadap SQL Injection, XSS, CSRF, IDOR/BOLA, dan Broken Authentication.
-- **Argon2id Password Hashes**: Kata sandi disimpan dengan hash memori-keras `PASSWORD_ARGON2ID`.
-- **AES-256-GCM Encryption**: Kredensial PowerDNS dienkripsi secara simetris dengan otentikasi data integritas.
-- **CSRF Dual-Token Verification**: Setiap form mutasi dilindungi dengan token CSRF bertanda tangan sesi.
-- **Audit Trails**: Setiap mutasi zona, perubahan record, dan aktivitas hak akses dicatat permanen dalam tabel `audit_logs`.
+- **OWASP Top 10:2025 Hardened**: Engineered with built-in defenses against SQL Injection, XSS, CSRF, IDOR/BOLA,
+  and Broken Authentication.
+- **Argon2id Password Hashes**: User credentials hashed using memory-hard `PASSWORD_ARGON2ID`.
+- **AES-256-GCM Encryption**: PowerDNS cluster credentials symmetrically encrypted with authenticated data integrity.
+- **CSRF Dual-Token Verification**: All state-changing mutation forms protected with session-bound CSRF tokens.
+- **Audit Trails**: All zone mutations, record revisions, and administrative events permanently logged in the
+  `audit_logs` table.
 
 ---
 
@@ -932,19 +945,19 @@ PowerDNS-Admin-PHP/
 
 ## 🤝 Contributing
 
-Kontribusi sangat terbuka! Silakan ikuti panduan berikut:
+Contributions are warmly welcomed! Please follow these engineering guidelines:
 
-1. Fork repositori ini dan buat branch fitur Anda: `git checkout -b feature/amazing-feature`.
-2. Pastikan kode Anda mematuhi standar PSR-12 dan batas panjang baris $\le 120$ karakter.
-3. Jalankan seluruh quality gate: `php -l`, `vendor/bin/phpstan`, `vendor/bin/psalm`, dan `vendor/bin/phpcs`.
-4. Buat commit terstruktur menggunakan Conventional Commits: `git commit -m 'feat: add DNSSEC key rollover'`.
-5. Push ke branch Anda dan buka sebuah Pull Request.
+1. Fork this repository and create your feature branch: `git checkout -b feature/amazing-feature`.
+2. Ensure your code strictly adheres to PSR-12 coding standards and the $\le 120$ character line length limit.
+3. Run and pass all quality verification gates: `php -l`, `vendor/bin/phpstan`, `vendor/bin/psalm`, and `phpcs`.
+4. Structure your commits using Conventional Commits: `git commit -m 'feat: add DNSSEC key rollover'`.
+5. Push to your branch and open a Pull Request.
 
 ---
 
 ## 📬 Maintainer & Contact
 
-Untuk konsultasi teknis, implementasi enterprise, audit keamanan DNS, atau kerjasama pengembangan:
+For technical consultations, enterprise deployments, DNS security audits, or custom feature engineering:
 
 - **Lead Maintainer & Engineering**: **HARRY DERTIN SUTISNA ALSYUNDAWY** — [`ALSYUNDAWY IT SOLUTION`](https://alsyundawy.com)
 - **Official Website**: [`https://alsyundawy.com`](https://alsyundawy.com)
@@ -957,34 +970,34 @@ Untuk konsultasi teknis, implementasi enterprise, audit keamanan DNS, atau kerja
 
 ## 💖 Support & Donation
 
-Jika **PowerDNS-Admin-PHP** membantu mempermudah operasional infrastruktur DNS Anda, menghemat waktu administrasi server,
-atau memberikan manfaat nyata bagi organisasi Anda, pertimbangkan untuk mendukung kelangsungan pemeliharaan, audit keamanan,
-dan pengembangan fitur open-source ini:
+If **PowerDNS-Admin-PHP** streamlines your authoritative DNS operations, saves engineering hours,
+or delivers tangible reliability to your infrastructure, please consider supporting ongoing maintenance,
+security audits, and open-source feature development:
 
-### 💳 Dukungan Internasional: PayPal
+### 💳 International Sponsorship: PayPal
 
 [![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/alsyundawy)
 
-- **Tautan PayPal**: [`https://www.paypal.me/alsyundawy`](https://www.paypal.me/alsyundawy)
+- **PayPal Donation Link**: [`https://www.paypal.me/alsyundawy`](https://www.paypal.me/alsyundawy)
 
-### 🇮🇩 Dukungan Domestik & Regional: QRIS (Quick Response Code Indonesian Standard)
+### 🇮🇩 Domestic & Regional Sponsorship: QRIS (Quick Response Code Indonesian Standard)
 
-Pindai barcode QRIS di bawah ini menggunakan aplikasi mobile banking (BCA, Mandiri, BRI, BNI, BSI, CIMB Niaga, Permata)
-atau e-wallet (GoPay, OVO, DANA, LinkAja, ShopeePay):
+Scan the QRIS barcode below using mobile banking apps (BCA, Mandiri, BRI, BNI, BSI, CIMB Niaga, Permata)
+or digital wallets (GoPay, OVO, DANA, LinkAja, ShopeePay):
 
 ![QRIS Donation Barcode - ALSYUNDAWY](https://github.com/user-attachments/assets/a0126f28-6dde-43da-ba14-d7c9a27de0df)
 
-- **Merchant / Nama Akun**: **ALSYUNDAWY IT SOLUTION**
+- **Merchant / Account Name**: **ALSYUNDAWY IT SOLUTION**
 - **NMID**: **`ID1020021153676`**
 - **Direct Barcode Asset Link**: [`https://github.com/user-attachments/assets/a0126f28-6dde-43da-ba14-d7c9a27de0df`](https://github.com/user-attachments/assets/a0126f28-6dde-43da-ba14-d7c9a27de0df)
-- **Konfirmasi WhatsApp**: [`+62 856-8515-212`](https://wa.me/628568515212)
+- **WhatsApp Confirmation**: [`+62 856-8515-212`](https://wa.me/628568515212)
 
-Dukungan Anda memberikan dampak langsung dalam pengembangan peralatan DNS open-source yang aman, cepat, dan independen.
+Your sponsorship directly accelerates open-source development of secure, sovereign, and high-performance DNS tools.
 
 ---
 
 ## 📄 License
 
-PowerDNS-Admin-PHP adalah perangkat lunak open-source di bawah lisensi [`MIT License`](LICENSE) © 2024–2026 Harry DS Alsyundawy.
+PowerDNS-Admin-PHP is open-source software licensed under the [`MIT License`](LICENSE) © 2024–2026 Harry DS Alsyundawy.
 
-Bebas digunakan, dimodifikasi, dan didistribusikan untuk keperluan personal, komersial, maupun infrastruktur enterprise.
+Free to use, modify, and distribute for personal, commercial, and enterprise production environments.
