@@ -1,0 +1,215 @@
+# =============================================================================
+# MegaLinter GitHub Actions Workflow — PHP-BindManager
+# https://megalinter.io  |  Version: v10.1.0 (latest)
+# Focus: PHP · HTML · CSS · JavaScript · Markdown
+# =============================================================================
+---
+name: MegaLinter
+
+on: # yamllint disable-line rule:truthy
+  push:
+  pull_request:
+    branches:
+      - main
+      - master
+
+env:
+  # Apply auto-fixes only on pull_request events
+  APPLY_FIXES: all
+  APPLY_FIXES_EVENT: pull_request
+  APPLY_FIXES_MODE: commit
+  APPLY_FIXES_IF: 'false'
+  APPLY_FIXES_IF_COMMIT: 'false'
+  APPLY_FIXES_IF_PR: 'false'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  megalinter:
+    name: MegaLinter v10 (PHP·HTML·CSS·JS·MD)
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      # Required for SARIF upload
+      security-events: write
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      # -----------------------------------------------------------------------
+      # 2. Setup PHP & Install Composer Dependencies
+      # -----------------------------------------------------------------------
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.4'
+          extensions: pdo, sqlite3, pdo_sqlite, mbstring, intl, curl, openssl
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress
+
+      # -----------------------------------------------------------------------
+      # 3. MegaLinter v10.1.0 — latest release
+      # -----------------------------------------------------------------------
+      - name: MegaLinter
+        uses: oxsecurity/megalinter@9949bad031045f366be2467e00e8371a7328a2e2 # v10.1.0
+        id: ml
+        env:
+          # Validate full codebase on main/master push; diff only on PRs
+          VALIDATE_ALL_CODEBASE: >-
+            ${{
+              github.event_name == 'push' &&
+              contains(fromJSON('["refs/heads/main", "refs/heads/master"]'), github.ref)
+            }}
+
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # --------------- Scope: only these 5 families ---------------------
+          ENABLE: PHP,HTML,CSS,JAVASCRIPT,MARKDOWN
+
+          # --------------- PHP linters ---------------------------------------
+          ENABLE_LINTERS: >-
+            PHP_PHPCS,PHP_PHPSTAN,PHP_PSALM,PHP_PHPLINT,PHP_PHPMD,PHP_PHPCSFIXER,
+            HTML_DJLINT,HTML_HTMLHINT,
+            CSS_STYLELINT,
+            JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,
+            MARKDOWN_MARKDOWNLINT
+
+          # --------------- Auto-fix -----------------------------------------
+          APPLY_FIXES: PHP_PHPCS,PHP_PHPCSFIXER,CSS_STYLELINT,JAVASCRIPT_ES,JAVASCRIPT_PRETTIER,MARKDOWN_MARKDOWNLINT
+
+          # --------------- Config files -------------------------------------
+          PHP_PHPCS_CONFIG_FILE: phpcs.xml
+          PHP_PHPSTAN_CONFIG_FILE: phpstan.neon
+          PHP_PSALM_CONFIG_FILE: psalm.xml
+          PHP_PHPCSFIXER_CONFIG_FILE: .php-cs-fixer.php
+          PHP_PHPCSFIXER_ARGUMENTS: --config=.php-cs-fixer.php
+          PHP_PHPSTAN_ARGUMENTS: --level=8 --no-progress
+          PHP_PHPCS_ARGUMENTS: --standard=PSR12 --extensions=php
+          PHP_PHPMD_ARGUMENTS: --rulesets cleancode,codesize,controversial,design,naming,unusedcode
+          MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+
+          # --------------- Exclusions ---------------------------------------
+          FILTER_REGEX_EXCLUDE: >-
+            (vendor/|\.git/|node_modules/|\.cache/|\.phpunit\.cache/|\.php-cs-fixer\.cache|megalinter-reports/)
+
+          # --------------- Reporting ----------------------------------------
+          REPORT_OUTPUT_FOLDER: megalinter-reports
+          SARIF_REPORTER: true
+          TEXT_REPORTER: true
+          JSON_REPORTER: true
+          SHOW_ELAPSED_TIME: true
+          SHOW_SKIPPED_LINTERS: false
+          PARALLEL: true
+          LOG_LEVEL: INFO
+
+      # -----------------------------------------------------------------------
+      # 3. Upload artifacts
+      # -----------------------------------------------------------------------
+      - name: Archive MegaLinter reports
+        if: success() || failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: MegaLinter-reports
+          include-hidden-files: true
+          retention-days: 30
+          path: |
+            megalinter-reports
+            mega-linter.log
+
+      # -----------------------------------------------------------------------
+      # 4. Upload SARIF to GitHub Security tab
+      # -----------------------------------------------------------------------
+      - name: Upload SARIF to GitHub Security
+        if: success() || failure()
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: megalinter-reports/megalinter-report.sarif
+        continue-on-error: true
+
+      # -----------------------------------------------------------------------
+      # 5. Compute fix-application conditions
+      # -----------------------------------------------------------------------
+      - name: Set APPLY_FIXES_IF var
+        run: |
+          printf 'APPLY_FIXES_IF=%s\n' "${{
+            steps.ml.outputs.has_updated_sources == 1 &&
+            (
+              env.APPLY_FIXES_EVENT == 'all' ||
+              env.APPLY_FIXES_EVENT == github.event_name
+            ) &&
+            (
+              github.event_name == 'push' ||
+              github.event.pull_request.head.repo.full_name == github.repository
+            )
+          }}" >> "${GITHUB_ENV}"
+
+      - name: Set APPLY_FIXES_IF_* vars
+        run: |
+          printf 'APPLY_FIXES_IF_PR=%s\n' "${{
+            env.APPLY_FIXES_IF == 'true' &&
+            env.APPLY_FIXES_MODE == 'pull_request'
+          }}" >> "${GITHUB_ENV}"
+          printf 'APPLY_FIXES_IF_COMMIT=%s\n' "${{
+            env.APPLY_FIXES_IF == 'true' &&
+            env.APPLY_FIXES_MODE == 'commit' &&
+            (!contains(fromJSON('["refs/heads/main", "refs/heads/master"]'), github.ref))
+          }}" >> "${GITHUB_ENV}"
+
+      # -----------------------------------------------------------------------
+      # 6. Auto-commit fixes (commit mode)
+      # -----------------------------------------------------------------------
+      - name: Prepare commit
+        if: env.APPLY_FIXES_IF_COMMIT == 'true'
+        run: sudo chown -Rc "$UID" .git/
+
+      - name: Commit and push linter fixes
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        if: env.APPLY_FIXES_IF_COMMIT == 'true'
+        with:
+          branch: >-
+            ${{
+              github.event.pull_request.head.ref ||
+              github.head_ref ||
+              github.ref
+            }}
+          commit_message: "[MegaLinter] Apply linters automatic fixes" # yamllint disable-line rule:quoted-strings
+          commit_user_name: megalinter-bot
+          commit_user_email: 129584137+megalinter-bot@users.noreply.github.com
+
+      # -----------------------------------------------------------------------
+      # 7. Auto-PR mode (pull_request mode)
+      # -----------------------------------------------------------------------
+      - name: Create Pull Request with applied fixes
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        id: cpr
+        if: env.APPLY_FIXES_IF_PR == 'true'
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "[MegaLinter] Apply linters automatic fixes" # yamllint disable-line rule:quoted-strings
+          title: "[MegaLinter] Apply linters automatic fixes" # yamllint disable-line rule:quoted-strings
+          labels: bot,linting
+
+      - name: Create PR output
+        if: env.APPLY_FIXES_IF_PR == 'true'
+        env:
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
+        run: |
+          echo "PR Number - ${PR_NUMBER}"
+          echo "PR URL    - ${PR_URL}"
