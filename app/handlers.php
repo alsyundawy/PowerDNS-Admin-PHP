@@ -1,94 +1,166 @@
 <?php
+
 declare(strict_types=1);
 
-function handle_install(): void
+const PATH_USERS = '/users';
+const PATH_ZONES = '/zones/';
+const PATH_TOOLS_RDNS = '/tools/rdns';
+const SQLSTATE_DUPLICATE = '23000';
+
+function redirectZone(string $zone, string $subpath = ''): never
+{
+    redirect(PATH_ZONES . rawurlencode(rtrim($zone, '.')) . $subpath);
+}
+
+/**
+ * @param array<string, scalar> $dbParams
+ * @param array<string, string> $adminParams
+ * @param array<string, string> $pdnsParams
+ */
+function executeInstall(array $dbParams, array $adminParams, array $pdnsParams): void
+{
+    $dsn = sprintf(
+        'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+        (string) $dbParams['host'],
+        (int) $dbParams['port'],
+        (string) $dbParams['name']
+    );
+    $pdo = new PDO($dsn, (string) $dbParams['user'], (string) $dbParams['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+    $sql = (string) file_get_contents(appRoot() . '/sql/schema.sql');
+    $stmts = array_filter(array_map('trim', explode(';', $sql)), static fn (string $s): bool => $s !== '');
+    foreach ($stmts as $stmt) {
+        $pdo->exec($stmt);
+    }
+    $hash = password_hash($adminParams['pass'], PASSWORD_ARGON2ID);
+    $pdo->prepare(
+        'INSERT INTO users (username, password_hash, display_name, role, active) VALUES (?, ?, ?, ?, 1)'
+    )->execute([$adminParams['user'], $hash, 'Administrator', 'admin']);
+    $appKey = base64_encode(random_bytes(32));
+    $cfg = "<?php\nreturn " . var_export([
+        'installed' => true,
+        'db' => [
+            'host' => (string) $dbParams['host'],
+            'port' => (int) $dbParams['port'],
+            'name' => (string) $dbParams['name'],
+            'user' => (string) $dbParams['user'],
+            'pass' => (string) $dbParams['pass'],
+            'charset' => 'utf8mb4',
+        ],
+        'appKey' => $appKey,
+    ], true) . ";\n";
+    if (file_put_contents(configPath(), $cfg) === false) {
+        throw new UnexpectedValueException('Tidak bisa menulis config.php. Periksa izin direktori.');
+    }
+    chmod(configPath(), 0640);
+    config(true);
+    $stored = secretEncrypt($pdnsParams['key']);
+    $insSetting = $pdo->prepare(
+        'INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)'
+    );
+    $insSetting->execute(['pdns_api_url', $pdnsParams['url']]);
+    $insSetting->execute(['pdns_api_key', $stored]);
+    $insSetting->execute(['pdns_server_id', 'localhost']);
+    $insSetting->execute(['pdns_verify_tls', '1']);
+}
+
+function handleInstall(): void
 {
     if (installed()) {
         redirect('/');
     }
     $error = '';
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        csrf_check();
-        $host = trim((string) ($_POST['db_host'] ?? '127.0.0.1'));
-        $port = (int) ($_POST['db_port'] ?? 3306);
-        $name = trim((string) ($_POST['db_name'] ?? 'pda'));
-        $user = trim((string) ($_POST['db_user'] ?? ''));
-        $pass = (string) ($_POST['db_pass'] ?? '');
+        csrfCheck();
         $admin = trim((string) ($_POST['admin_user'] ?? 'admin'));
         $adminPass = (string) ($_POST['admin_pass'] ?? '');
         $pdnsUrl = rtrim(trim((string) ($_POST['pdns_url'] ?? '')), '/');
         $pdnsKey = trim((string) ($_POST['pdns_key'] ?? ''));
-        if (!preg_match('/^[a-zA-Z0-9_]{3,32}$/', $admin) || strlen($adminPass) < 10) {
+        if (!preg_match('/^\w{3,32}$/', $admin) || strlen($adminPass) < 10) {
             $error = 'Username admin 3-32 karakter. Sandi minimal 10 karakter.';
         } elseif (!preg_match('#^https?://#', $pdnsUrl) || $pdnsKey === '') {
             $error = 'URL API PowerDNS dan API key wajib diisi.';
         } else {
             try {
-                $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $name);
-                $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                $sql = file_get_contents(app_root() . '/sql/schema.sql');
-                foreach (array_filter(array_map('trim', explode(';', (string) $sql))) as $stmt) {
-                    if ($stmt !== '') {
-                        $pdo->exec($stmt);
-                    }
-                }
-                $hash = password_hash($adminPass, PASSWORD_ARGON2ID);
-                $pdo->prepare('INSERT INTO users (username, password_hash, display_name, role, active) VALUES (?, ?, ?, ?, 1)')
-                    ->execute([$admin, $hash, 'Administrator', 'admin']);
-                $appKey = base64_encode(random_bytes(32));
-                $cfg = "<?php\nreturn " . var_export([
-                    'installed' => true,
-                    'db' => ['host' => $host, 'port' => $port, 'name' => $name, 'user' => $user, 'pass' => $pass, 'charset' => 'utf8mb4'],
-                    'app_key' => $appKey,
-                ], true) . ";\n";
-                if (file_put_contents(config_path(), $cfg) === false) {
-                    throw new RuntimeException('Tidak bisa menulis config.php. Periksa izin direktori.');
-                }
-                chmod(config_path(), 0640);
-                $enc = openssl_encrypt($pdnsKey, 'aes-256-gcm', substr(base64_decode($appKey), 0, 32), OPENSSL_RAW_DATA, $iv = random_bytes(12), $tag);
-                $stored = base64_encode($iv . $tag . $enc);
-                $pdo->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)')->execute(['pdns_api_url', $pdnsUrl]);
-                $pdo->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)')->execute(['pdns_api_key', $stored]);
-                $pdo->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)')->execute(['pdns_server_id', 'localhost']);
-                $pdo->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)')->execute(['pdns_verify_tls', '1']);
+                $dbParams = [
+                    'host' => trim((string) ($_POST['db_host'] ?? '127.0.0.1')),
+                    'port' => (int) ($_POST['db_port'] ?? 3306),
+                    'name' => trim((string) ($_POST['db_name'] ?? 'pda')),
+                    'user' => trim((string) ($_POST['db_user'] ?? '')),
+                    'pass' => (string) ($_POST['db_pass'] ?? ''),
+                ];
+                executeInstall(
+                    $dbParams,
+                    ['user' => $admin, 'pass' => $adminPass],
+                    ['url' => $pdnsUrl, 'key' => $pdnsKey]
+                );
                 redirect('/login');
             } catch (Throwable $ex) {
-                $error = $ex->getMessage();
+                $error = 'Instalasi gagal: ' . $ex->getMessage();
             }
         }
     }
     view('install', ['title' => 'Instalasi', 'error' => $error]);
 }
 
-function handle_login(): void
+function isLoginThrottled(string $ip, string $username): bool
 {
-    if (current_user()) {
+    $stIp = db()->prepare(
+        'SELECT COUNT(*) FROM login_attempts
+         WHERE ip = ? AND success = 0 AND created_at > (NOW() - INTERVAL 15 MINUTE)'
+    );
+    $stIp->execute([$ip]);
+    $stUser = db()->prepare(
+        'SELECT COUNT(*) FROM login_attempts
+         WHERE username = ? AND success = 0 AND created_at > (NOW() - INTERVAL 15 MINUTE)'
+    );
+    $stUser->execute([$username]);
+    return (int) $stIp->fetchColumn() >= 10 || (int) $stUser->fetchColumn() >= 5;
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function loginUserSession(array $user, string $password): void
+{
+    session_regenerate_id(true);
+    csrfRotate();
+    $_SESSION['uid'] = (int) $user['id'];
+    db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([(int) $user['id']]);
+    if (password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
+        $newHash = password_hash($password, PASSWORD_ARGON2ID);
+        db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+            ->execute([$newHash, (int) $user['id']]);
+    }
+    redirect('/');
+}
+
+function handleLogin(): void
+{
+    if (currentUser()) {
         redirect('/');
     }
     $error = '';
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        csrf_check();
+        csrfCheck();
         $username = trim((string) ($_POST['username'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
-        $ip = client_ip();
-        $st = db()->prepare('SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND success = 0 AND created_at > (NOW() - INTERVAL 15 MINUTE)');
-        $st->execute([$ip]);
-        if ((int) $st->fetchColumn() >= 8) {
+        $ip = clientIp();
+
+        if (isLoginThrottled($ip, $username)) {
             $error = 'Terlalu banyak percobaan. Tunggu 15 menit.';
         } else {
             $st = db()->prepare('SELECT * FROM users WHERE username = ?');
             $st->execute([$username]);
             $user = $st->fetch();
             $ok = $user && (int) $user['active'] === 1 && password_verify($password, (string) $user['password_hash']);
-            db()->prepare('INSERT INTO login_attempts (username, ip, success) VALUES (?, ?, ?)')->execute([$username, $ip, $ok ? 1 : 0]);
+            db()->prepare('INSERT INTO login_attempts (username, ip, success) VALUES (?, ?, ?)')
+                ->execute([$username, $ip, $ok ? 1 : 0]);
             if ($ok) {
-                session_regenerate_id(true);
-                $_SESSION['uid'] = (int) $user['id'];
-                db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([(int) $user['id']]);
-                if (password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
-                    db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_ARGON2ID), (int) $user['id']]);
-                }
-                redirect('/');
+                loginUserSession($user, $password);
             }
             $error = 'Username atau sandi salah.';
         }
@@ -96,20 +168,27 @@ function handle_login(): void
     view('login', ['title' => 'Masuk', 'error' => $error]);
 }
 
-function handle_logout(): void
+function handleLogout(): void
 {
-    csrf_check();
+    csrfCheck();
     $_SESSION = [];
     session_destroy();
     redirect('/login');
 }
 
-function handle_dashboard(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleDashboard(array $user): void
 {
-    $zones = (int) db()->query('SELECT COUNT(*) FROM zones')->fetchColumn();
-    $users = (int) db()->query('SELECT COUNT(*) FROM users')->fetchColumn();
-    $accounts = (int) db()->query('SELECT COUNT(*) FROM accounts')->fetchColumn();
-    $dnssec = (int) db()->query('SELECT COUNT(*) FROM zones WHERE dnssec = 1')->fetchColumn();
+    $stZones = db()->query('SELECT COUNT(*) FROM zones');
+    $zones = $stZones ? (int) $stZones->fetchColumn() : 0;
+    $stUsers = db()->query('SELECT COUNT(*) FROM users');
+    $users = $stUsers ? (int) $stUsers->fetchColumn() : 0;
+    $stAccounts = db()->query('SELECT COUNT(*) FROM accounts');
+    $accounts = $stAccounts ? (int) $stAccounts->fetchColumn() : 0;
+    $stDnssec = db()->query('SELECT COUNT(*) FROM zones WHERE dnssec = 1');
+    $dnssec = $stDnssec ? (int) $stDnssec->fetchColumn() : 0;
     $stats = [];
     $apiOk = false;
     $apiError = '';
@@ -118,7 +197,10 @@ function handle_dashboard(array $user): void
         $pdns->ping();
         $apiOk = true;
         $raw = $pdns->statistics(false);
-        $want = ['udp-queries','udp-answers','tcp-queries','tcp-answers','packetcache-hit','packetcache-miss','servfail-answers','qsize-q'];
+        $want = [
+            'udp-queries', 'udp-answers', 'tcp-queries', 'tcp-answers',
+            'packetcache-hit', 'packetcache-miss', 'servfail-answers', 'qsize-q',
+        ];
         foreach ($raw as $item) {
             if (!is_array($item) || !in_array($item['name'] ?? '', $want, true)) {
                 continue;
@@ -128,18 +210,24 @@ function handle_dashboard(array $user): void
     } catch (Throwable $ex) {
         $apiError = $ex->getMessage();
     }
-    $recent = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 8')->fetchAll();
-    view('dashboard', compact('user', 'zones', 'users', 'accounts', 'dnssec', 'stats', 'apiOk', 'apiError', 'recent') + ['title' => 'Dasbor']);
+    $stHist = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 8');
+    $recent = $stHist ? $stHist->fetchAll() : [];
+    view(
+        'dashboard',
+        compact('user', 'zones', 'users', 'accounts', 'dnssec', 'stats', 'apiOk', 'apiError', 'recent')
+            + ['title' => 'Dasbor']
+    );
 }
 
-function handle_zones(array $user): void
+function handleZones(array $user): void
 {
     $q = trim((string) ($_GET['q'] ?? ''));
     $kind = trim((string) ($_GET['kind'] ?? ''));
     $sql = 'SELECT z.*, a.name AS account_name FROM zones z LEFT JOIN accounts a ON a.id = z.account_id WHERE 1=1';
     $args = [];
     if ($user['role'] !== 'admin') {
-        $sql .= ' AND (z.id IN (SELECT zone_id FROM zone_user WHERE user_id = ?) OR z.account_id IN (SELECT account_id FROM account_user WHERE user_id = ?))';
+        $sql .= ' AND (z.id IN (SELECT zone_id FROM zone_user WHERE user_id = ?)
+                 OR z.account_id IN (SELECT account_id FROM account_user WHERE user_id = ?))';
         $args[] = (int) $user['id'];
         $args[] = (int) $user['id'];
     }
@@ -158,12 +246,12 @@ function handle_zones(array $user): void
     view('zones', ['title' => 'Zona', 'user' => $user, 'zones' => $zones, 'q' => $q, 'kind' => $kind]);
 }
 
-function handle_zone_sync(array $user): void
+function handleZoneSync(array $user): void
 {
-    csrf_check();
-    require_role($user, ['admin', 'operator']);
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
     try {
-        $n = sync_zones_from_pdns(PdnsClient::fromSettings());
+        $n = syncZonesFromPdns(PdnsClient::fromSettings());
         audit($user, 'sync', '', 'Sinkron ' . $n . ' zona');
         flash('success', 'Sinkron selesai: ' . $n . ' zona dari PowerDNS.');
     } catch (Throwable $ex) {
@@ -172,60 +260,160 @@ function handle_zone_sync(array $user): void
     redirect('/zones');
 }
 
-function handle_zone_create(array $user): void
+/**
+ * @param list<string> $masters
+ */
+function validateZoneCreateInput(string $name, string $kind, array $masters, string $soaEdit): string
 {
-    require_role($user, ['admin', 'operator']);
-    $error = '';
-    $accounts = db()->query('SELECT id, name FROM accounts ORDER BY name')->fetchAll();
-    $templates = db()->query('SELECT id, name FROM templates ORDER BY name')->fetchAll();
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        csrf_check();
-        $name = dns_canonical((string) ($_POST['name'] ?? ''));
-        $kind = (string) ($_POST['kind'] ?? 'Native');
-        $ns = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['nameservers'] ?? '')))));
-        $masters = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['masters'] ?? '')))));
-        $soaEdit = (string) ($_POST['soa_edit_api'] ?? 'DEFAULT');
-        $accountId = (int) ($_POST['account_id'] ?? 0);
-        $allowedSoa = ['DEFAULT','INCREASE','EPOCH','SOA-EDIT','SOA-EDIT-INCREASE'];
-        if (!str_ends_with($name, '.') || !preg_match('/^[a-z0-9_.*\/-]+\.$/', $name)) {
-            $error = 'Nama zona tidak valid. Contoh: example.com atau 10.in-addr.arpa';
-        } elseif (!in_array($kind, ['Native','Master','Slave','Producer','Consumer'], true)) {
-            $error = 'Jenis zona tidak dikenal.';
-        } elseif ($kind === 'Slave' && !$masters) {
-            $error = 'Zona Slave wajib punya alamat primary.';
-        } elseif (!in_array($soaEdit, $allowedSoa, true)) {
-            $error = 'Mode SOA-EDIT-API tidak valid.';
-        } else {
-            $nsCanon = array_map('dns_canonical', $ns);
-            $payload = [
-                'name' => $name,
-                'kind' => $kind,
-                'masters' => $kind === 'Slave' ? $masters : [],
-                'nameservers' => $nsCanon,
-                'soa_edit_api' => $soaEdit,
-                'api_rectify' => true,
-            ];
-            try {
-                $pdns = PdnsClient::fromSettings();
-                $pdns->createZone($payload);
-                db()->prepare('INSERT INTO zones (name, kind, account_id, synced_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE kind = VALUES(kind), account_id = VALUES(account_id), synced_at = NOW()')
-                    ->execute([$name, $kind, $accountId > 0 ? $accountId : null]);
-                $tpl = (int) ($_POST['template_id'] ?? 0);
-                if ($tpl > 0) {
-                    apply_template($pdns, $name, $tpl);
-                }
-                audit($user, 'create-zone', $name, $kind);
-                flash('success', 'Zona ' . dns_display($name) . ' dibuat.');
-                redirect('/zones/' . rawurlencode(rtrim($name, '.')));
-            } catch (Throwable $ex) {
-                $error = $ex->getMessage();
-            }
-        }
+    $allowedSoa = ['DEFAULT', 'INCREASE', 'EPOCH', 'SOA-EDIT', 'SOA-EDIT-INCREASE'];
+    $err = '';
+    if (!str_ends_with($name, '.') || !preg_match('/^[a-z0-9_.*\/-]+\.$/', $name)) {
+        $err = 'Nama zona tidak valid. Contoh: example.com atau 10.in-addr.arpa';
+    } elseif (!in_array($kind, ['Native', 'Master', 'Slave', 'Producer', 'Consumer'], true)) {
+        $err = 'Jenis zona tidak dikenal.';
+    } elseif ($kind === 'Slave' && !$masters) {
+        $err = 'Zona Slave wajib punya alamat primary.';
+    } elseif (!in_array($soaEdit, $allowedSoa, true)) {
+        $err = 'Mode SOA-EDIT-API tidak valid.';
     }
-    view('zone_create', ['title' => 'Zona baru', 'user' => $user, 'error' => $error, 'accounts' => $accounts, 'templates' => $templates]);
+    return $err;
 }
 
-function apply_template(PdnsClient $pdns, string $zone, int $templateId): void
+/**
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $payload
+ * @param list<array<string, mixed>> $initialRrsets
+ */
+function executeZoneCreation(
+    array $user,
+    string $name,
+    string $kind,
+    int $accountId,
+    array $payload,
+    int $tpl,
+    array $initialRrsets = []
+): void {
+    $pdns = PdnsClient::fromSettings();
+    $pdns->createZone($payload);
+    db()->prepare(
+        'INSERT INTO zones (name, kind, account_id, synced_at) VALUES (?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE kind = VALUES(kind), account_id = VALUES(account_id), synced_at = NOW()'
+    )->execute([$name, $kind, $accountId > 0 ? $accountId : null]);
+    if (!empty($initialRrsets)) {
+        $pdns->patchRrsets($name, $initialRrsets);
+        audit($user, 'import-bind', $name, 'Impor ' . count($initialRrsets) . ' RRsets');
+    } elseif ($tpl > 0) {
+        applyTemplate($pdns, $name, $tpl);
+    }
+    audit($user, 'create-zone', $name, $kind);
+    $msg = 'Zona ' . dnsDisplay($name) . ' dibuat.';
+    if (!empty($initialRrsets)) {
+        $msg .= ' (' . count($initialRrsets) . ' RRset diimpor dari berkas BIND).';
+    }
+    flash('success', $msg);
+    redirectZone($name);
+}
+
+function resolveUploadedBindContent(): string
+{
+    $bindText = trim((string) ($_POST['bind_content'] ?? ''));
+    if (!empty($_FILES['bind_file']['tmp_name']) && is_uploaded_file($_FILES['bind_file']['tmp_name'])) {
+        $uploaded = file_get_contents($_FILES['bind_file']['tmp_name']);
+        if ($uploaded !== false && trim($uploaded) !== '') {
+            return $uploaded;
+        }
+    }
+    return $bindText;
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function processZoneCreateSubmission(array $user): string
+{
+    csrfCheck();
+    $nameInput = trim((string) ($_POST['name'] ?? ''));
+    $name = dnsCanonical($nameInput);
+    $kind = (string) ($_POST['kind'] ?? 'Native');
+    $ns = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['nameservers'] ?? '')))));
+    $masters = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['masters'] ?? '')))));
+    $soaEdit = (string) ($_POST['soa_edit_api'] ?? 'DEFAULT');
+    $accountId = (int) ($_POST['account_id'] ?? 0);
+
+    $bindText = resolveUploadedBindContent();
+    $parsedBind = null;
+    $error = '';
+
+    if ($bindText !== '') {
+        try {
+            $parsedBind = parseBindZone($bindText, $name !== '.' ? $name : 'example.com.');
+            if (($name === '.' || $name === '') && !empty($parsedBind['origin'])) {
+                $name = $parsedBind['origin'];
+            }
+        } catch (Throwable $e) {
+            $error = 'Format berkas BIND tidak valid: ' . $e->getMessage();
+        }
+    }
+
+    if ($error === '') {
+        $error = validateZoneCreateInput($name, $kind, $masters, $soaEdit);
+    }
+    if ($error !== '') {
+        return $error;
+    }
+
+    $payload = [
+        'name' => $name,
+        'kind' => $kind,
+        'masters' => $kind === 'Slave' ? $masters : [],
+        'nameservers' => array_map('dnsCanonical', $ns),
+        'soa_edit_api' => $soaEdit,
+        'api_rectify' => true,
+    ];
+
+    try {
+        $tpl = (int) ($_POST['template_id'] ?? 0);
+        executeZoneCreation(
+            $user,
+            $name,
+            $kind,
+            $accountId,
+            $payload,
+            $tpl,
+            $parsedBind['rrsets'] ?? []
+        );
+        return '';
+    } catch (Throwable $ex) {
+        return $ex->getMessage();
+    }
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function handleZoneCreate(array $user): void
+{
+    requireRole($user, ['admin', 'operator']);
+    $error = '';
+    $stAcc = db()->query('SELECT id, name FROM accounts ORDER BY name');
+    $accounts = $stAcc ? $stAcc->fetchAll() : [];
+    $stTpl = db()->query('SELECT id, name FROM templates ORDER BY name');
+    $templates = $stTpl ? $stTpl->fetchAll() : [];
+
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        $error = processZoneCreateSubmission($user);
+    }
+
+    view('zone_create', [
+        'title' => 'Zona baru',
+        'user' => $user,
+        'error' => $error,
+        'accounts' => $accounts,
+        'templates' => $templates,
+    ]);
+}
+
+function applyTemplate(PdnsClient $pdns, string $zone, int $templateId): void
 {
     $st = db()->prepare('SELECT * FROM template_records WHERE template_id = ?');
     $st->execute([$templateId]);
@@ -245,16 +433,20 @@ function apply_template(PdnsClient $pdns, string $zone, int $templateId): void
         return;
     }
     $current = $pdns->zone($zone);
-    $diff = diff_rrsets($zone, $current['rrsets'] ?? [], array_merge(flatten_rrsets($current['rrsets'] ?? [], $zone), $rows));
+    $diff = diffRrsets(
+        $zone,
+        $current['rrsets'] ?? [],
+        array_merge(flattenRrsets($current['rrsets'] ?? [], $zone), $rows)
+    );
     if ($diff) {
         $pdns->patchRrsets($zone, $diff);
     }
 }
 
-function handle_zone_show(array $user, string $zoneRaw): void
+function handleZoneShow(array $user, string $zoneRaw): void
 {
-    $zone = dns_canonical(rawurldecode($zoneRaw));
-    require_zone_access($user, $zone, false);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, false);
     $error = '';
     try {
         $pdns = PdnsClient::fromSettings();
@@ -263,82 +455,116 @@ function handle_zone_show(array $user, string $zoneRaw): void
         view('error', ['title' => 'Zona', 'message' => $ex->getMessage(), 'user' => $user]);
         return;
     }
-    $meta = db()->prepare('SELECT z.*, a.name AS account_name FROM zones z LEFT JOIN accounts a ON a.id = z.account_id WHERE z.name = ?');
+    $meta = db()->prepare(
+        'SELECT z.*, a.name AS account_name FROM zones z
+         LEFT JOIN accounts a ON a.id = z.account_id WHERE z.name = ?'
+    );
     $meta->execute([$zone]);
     $local = $meta->fetch() ?: ['name' => $zone, 'kind' => $data['kind'] ?? '', 'account_name' => '', 'comment' => ''];
-    $rows = flatten_rrsets($data['rrsets'] ?? [], $zone);
-    $canEdit = user_can_zone($user, $zone, true);
+    $rows = flattenRrsets($data['rrsets'] ?? [], $zone);
+    $canEdit = userCanZone($user, $zone, true);
     view('zone_show', [
-        'title' => dns_display($zone),
+        'title' => dnsDisplay($zone),
         'user' => $user,
         'zone' => $zone,
         'data' => $data,
         'local' => $local,
         'rows' => $rows,
-        'soa' => soa_of($data),
+        'soa' => soaOf($data),
         'canEdit' => $canEdit,
         'error' => $error,
         'types' => RECORD_TYPES,
     ]);
 }
 
-function handle_zone_save(array $user, string $zoneRaw): void
+/**
+ * @param array<string, mixed> $post
+ * @return list<array{name: string, type: string, ttl: int, content: string, disabled: bool, comment: string}>
+ */
+function parseRecordPostRows(array $post): array
 {
-    csrf_check();
-    $zone = dns_canonical(rawurldecode($zoneRaw));
-    require_zone_access($user, $zone, true);
-    if ($user['role'] === 'user' && !user_can_zone($user, $zone, true)) {
-        require_zone_access($user, $zone, true);
-    }
-    $names = $_POST['r_name'] ?? [];
-    $types = $_POST['r_type'] ?? [];
-    $ttls = $_POST['r_ttl'] ?? [];
-    $contents = $_POST['r_content'] ?? [];
-    $disabled = $_POST['r_disabled'] ?? [];
-    $comments = $_POST['r_comment'] ?? [];
+    $names = $post['r_name'] ?? [];
+    $types = $post['r_type'] ?? [];
+    $ttls = $post['r_ttl'] ?? [];
+    $contents = $post['r_content'] ?? [];
+    $disabled = $post['r_disabled'] ?? [];
+    $comments = $post['r_comment'] ?? [];
     $rows = [];
-    $count = is_array($names) ? count($names) : 0;
-    for ($i = 0; $i < $count; $i++) {
-        $content = trim((string) ($contents[$i] ?? ''));
-        $name = trim((string) ($names[$i] ?? ''));
+
+    if (!is_array($names)) {
+        return $rows;
+    }
+
+    foreach ($names as $idx => $nameVal) {
+        $content = trim((string) ($contents[$idx] ?? ''));
+        $name = trim((string) $nameVal);
         if ($content === '' && $name === '') {
             continue;
         }
-        $type = strtoupper((string) ($types[$i] ?? ''));
-        $err = validate_record($type, $content);
+        $type = strtoupper((string) ($types[$idx] ?? 'A'));
+        $err = validateRecord($type, $content);
         if ($err) {
-            flash('danger', 'Baris ' . ($i + 1) . ': ' . $err);
-            redirect('/zones/' . rawurlencode(rtrim($zone, '.')));
+            $lineNum = is_numeric($idx) ? ((int) $idx + 1) : $idx;
+            throw new UnexpectedValueException('Baris ' . $lineNum . ': ' . $err);
         }
         $rows[] = [
             'name' => $name,
             'type' => $type,
-            'ttl' => (int) ($ttls[$i] ?? 3600),
+            'ttl' => max(30, (int) ($ttls[$idx] ?? 3600)),
             'content' => $content,
-            'disabled' => isset($disabled[$i]) && (string) $disabled[$i] === '1',
-            'comment' => (string) ($comments[$i] ?? ''),
+            'disabled' => !empty($disabled[$idx]) && (string) $disabled[$idx] === '1',
+            'comment' => (string) ($comments[$idx] ?? ''),
         ];
     }
+
+    return $rows;
+}
+
+function handleZoneSave(array $user, string $zoneRaw): void
+{
+    csrfCheck();
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, true);
+
     try {
+        $rows = parseRecordPostRows($_POST);
         $pdns = PdnsClient::fromSettings();
         $current = $pdns->zone($zone);
-        $diff = diff_rrsets($zone, $current['rrsets'] ?? [], $rows);
+        $diff = diffRrsets($zone, $current['rrsets'] ?? [], $rows);
         if ($diff) {
+            saveZoneSnapshot($zone, $current, $user, 'Pembaruan record zona');
             $pdns->patchRrsets($zone, $diff);
         }
+
+        $ptrSynced = 0;
+        if (!isReverseZone($zone) && !empty($_POST['auto_ptr_sync'])) {
+            foreach ($rows as $r) {
+                if (empty($r['disabled']) && in_array(strtoupper($r['type']), ['A', 'AAAA'], true)) {
+                    $fqdn = dnsFqdn($r['name'], $zone);
+                    if (syncForwardIpToReversePtr($pdns, $user, $r['content'], $fqdn, (int) $r['ttl'])) {
+                        $ptrSynced++;
+                    }
+                }
+            }
+        }
+
         audit($user, 'update-records', $zone, count($rows) . ' baris dikirim');
-        flash('success', 'Perubahan record diterapkan ke PowerDNS.');
+        $msg = 'Perubahan record diterapkan ke PowerDNS.';
+        if ($ptrSynced > 0) {
+            $msg .= ' (' . $ptrSynced . ' record PTR disinkronkan otomatis).';
+        }
+        flash('success', $msg);
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
     }
-    redirect('/zones/' . rawurlencode(rtrim($zone, '.')));
+    redirectZone($zone);
 }
 
-function handle_zone_delete(array $user, string $zoneRaw): void
+function handleZoneDelete(array $user, string $zoneRaw): void
 {
-    csrf_check();
-    require_role($user, ['admin']);
-    $zone = dns_canonical(rawurldecode($zoneRaw));
+    csrfCheck();
+    requireRole($user, ['admin']);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
     try {
         PdnsClient::fromSettings()->deleteZone($zone);
         db()->prepare('DELETE FROM zones WHERE name = ?')->execute([$zone]);
@@ -350,12 +576,12 @@ function handle_zone_delete(array $user, string $zoneRaw): void
     redirect('/zones');
 }
 
-function handle_zone_action(array $user, string $zoneRaw, string $action): void
+function handleZoneAction(array $user, string $zoneRaw, string $action): void
 {
-    csrf_check();
-    require_role($user, ['admin', 'operator']);
-    $zone = dns_canonical(rawurldecode($zoneRaw));
-    require_zone_access($user, $zone, true);
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, true);
     try {
         $pdns = PdnsClient::fromSettings();
         if ($action === 'notify') {
@@ -372,17 +598,82 @@ function handle_zone_action(array $user, string $zoneRaw, string $action): void
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
     }
-    redirect('/zones/' . rawurlencode(rtrim($zone, '.')));
+    redirectZone($zone);
 }
 
-function handle_dnssec(array $user, string $zoneRaw): void
+function handleZoneHistory(array $user, string $zoneRaw): void
 {
-    $zone = dns_canonical(rawurldecode($zoneRaw));
-    require_zone_access($user, $zone, false);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, false);
+
+    $snapshots = getZoneSnapshots($zone, 50);
+    $selectedId = isset($_GET['diff']) ? (int) $_GET['diff'] : 0;
+    $selectedSnapshot = $selectedId > 0 ? getZoneSnapshot($selectedId) : null;
+
+    $pdns = PdnsClient::fromSettings();
+    $current = $pdns->zone($zone);
+
+    view('zone_history', [
+        'title' => 'Riwayat & Rollback: ' . $zone,
+        'user' => $user,
+        'zone' => $zone,
+        'snapshots' => $snapshots,
+        'selectedSnapshot' => $selectedSnapshot,
+        'currentZone' => $current,
+    ]);
+}
+
+function handleZoneRollback(array $user, string $zoneRaw, string $snapshotIdRaw): void
+{
+    csrfCheck();
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, true);
+    $snapshotId = (int) $snapshotIdRaw;
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        rollbackZoneSnapshot($pdns, $user, $zone, $snapshotId);
+        flash('success', 'Zona ' . $zone . ' berhasil di-rollback ke revisi #' . $snapshotId . '.');
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal rollback: ' . $ex->getMessage());
+    }
+
+    redirectZone($zone, '/history');
+}
+
+function handleZoneExport(array $user, string $zoneRaw): void
+{
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, false);
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $bindText = $pdns->exportZone($zone);
+
+        $filename = rtrim($zone, '.') . '.zone';
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($bindText));
+        echo $bindText;
+        audit($user, 'export-zone', $zone, 'Ekspor berkas BIND RFC 1035');
+        exit;
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal ekspor zona: ' . $ex->getMessage());
+        redirectZone($zone);
+    }
+}
+
+function handleDnssec(array $user, string $zoneRaw): void
+{
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, false);
     $keys = [];
     $error = '';
+    $metadata = [];
     try {
-        $keys = PdnsClient::fromSettings()->cryptokeys($zone);
+        $pdns = PdnsClient::fromSettings();
+        $keys = $pdns->cryptokeys($zone);
+        $metadata = $pdns->metadata($zone);
     } catch (Throwable $ex) {
         $error = $ex->getMessage();
     }
@@ -390,40 +681,110 @@ function handle_dnssec(array $user, string $zoneRaw): void
         unset($key['privatekey']);
     }
     unset($key);
-    view('dnssec', ['title' => 'DNSSEC', 'user' => $user, 'zone' => $zone, 'keys' => $keys, 'error' => $error]);
+
+    $cdsPublished = false;
+    $cdnskeyPublished = false;
+    foreach ($metadata as $m) {
+        $kind = strtoupper((string) ($m['kind'] ?? ''));
+        if ($kind === 'PUBLISH-CDS') {
+            $cdsPublished = !empty($m['metadata']);
+        } elseif ($kind === 'PUBLISH-CDNSKEY') {
+            $cdnskeyPublished = !empty($m['metadata']);
+        }
+    }
+
+    view('dnssec', [
+        'title' => 'DNSSEC',
+        'user' => $user,
+        'zone' => $zone,
+        'keys' => $keys,
+        'error' => $error,
+        'cdsPublished' => $cdsPublished,
+        'cdnskeyPublished' => $cdnskeyPublished,
+    ]);
 }
 
-function handle_dnssec_enable(array $user, string $zoneRaw): void
+function handleDnssecEnable(array $user, string $zoneRaw): void
 {
-    csrf_check();
-    require_role($user, ['admin', 'operator']);
-    $zone = dns_canonical(rawurldecode($zoneRaw));
-    require_zone_access($user, $zone, true);
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, true);
     $mode = (string) ($_POST['mode'] ?? 'csk');
+    $algo = (string) ($_POST['algorithm'] ?? 'ed25519');
+
+    $validAlgos = [
+        'ed25519' => 256,
+        'ecdsa256' => 256,
+        'ecdsa384' => 384,
+        'rsasha256' => 2048,
+    ];
+    if (!isset($validAlgos[$algo])) {
+        $algo = 'ed25519';
+    }
+    $bits = $validAlgos[$algo];
+
     try {
         $pdns = PdnsClient::fromSettings();
         $pdns->updateZone($zone, ['dnssec' => true, 'api_rectify' => true]);
+        $cryptoKeyOpts = [
+            'active' => true,
+            'published' => true,
+            'algorithm' => $algo,
+            'bits' => $bits,
+        ];
         if ($mode === 'split') {
-            $pdns->createCryptokey($zone, ['keytype' => 'ksk', 'active' => true, 'published' => true, 'algorithm' => 'ecdsa256', 'bits' => 256]);
-            $pdns->createCryptokey($zone, ['keytype' => 'zsk', 'active' => true, 'published' => true, 'algorithm' => 'ecdsa256', 'bits' => 256]);
+            $pdns->createCryptokey($zone, ['keytype' => 'ksk'] + $cryptoKeyOpts);
+            $pdns->createCryptokey($zone, ['keytype' => 'zsk'] + $cryptoKeyOpts);
         } else {
-            $pdns->createCryptokey($zone, ['keytype' => 'csk', 'active' => true, 'published' => true, 'algorithm' => 'ecdsa256', 'bits' => 256]);
+            $pdns->createCryptokey($zone, ['keytype' => 'csk'] + $cryptoKeyOpts);
         }
         $pdns->rectify($zone);
         db()->prepare('UPDATE zones SET dnssec = 1 WHERE name = ?')->execute([$zone]);
-        audit($user, 'dnssec-enable', $zone, $mode);
-        flash('success', 'DNSSEC diaktifkan. Mode ' . $mode . ' memakai ECDSA P-256. CSK adalah perilaku modern PowerDNS; pilih split jika butuh KSK dan ZSK terpisah.');
+        audit($user, 'dnssec-enable', $zone, $mode . ' (' . $algo . ')');
+        flash(
+            'success',
+            'DNSSEC diaktifkan dengan algoritma ' . strtoupper($algo) . ' (' . strtoupper($mode) . ').'
+        );
     } catch (Throwable $ex) {
         flash('danger', $ex->getMessage());
     }
-    redirect('/zones/' . rawurlencode(rtrim($zone, '.')) . '/dnssec');
+    redirectZone($zone, '/dnssec');
 }
 
-function handle_zone_grant(array $user, string $zoneRaw): void
+function handleDnssecToggleCds(array $user, string $zoneRaw): void
 {
-    csrf_check();
-    require_role($user, ['admin']);
-    $zone = dns_canonical(rawurldecode($zoneRaw));
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
+    requireZoneAccess($user, $zone, true);
+
+    $enable = !empty($_POST['enable_cds']);
+    try {
+        $pdns = PdnsClient::fromSettings();
+        if ($enable) {
+            $pdns->setMetadata($zone, 'PUBLISH-CDS', ['2']);
+            $pdns->setMetadata($zone, 'PUBLISH-CDNSKEY', ['1']);
+            flash('success', 'Publikasi otomatis CDS & CDNSKEY (RFC 7344) diaktifkan.');
+            audit($user, 'dnssec-cds-enable', $zone, 'PUBLISH-CDS & PUBLISH-CDNSKEY');
+        } else {
+            $pdns->deleteMetadata($zone, 'PUBLISH-CDS');
+            $pdns->deleteMetadata($zone, 'PUBLISH-CDNSKEY');
+            flash('success', 'Publikasi CDS & CDNSKEY dinonaktifkan.');
+            audit($user, 'dnssec-cds-disable', $zone, '');
+        }
+        $pdns->rectify($zone);
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal mengubah pengaturan CDS: ' . $ex->getMessage());
+    }
+    redirectZone($zone, '/dnssec');
+}
+
+function handleZoneGrant(array $user, string $zoneRaw): void
+{
+    csrfCheck();
+    requireRole($user, ['admin']);
+    $zone = dnsCanonical(rawurldecode($zoneRaw));
     $username = trim((string) ($_POST['username'] ?? ''));
     $canEdit = isset($_POST['can_edit']) ? 1 : 0;
     $st = db()->prepare('SELECT id FROM users WHERE username = ?');
@@ -434,26 +795,88 @@ function handle_zone_grant(array $user, string $zoneRaw): void
     $z = $zst->fetch();
     if (!$target || !$z) {
         flash('danger', 'User atau zona tidak ditemukan di cache panel. Sinkronkan zona dulu.');
-        redirect('/zones/' . rawurlencode(rtrim($zone, '.')));
+        redirectZone($zone);
     }
-    db()->prepare('INSERT INTO zone_user (zone_id, user_id, can_edit) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE can_edit = VALUES(can_edit)')
-        ->execute([(int) $z['id'], (int) $target['id'], $canEdit]);
+    db()->prepare(
+        'INSERT INTO zone_user (zone_id, user_id, can_edit) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE can_edit = VALUES(can_edit)'
+    )->execute([(int) $z['id'], (int) $target['id'], $canEdit]);
     audit($user, 'grant-zone', $zone, $username);
     flash('success', 'Akses zona diperbarui.');
-    redirect('/zones/' . rawurlencode(rtrim($zone, '.')));
+    redirectZone($zone);
 }
 
-function handle_users(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleUsers(array $user): void
 {
-    require_role($user, ['admin']);
-    $users = db()->query('SELECT id, username, display_name, email, role, active, last_login_at FROM users ORDER BY username')->fetchAll();
+    requireRole($user, ['admin']);
+    $st = db()->query(
+        'SELECT id, username, display_name, email, role, active, last_login_at FROM users ORDER BY username'
+    );
+    $users = $st ? $st->fetchAll() : [];
     view('users', ['title' => 'Pengguna', 'user' => $user, 'users' => $users]);
 }
 
-function handle_user_save(array $user): void
+/**
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $data
+ */
+function createNewUser(array $user, array $data): void
 {
-    csrf_check();
-    require_role($user, ['admin']);
+    $username = (string) ($data['username'] ?? '');
+    $display = (string) ($data['display_name'] ?? '');
+    $email = (string) ($data['email'] ?? '');
+    $role = (string) ($data['role'] ?? 'user');
+    $active = (int) ($data['active'] ?? 0);
+    $password = (string) ($data['password'] ?? '');
+
+    if (strlen($password) < 10) {
+        flash('danger', 'Sandi awal minimal 10 karakter.');
+        redirect(PATH_USERS);
+    }
+    db()->prepare(
+        'INSERT INTO users (username, password_hash, display_name, email, role, active)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    )->execute([$username, password_hash($password, PASSWORD_ARGON2ID), $display, $email, $role, $active]);
+    audit($user, 'create-user', '', $username);
+}
+
+/**
+ * @param array<string, mixed> $user
+ * @param array<string, mixed> $data
+ */
+function updateExistingUser(array $user, int $id, array $data): void
+{
+    $username = (string) ($data['username'] ?? '');
+    $display = (string) ($data['display_name'] ?? '');
+    $email = (string) ($data['email'] ?? '');
+    $role = (string) ($data['role'] ?? 'user');
+    $active = (int) ($data['active'] ?? 0);
+    $password = (string) ($data['password'] ?? '');
+
+    db()->prepare(
+        'UPDATE users SET username = ?, display_name = ?, email = ?, role = ?, active = ? WHERE id = ?'
+    )->execute([$username, $display, $email, $role, $active, $id]);
+    if ($password !== '') {
+        if (strlen($password) < 10) {
+            flash('danger', 'Sandi baru minimal 10 karakter.');
+            redirect(PATH_USERS);
+        }
+        db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+            ->execute([password_hash($password, PASSWORD_ARGON2ID), $id]);
+    }
+    audit($user, 'update-user', '', $username);
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function handleUserSave(array $user): void
+{
+    csrfCheck();
+    requireRole($user, ['admin']);
     $id = (int) ($_POST['id'] ?? 0);
     $username = trim((string) ($_POST['username'] ?? ''));
     $display = trim((string) ($_POST['display_name'] ?? ''));
@@ -461,45 +884,55 @@ function handle_user_save(array $user): void
     $role = (string) ($_POST['role'] ?? 'user');
     $password = (string) ($_POST['password'] ?? '');
     $active = isset($_POST['active']) ? 1 : 0;
-    if (!preg_match('/^[a-zA-Z0-9_.-]{3,64}$/', $username) || !in_array($role, ['admin','operator','user'], true)) {
-        flash('danger', 'Data pengguna tidak valid.');
-        redirect('/users');
+    if (!preg_match('/^[a-zA-Z0-9_.-]{3,64}$/', $username) || !in_array($role, ['admin', 'operator', 'user'], true)) {
+        flash('danger', 'Data pengguna tidak valid. Username 3-64 karakter alfanumerik.');
+        redirect(PATH_USERS);
     }
-    if ($id === 0) {
-        if (strlen($password) < 10) {
-            flash('danger', 'Sandi awal minimal 10 karakter.');
-            redirect('/users');
+    $userData = [
+        'username' => $username,
+        'display_name' => $display,
+        'email' => $email,
+        'role' => $role,
+        'active' => $active,
+        'password' => $password,
+    ];
+    try {
+        if ($id === 0) {
+            createNewUser($user, $userData);
+        } else {
+            updateExistingUser($user, $id, $userData);
         }
-        db()->prepare('INSERT INTO users (username, password_hash, display_name, email, role, active) VALUES (?, ?, ?, ?, ?, ?)')
-            ->execute([$username, password_hash($password, PASSWORD_ARGON2ID), $display, $email, $role, $active]);
-        audit($user, 'create-user', '', $username);
-    } else {
-        db()->prepare('UPDATE users SET username = ?, display_name = ?, email = ?, role = ?, active = ? WHERE id = ?')
-            ->execute([$username, $display, $email, $role, $active, $id]);
-        if ($password !== '') {
-            if (strlen($password) < 10) {
-                flash('danger', 'Sandi baru minimal 10 karakter.');
-                redirect('/users');
-            }
-            db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_ARGON2ID), $id]);
-        }
-        audit($user, 'update-user', '', $username);
+        flash('success', 'Pengguna disimpan.');
+    } catch (PDOException $ex) {
+        $msg = $ex->getCode() === SQLSTATE_DUPLICATE
+            ? 'Username sudah terdaftar. Gunakan username lain.'
+            : 'Gagal menyimpan pengguna: ' . $ex->getMessage();
+        flash('danger', $msg);
     }
-    flash('success', 'Pengguna disimpan.');
-    redirect('/users');
+    redirect(PATH_USERS);
 }
 
-function handle_accounts(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleAccounts(array $user): void
 {
-    require_role($user, ['admin', 'operator']);
-    $accounts = db()->query('SELECT a.*, (SELECT COUNT(*) FROM zones z WHERE z.account_id = a.id) AS zone_count FROM accounts a ORDER BY a.name')->fetchAll();
+    requireRole($user, ['admin', 'operator']);
+    $st = db()->query(
+        'SELECT a.*, (SELECT COUNT(*) FROM zones z WHERE z.account_id = a.id) AS zone_count
+         FROM accounts a ORDER BY a.name'
+    );
+    $accounts = $st ? $st->fetchAll() : [];
     view('accounts', ['title' => 'Akun', 'user' => $user, 'accounts' => $accounts]);
 }
 
-function handle_account_save(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleAccountSave(array $user): void
 {
-    csrf_check();
-    require_role($user, ['admin']);
+    csrfCheck();
+    requireRole($user, ['admin']);
     $name = trim((string) ($_POST['name'] ?? ''));
     $contact = trim((string) ($_POST['contact'] ?? ''));
     $notes = trim((string) ($_POST['notes'] ?? ''));
@@ -507,65 +940,111 @@ function handle_account_save(array $user): void
         flash('danger', 'Nama akun wajib.');
         redirect('/accounts');
     }
-    db()->prepare('INSERT INTO accounts (name, contact, notes) VALUES (?, ?, ?)')->execute([$name, $contact, $notes]);
-    audit($user, 'create-account', '', $name);
-    flash('success', 'Akun dibuat.');
+    try {
+        db()->prepare('INSERT INTO accounts (name, contact, notes) VALUES (?, ?, ?)')
+            ->execute([$name, $contact, $notes]);
+        audit($user, 'create-account', '', $name);
+        flash('success', 'Akun dibuat.');
+    } catch (PDOException $ex) {
+        if ($ex->getCode() === SQLSTATE_DUPLICATE) {
+            flash('danger', 'Nama akun sudah terdaftar.');
+        } else {
+            flash('danger', 'Gagal membuat akun: ' . $ex->getMessage());
+        }
+    }
     redirect('/accounts');
 }
 
-function handle_templates(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleTemplates(array $user): void
 {
-    require_role($user, ['admin', 'operator']);
-    $templates = db()->query('SELECT t.*, (SELECT COUNT(*) FROM template_records r WHERE r.template_id = t.id) AS rec_count FROM templates t ORDER BY t.name')->fetchAll();
+    requireRole($user, ['admin', 'operator']);
+    $st = db()->query(
+        'SELECT t.*, (SELECT COUNT(*) FROM template_records r WHERE r.template_id = t.id) AS rec_count
+         FROM templates t ORDER BY t.name'
+    );
+    $templates = $st ? $st->fetchAll() : [];
     view('templates', ['title' => 'Template', 'user' => $user, 'templates' => $templates, 'types' => RECORD_TYPES]);
 }
 
-function handle_template_save(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleTemplateSave(array $user): void
 {
-    csrf_check();
-    require_role($user, ['admin', 'operator']);
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
     $name = trim((string) ($_POST['name'] ?? ''));
     $desc = trim((string) ($_POST['description'] ?? ''));
     if ($name === '') {
         flash('danger', 'Nama template wajib.');
         redirect('/templates');
     }
-    db()->prepare('INSERT INTO templates (name, description, created_by) VALUES (?, ?, ?)')->execute([$name, $desc, (int) $user['id']]);
-    $id = (int) db()->lastInsertId();
-    $names = $_POST['r_name'] ?? [];
-    $types = $_POST['r_type'] ?? [];
-    $ttls = $_POST['r_ttl'] ?? [];
-    $contents = $_POST['r_content'] ?? [];
-    $ins = db()->prepare('INSERT INTO template_records (template_id, name, type, content, ttl) VALUES (?, ?, ?, ?, ?)');
-    if (is_array($names)) {
-        foreach ($names as $i => $n) {
-            $c = trim((string) ($contents[$i] ?? ''));
-            if (trim((string) $n) === '' || $c === '') {
-                continue;
+    try {
+        db()->prepare('INSERT INTO templates (name, description, created_by) VALUES (?, ?, ?)')
+            ->execute([$name, $desc, (int) ($user['id'] ?? 0)]);
+        $id = (int) db()->lastInsertId();
+        $names = $_POST['r_name'] ?? [];
+        $types = $_POST['r_type'] ?? [];
+        $ttls = $_POST['r_ttl'] ?? [];
+        $contents = $_POST['r_content'] ?? [];
+        $ins = db()->prepare(
+            'INSERT INTO template_records (template_id, name, type, content, ttl) VALUES (?, ?, ?, ?, ?)'
+        );
+        if (is_array($names)) {
+            foreach ($names as $i => $n) {
+                $c = trim((string) ($contents[$i] ?? ''));
+                if (trim((string) $n) === '' || $c === '') {
+                    continue;
+                }
+                $ins->execute([
+                    $id,
+                    trim((string) $n),
+                    strtoupper((string) ($types[$i] ?? 'A')),
+                    $c,
+                    (int) ($ttls[$i] ?? 3600),
+                ]);
             }
-            $ins->execute([$id, trim((string) $n), strtoupper((string) ($types[$i] ?? 'A')), $c, (int) ($ttls[$i] ?? 3600)]);
+        }
+        flash('success', 'Template disimpan. Gunakan [ZONE] sebagai pengganti nama zona.');
+    } catch (PDOException $ex) {
+        if ($ex->getCode() === SQLSTATE_DUPLICATE) {
+            flash('danger', 'Nama template sudah terdaftar.');
+        } else {
+            flash('danger', 'Gagal menyimpan template: ' . $ex->getMessage());
         }
     }
-    flash('success', 'Template disimpan. Gunakan [ZONE] sebagai pengganti nama zona.');
     redirect('/templates');
 }
 
-function handle_apikeys(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleApikeys(array $user): void
 {
-    require_role($user, ['admin', 'operator']);
-    $keys = db()->query('SELECT k.id, k.name, k.key_prefix, k.role, k.revoked, k.last_used_at, k.created_at, u.username FROM api_keys k JOIN users u ON u.id = k.user_id ORDER BY k.id DESC')->fetchAll();
+    requireRole($user, ['admin', 'operator']);
+    $st = db()->query(
+        'SELECT k.id, k.name, k.key_prefix, k.role, k.revoked, k.last_used_at, k.created_at, u.username
+         FROM api_keys k JOIN users u ON u.id = k.user_id ORDER BY k.id DESC'
+    );
+    $keys = $st ? $st->fetchAll() : [];
     $plain = $_SESSION['new_api_key'] ?? '';
     unset($_SESSION['new_api_key']);
     view('apikeys', ['title' => 'API key', 'user' => $user, 'keys' => $keys, 'plain' => $plain]);
 }
 
-function handle_apikey_create(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleApikeyCreate(array $user): void
 {
-    csrf_check();
-    require_role($user, ['admin', 'operator']);
+    csrfCheck();
+    requireRole($user, ['admin', 'operator']);
     $name = trim((string) ($_POST['name'] ?? 'key'));
     $role = (string) ($_POST['role'] ?? 'user');
-    if ($user['role'] !== 'admin') {
+    if (($user['role'] ?? '') !== 'admin') {
         $role = 'user';
     }
     if (!in_array($role, ['admin','operator','user'], true)) {
@@ -574,25 +1053,32 @@ function handle_apikey_create(array $user): void
     $raw = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
     $prefix = substr($raw, 0, 8);
     db()->prepare('INSERT INTO api_keys (name, key_prefix, key_hash, role, user_id) VALUES (?, ?, ?, ?, ?)')
-        ->execute([$name, $prefix, hash('sha256', $raw), $role, (int) $user['id']]);
+        ->execute([$name, $prefix, hash('sha256', $raw), $role, (int) ($user['id'] ?? 0)]);
     $_SESSION['new_api_key'] = $raw;
     audit($user, 'create-apikey', '', $name);
     flash('success', 'API key dibuat. Salin sekarang. Nilai ini tidak ditampilkan lagi.');
     redirect('/apikeys');
 }
 
-function handle_audit(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleAudit(array $user): void
 {
-    require_role($user, ['admin']);
-    $rows = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 200')->fetchAll();
+    requireRole($user, ['admin']);
+    $st = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 200');
+    $rows = $st ? $st->fetchAll() : [];
     view('audit', ['title' => 'Audit', 'user' => $user, 'rows' => $rows]);
 }
 
-function handle_settings(array $user): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleSettings(array $user): void
 {
-    require_role($user, ['admin']);
+    requireRole($user, ['admin']);
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        csrf_check();
+        csrfCheck();
         $url = rtrim(trim((string) ($_POST['pdns_api_url'] ?? '')), '/');
         $server = trim((string) ($_POST['pdns_server_id'] ?? 'localhost'));
         $verify = isset($_POST['pdns_verify_tls']) ? '1' : '0';
@@ -601,11 +1087,11 @@ function handle_settings(array $user): void
             flash('danger', 'URL API harus http atau https.');
             redirect('/settings');
         }
-        setting_set('pdns_api_url', $url);
-        setting_set('pdns_server_id', $server !== '' ? $server : 'localhost');
-        setting_set('pdns_verify_tls', $verify);
+        settingSet('pdns_api_url', $url);
+        settingSet('pdns_server_id', $server !== '' ? $server : 'localhost');
+        settingSet('pdns_verify_tls', $verify);
         if ($key !== '') {
-            setting_set('pdns_api_key', secret_encrypt($key));
+            settingSet('pdns_api_key', secretEncrypt($key));
         }
         audit($user, 'settings', '', 'PDNS endpoint diperbarui');
         flash('success', 'Pengaturan disimpan. API key lama tetap dipakai jika kolom dikosongkan.');
@@ -620,7 +1106,7 @@ function handle_settings(array $user): void
     ]);
 }
 
-function handle_search(array $user): void
+function handleSearch(array $user): void
 {
     $q = trim((string) ($_GET['q'] ?? ''));
     $results = [];
@@ -635,40 +1121,485 @@ function handle_search(array $user): void
     view('search', ['title' => 'Cari', 'user' => $user, 'q' => $q, 'results' => $results, 'error' => $error]);
 }
 
-function handle_api(array $userFromKey): void
+/**
+ * @param array<string, mixed> $user
+ */
+function handleRdnsCreateZone(array $user): never
+{
+    $subnet = trim((string) ($_POST['subnet'] ?? ''));
+    $family = (string) ($_POST['family'] ?? 'ipv4');
+    $kind = (string) ($_POST['kind'] ?? 'Native');
+    $accountId = (int) ($_POST['account_id'] ?? 0);
+    $ns = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['nameservers'] ?? '')))));
+
+    $zone = ($family === 'ipv6') ? ipv6ToReverseZone64($subnet) : ipv4ToReverseZone24($subnet);
+    if ($zone === null) {
+        flash('danger', 'Format subnet tidak valid.');
+        redirect(PATH_TOOLS_RDNS);
+    }
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $payload = [
+            'name' => $zone,
+            'kind' => $kind,
+            'masters' => [],
+            'nameservers' => array_map('dnsCanonical', $ns),
+            'soa_edit_api' => 'DEFAULT',
+            'api_rectify' => true,
+        ];
+        $pdns->createZone($payload);
+
+        $st = db()->prepare(
+            'INSERT INTO zones (name, kind, account_id, dnssec, synced_at) VALUES (?, ?, ?, 0, NOW())
+             ON DUPLICATE KEY UPDATE kind = VALUES(kind), account_id = VALUES(account_id), synced_at = NOW()'
+        );
+        $st->execute([$zone, $kind, $accountId > 0 ? $accountId : null]);
+        audit($user, 'create-reverse-zone', $zone, "Subnet: $subnet");
+        flash('success', "Zona reverse $zone berhasil dibuat di PowerDNS.");
+        redirectZone($zone);
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal membuat zona reverse: ' . $ex->getMessage());
+        redirect(PATH_TOOLS_RDNS);
+    }
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function handleRdnsGeneratePtr(array $user): never
+{
+    $zone = dnsCanonical((string) ($_POST['zone'] ?? ''));
+    requireZoneAccess($user, $zone, true);
+
+    $family = (string) ($_POST['family'] ?? 'ipv4');
+    $subnet = trim((string) ($_POST['subnet'] ?? ''));
+    $domain = trim((string) ($_POST['domain'] ?? ''));
+    $pattern = trim((string) ($_POST['pattern'] ?? 'host-[ID].[DOMAIN]'));
+    $start = (int) ($_POST['start'] ?? 1);
+    $end = (int) ($_POST['end'] ?? 254);
+    $ttl = max(30, (int) ($_POST['ttl'] ?? 3600));
+
+    $batch = ($family === 'ipv6')
+        ? generateIpv6SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end)
+        : generateIpv4SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end);
+
+    if (!$batch) {
+        flash('danger', 'Gagal membangkitkan baris PTR. Periksa subnet dan domain tujuan.');
+        redirect(PATH_TOOLS_RDNS);
+    }
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $rrsets = [];
+        foreach ($batch as $row) {
+            $fqdn = $row['name'] . '.' . $zone;
+            $rrsets[] = [
+                'name' => $fqdn,
+                'type' => 'PTR',
+                'ttl' => $row['ttl'],
+                'changetype' => 'REPLACE',
+                'records' => [
+                    ['content' => $row['content'], 'disabled' => false],
+                ],
+                'comments' => [
+                    ['content' => $row['comment'], 'account' => ''],
+                ],
+            ];
+        }
+        $pdns->patchRrsets($zone, $rrsets);
+        audit($user, 'batch-ptr-generate', $zone, count($rrsets) . " record PTR dibangkitkan untuk $subnet");
+        flash('success', count($rrsets) . " record PTR berhasil diterapkan ke zona $zone.");
+        redirectZone($zone);
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal menerapkan record PTR: ' . $ex->getMessage());
+        redirect(PATH_TOOLS_RDNS);
+    }
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+/**
+ * @param list<array<string, mixed>> $rrsets
+ * @param array<string, string> $matched
+ */
+function extractMatchingIpsFromRrsets(array $rrsets, bool $isV4, string $v4Prefix, array &$matched): void
+{
+    $targetType = $isV4 ? 'A' : 'AAAA';
+    foreach ($rrsets as $rr) {
+        $type = strtoupper((string) ($rr['type'] ?? ''));
+        if ($type !== $targetType) {
+            continue;
+        }
+        foreach ($rr['records'] ?? [] as $rec) {
+            $ip = trim((string) ($rec['content'] ?? ''));
+            if ($isV4 && !str_starts_with($ip, $v4Prefix)) {
+                continue;
+            }
+            $matched[$ip] = (string) $rr['name'];
+        }
+    }
+}
+
+/**
+ * @return array<string, string>
+ */
+function collectMatchingForwardIps(PdnsClient $pdns, bool $isV4, string $v4Prefix): array
+{
+    $matched = [];
+    foreach ($pdns->zones() as $zInfo) {
+        $zName = (string) ($zInfo['name'] ?? '');
+        if ($zName === '' || isReverseZone($zName)) {
+            continue;
+        }
+        $zData = $pdns->zone($zName);
+        extractMatchingIpsFromRrsets($zData['rrsets'] ?? [], $isV4, $v4Prefix, $matched);
+    }
+    return $matched;
+}
+
+/**
+ * @param array<string, string> $matched
+ * @return list<array<string, mixed>>
+ */
+function buildBatchImportPtrRrsets(array $matched, string $zone, bool $isV4): array
+{
+    $rrsets = [];
+    foreach ($matched as $ip => $fqdn) {
+        $rel = $isV4 ? ipv4ToRelativePtr24($ip) : ipv6ToRelativePtr64($ip);
+        if ($rel === null) {
+            continue;
+        }
+        $rrsets[] = [
+            'name' => $rel . '.' . $zone,
+            'type' => 'PTR',
+            'ttl' => 3600,
+            'changetype' => 'REPLACE',
+            'records' => [
+                ['content' => dnsCanonical($fqdn), 'disabled' => false],
+            ],
+            'comments' => [
+                ['content' => 'Auto-populated from forward ' . $fqdn, 'account' => ''],
+            ],
+        ];
+    }
+    return $rrsets;
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function handleRdnsScanForward(array $user): never
+{
+    $subnet = trim((string) ($_POST['subnet'] ?? ''));
+    $zone = dnsCanonical((string) ($_POST['zone'] ?? ''));
+    requireZoneAccess($user, $zone, true);
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        $isV4 = filter_var(explode('/', $subnet)[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+        $prefixParts = $isV4 ? explode('.', explode('/', $subnet)[0]) : [];
+        $v4Prefix = $isV4 ? ($prefixParts[0] . '.' . $prefixParts[1] . '.' . $prefixParts[2] . '.') : '';
+
+        $matched = collectMatchingForwardIps($pdns, $isV4, $v4Prefix);
+        if (!$matched) {
+            flash('warning', 'Tidak ditemukan record A/AAAA yang cocok dengan subnet ' . $subnet);
+            redirect(PATH_TOOLS_RDNS);
+        }
+
+        $rrsets = buildBatchImportPtrRrsets($matched, $zone, $isV4);
+        if ($rrsets) {
+            $pdns->patchRrsets($zone, $rrsets);
+            audit($user, 'scan-forward-ptr', $zone, count($rrsets) . " record PTR diimpor dari zona forward");
+            flash('success', count($rrsets) . " record PTR berhasil diimpor otomatis ke zona $zone.");
+        }
+        redirectZone($zone);
+    } catch (Throwable $ex) {
+        flash('danger', 'Gagal memindai forward zone: ' . $ex->getMessage());
+        redirect(PATH_TOOLS_RDNS);
+    }
+}
+
+/**
+ * Handler untuk Modul Generator Reverse DNS (rDNS) & Subnet PTR.
+ *
+ * @param array<string, mixed> $user
+ */
+function handleRdnsTool(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin', 'operator']);
+
+    if ($method === 'POST') {
+        csrfCheck();
+        match ($path) {
+            '/tools/rdns/create-zone' => handleRdnsCreateZone($user),
+            '/tools/rdns/generate-ptr' => handleRdnsGeneratePtr($user),
+            '/tools/rdns/scan-forward' => handleRdnsScanForward($user),
+            default => redirect(PATH_TOOLS_RDNS),
+        };
+    }
+
+    $stRev = db()->query(
+        "SELECT id, name, kind FROM zones WHERE name LIKE '%.in-addr.arpa.' OR name LIKE '%.ip6.arpa.' ORDER BY name"
+    );
+    $reverseZones = $stRev ? $stRev->fetchAll() : [];
+
+    $stAcc = db()->query('SELECT id, name FROM accounts ORDER BY name');
+    $accounts = $stAcc ? $stAcc->fetchAll() : [];
+
+    view('tools_rdns', [
+        'title' => 'Generator Subnet rDNS & PTR',
+        'user' => $user,
+        'reverseZones' => $reverseZones,
+        'accounts' => $accounts,
+    ]);
+}
+
+/**
+ * @param array<string, mixed> $userFromKey
+ */
+function handleApi(array $userFromKey): void
 {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     if ($path === '/api/v1/zones' && $method === 'GET') {
-        $st = db()->query('SELECT name, kind, dnssec, serial, catalog FROM zones ORDER BY name');
-        json_out(200, ['zones' => $st->fetchAll()]);
+        if (($userFromKey['role'] ?? '') === 'admin') {
+            $st = db()->query('SELECT name, kind, dnssec, serial, catalog FROM zones ORDER BY name');
+            jsonOut(200, ['zones' => $st ? $st->fetchAll() : []]);
+        }
+        $st = db()->prepare(
+            'SELECT z.name, z.kind, z.dnssec, z.serial, z.catalog FROM zones z
+             WHERE z.id IN (SELECT zone_id FROM zone_user WHERE user_id = ?)
+                OR z.account_id IN (SELECT account_id FROM account_user WHERE user_id = ?)
+             ORDER BY z.name'
+        );
+        $st->execute([(int) ($userFromKey['id'] ?? 0), (int) ($userFromKey['id'] ?? 0)]);
+        jsonOut(200, ['zones' => $st->fetchAll()]);
     }
     if (preg_match('#^/api/v1/zones/(.+)$#', $path, $m) && $method === 'GET') {
-        $zone = dns_canonical(rawurldecode($m[1]));
-        if (!user_can_zone($userFromKey, $zone, false)) {
-            json_out(403, ['error' => 'Akses zona ditolak']);
+        $zone = dnsCanonical(rawurldecode($m[1]));
+        if (!userCanZone($userFromKey, $zone, false)) {
+            jsonOut(403, ['error' => 'Akses zona ditolak']);
         }
         try {
-            json_out(200, PdnsClient::fromSettings()->zone($zone));
+            jsonOut(200, PdnsClient::fromSettings()->zone($zone));
         } catch (Throwable $ex) {
-            json_out(502, ['error' => $ex->getMessage()]);
+            jsonOut(502, ['error' => $ex->getMessage()]);
         }
     }
-    json_out(404, ['error' => 'Endpoint tidak dikenal']);
+    jsonOut(404, ['error' => 'Endpoint tidak dikenal']);
 }
 
-function api_user(): ?array
+/**
+ * @return array<string, mixed>|null
+ */
+function apiUser(): ?array
 {
     $header = (string) ($_SERVER['HTTP_X_API_KEY'] ?? '');
     if ($header === '') {
         return null;
     }
-    $st = db()->prepare('SELECT k.role, k.user_id, u.username, u.active FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash = ? AND k.revoked = 0');
+    $st = db()->prepare(
+        'SELECT k.role, k.user_id, u.username, u.active
+         FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash = ? AND k.revoked = 0'
+    );
     $st->execute([hash('sha256', $header)]);
     $row = $st->fetch();
     if (!$row || !(int) $row['active']) {
         return null;
     }
-    db()->prepare('UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = ?')->execute([hash('sha256', $header)]);
-    return ['id' => (int) $row['user_id'], 'username' => $row['username'], 'role' => $row['role'], 'active' => 1];
+    db()->prepare('UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = ?')
+        ->execute([hash('sha256', $header)]);
+    return [
+        'id' => (int) $row['user_id'],
+        'username' => $row['username'],
+        'role' => $row['role'],
+        'active' => 1,
+    ];
+}
+
+/**
+ * Dynamic DNS (DynDNS 2 Protocol) Endpoint: /nic/update
+ *
+ * Implements the standard DynDNS v2 specification supporting:
+ * - Query params: hostname, myip
+ * - Auth: HTTP Basic Auth or API Key (X-API-Key or Bearer)
+ * - Responses: good <ip>, nochg <ip>, nohost, badauth, notfqdn, badagent, 911
+ */
+/**
+ * Authenticate DynDNS request via HTTP Basic Auth or API Key.
+ *
+ * @return array<string, mixed>|null
+ */
+function authenticateDynDnsUser(): ?array
+{
+    $authUser = $_SERVER['PHP_AUTH_USER'] ?? null;
+    $authPw = $_SERVER['PHP_AUTH_PW'] ?? null;
+
+    if ($authUser !== null && $authPw !== null) {
+        $st = db()->prepare('SELECT id, username, password_hash, role, active FROM users WHERE username = ?');
+        $st->execute([(string) $authUser]);
+        $row = $st->fetch();
+        if ($row && !empty($row['active']) && password_verify((string) $authPw, (string) $row['password_hash'])) {
+            return $row;
+        }
+    }
+
+    $rawKey = (string) ($_SERVER['HTTP_X_API_KEY'] ?? ($_GET['key'] ?? ''));
+    $authHeader = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? '');
+    if ($rawKey === '' && $authHeader !== '' && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $bm)) {
+        $rawKey = trim($bm[1]);
+    }
+
+    if ($rawKey !== '') {
+        $hash = hash('sha256', $rawKey);
+        $st = db()->prepare('SELECT id, name, role, user_id FROM api_keys WHERE key_hash = ? AND revoked = 0');
+        $st->execute([$hash]);
+        $kRow = $st->fetch();
+        if ($kRow) {
+            return [
+                'id' => (int) $kRow['user_id'],
+                'username' => 'apikey:' . $kRow['name'],
+                'role' => $kRow['role'] ?: 'operator',
+                'active' => 1,
+                'api_key_id' => (int) $kRow['id'],
+            ];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function canDynDnsUserAccessZone(array $user, string $matchingZone): bool
+{
+    if (!empty($user['api_key_id'])) {
+        $sql = 'SELECT 1 FROM api_key_zone '
+            . 'WHERE api_key_id = ? AND zone_id = (SELECT id FROM zones WHERE name = ?)';
+        $st = db()->prepare($sql);
+        $st->execute([(int) $user['api_key_id'], $matchingZone]);
+        return (bool) $st->fetch() || ($user['role'] ?? '') === 'admin';
+    }
+
+    return userCanZone($user, $matchingZone, true);
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function resolveDynDnsZoneTarget(array $user, string $hostFqdn): string
+{
+    $matchingZone = findMatchingZoneForHostname($hostFqdn);
+    if ($matchingZone === null) {
+        return 'nohost';
+    }
+    return canDynDnsUserAccessZone($user, $matchingZone) ? $matchingZone : 'badauth';
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function updateSingleDynDnsHost(
+    PdnsClient $pdns,
+    array $user,
+    string $host,
+    string $rawIp,
+    string $recordType
+): string {
+    $hostFqdn = dnsCanonical($host);
+    $targetZone = resolveDynDnsZoneTarget($user, $hostFqdn);
+    if ($targetZone === 'nohost' || $targetZone === 'badauth') {
+        return $targetZone;
+    }
+
+    $matchingZone = $targetZone;
+    $zoneData = $pdns->zone($matchingZone);
+    $currentIp = null;
+    foreach (($zoneData['rrsets'] ?? []) as $rr) {
+        $rname = dnsCanonical((string) ($rr['name'] ?? ''));
+        $rtype = strtoupper((string) ($rr['type'] ?? ''));
+        if ($rname === $hostFqdn && $rtype === $recordType) {
+            $records = $rr['records'] ?? [];
+            if (!empty($records[0]['content'])) {
+                $currentIp = trim((string) $records[0]['content']);
+            }
+            break;
+        }
+    }
+
+    if ($currentIp === $rawIp) {
+        return 'nochg ' . $rawIp;
+    }
+
+    $rrset = [
+        'name' => $hostFqdn,
+        'type' => $recordType,
+        'ttl' => 60,
+        'changetype' => 'REPLACE',
+        'records' => [
+            ['content' => $rawIp, 'disabled' => false],
+        ],
+        'comments' => [
+            ['content' => 'DynDNS update at ' . gmdate('c'), 'account' => ''],
+        ],
+    ];
+    $pdns->patchRrsets($matchingZone, [$rrset]);
+    audit($user, 'dyndns-update', $matchingZone, $hostFqdn . ' (' . $recordType . ') -> ' . $rawIp);
+    return 'good ' . $rawIp;
+}
+
+/**
+ * Dynamic DNS (DynDNS 2 Protocol) Endpoint Handler.
+ * Supports /nic/update?hostname=...&myip=...
+ */
+function handleDynDns(): void
+{
+    header('Content-Type: text/plain; charset=utf-8');
+
+    $user = authenticateDynDnsUser();
+    if (!$user) {
+        header('WWW-Authenticate: Basic realm="PowerDNS-Admin DynDNS"');
+        http_response_code(401);
+        echo "badauth\n";
+        exit;
+    }
+
+    $hostname = trim((string) ($_GET['hostname'] ?? ($_POST['hostname'] ?? '')));
+    if ($hostname === '') {
+        echo "notfqdn\n";
+        exit;
+    }
+
+    $rawIp = trim((string) ($_GET['myip'] ?? ($_POST['myip'] ?? '')));
+    if ($rawIp === '') {
+        $rawIp = clientIp();
+    }
+
+    $recordType = null;
+    if (filter_var($rawIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+        $recordType = 'A';
+    } elseif (filter_var($rawIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+        $recordType = 'AAAA';
+    }
+    if ($recordType === null) {
+        echo "badagent\n";
+        exit;
+    }
+
+    $hostnames = array_values(array_filter(array_map('trim', explode(',', $hostname))));
+    $responses = [];
+
+    try {
+        $pdns = PdnsClient::fromSettings();
+        foreach ($hostnames as $host) {
+            $responses[] = updateSingleDynDnsHost($pdns, $user, $host, $rawIp, $recordType);
+        }
+        echo implode("\n", $responses) . "\n";
+    } catch (Throwable) {
+        echo "911\n";
+    }
+    exit;
 }

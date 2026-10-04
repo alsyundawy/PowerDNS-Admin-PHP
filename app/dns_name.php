@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -6,7 +7,7 @@ declare(strict_types=1);
  * PowerDNS requires canonical names with a trailing dot.
  * Source: https://doc.powerdns.com/authoritative/http-api/zone.html
  */
-function dns_canonical(string $name): string
+function dnsCanonical(string $name): string
 {
     $name = trim(strtolower($name));
     $name = rtrim($name, '.');
@@ -22,7 +23,7 @@ function dns_canonical(string $name): string
     return $name . '.';
 }
 
-function dns_display(string $name): string
+function dnsDisplay(string $name): string
 {
     $name = rtrim($name, '.');
     if ($name !== '' && function_exists('idn_to_utf8')) {
@@ -34,35 +35,117 @@ function dns_display(string $name): string
     return $name;
 }
 
-function dns_fqdn(string $owner, string $zone): string
+function dnsFqdn(string $owner, string $zone): string
 {
     $owner = trim($owner);
-    $zone = dns_canonical($zone);
+    $zone = dnsCanonical($zone);
     if ($owner === '' || $owner === '@') {
         return $zone;
     }
     if (str_ends_with(strtolower($owner), '.')) {
-        return dns_canonical($owner);
+        return dnsCanonical($owner);
     }
-    return dns_canonical($owner . '.' . rtrim($zone, '.'));
+    return dnsCanonical($owner . '.' . rtrim($zone, '.'));
 }
 
-function dns_relative(string $fqdn, string $zone): string
+function dnsRelative(string $fqdn, string $zone): string
 {
-    $fqdn = dns_canonical($fqdn);
-    $zone = dns_canonical($zone);
+    $fqdn = dnsCanonical($fqdn);
+    $zone = dnsCanonical($zone);
     if ($fqdn === $zone) {
         return '@';
     }
     $suffix = '.' . $zone;
     if (str_ends_with($fqdn, $suffix)) {
-        return dns_display(substr($fqdn, 0, -strlen($suffix)));
+        return dnsDisplay(substr($fqdn, 0, -strlen($suffix)));
     }
-    return dns_display($fqdn);
+    return dnsDisplay($fqdn);
 }
 
-function is_reverse_zone(string $zone): bool
+function isReverseZone(string $zone): bool
 {
     $zone = strtolower(rtrim($zone, '.'));
     return str_ends_with($zone, '.in-addr.arpa') || str_ends_with($zone, '.ip6.arpa');
+}
+
+/**
+ * Menghasilkan nama zona reverse untuk subnet /24 (misal: "192.0.2.0/24" -> "2.0.192.in-addr.arpa.").
+ */
+function ipv4ToReverseZone24(string $ipOrCidr): ?string
+{
+    $ip = explode('/', trim($ipOrCidr))[0];
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return null;
+    }
+    $parts = explode('.', $ip);
+    return sprintf('%d.%d.%d.in-addr.arpa.', (int) $parts[2], (int) $parts[1], (int) $parts[0]);
+}
+
+/**
+ * Menghasilkan nama relatif record PTR di dalam zona /24 (oktet ke-4).
+ */
+function ipv4ToRelativePtr24(string $ipv4): ?string
+{
+    if (!filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return null;
+    }
+    $parts = explode('.', $ipv4);
+    return (string) (int) $parts[3];
+}
+
+/**
+ * Menghasilkan FQDN kanonikal record PTR IPv4 lengkap (misal: "15.2.0.192.in-addr.arpa.").
+ */
+function ipv4ToPtrFqdn(string $ipv4): ?string
+{
+    $rel = ipv4ToRelativePtr24($ipv4);
+    $zone = ipv4ToReverseZone24($ipv4);
+    return ($rel !== null && $zone !== null) ? $rel . '.' . $zone : null;
+}
+
+/**
+ * Menghasilkan nama zona reverse untuk prefix IPv6 /64 (RFC 3596 Nibble Format).
+ * Contoh: "2001:db8:1234:5678::/64" -> "8.7.6.5.4.3.2.1.8.b.d.0.1.0.0.2.ip6.arpa."
+ */
+function ipv6ToReverseZone64(string $ipv6OrPrefix): ?string
+{
+    $ip = explode('/', trim($ipv6OrPrefix))[0];
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) {
+        return null;
+    }
+    $hex = strtolower(bin2hex($bin));
+    $first16Nibbles = substr($hex, 0, 16);
+    $rev = array_reverse(str_split($first16Nibbles));
+    return implode('.', $rev) . '.ip6.arpa.';
+}
+
+/**
+ * Menghasilkan nama relatif record PTR di dalam zona /64 (16 nibble host terakhir yang dibalik).
+ * Contoh: "2001:db8:1234:5678::1" -> "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
+ */
+function ipv6ToRelativePtr64(string $ipv6): ?string
+{
+    $bin = @inet_pton($ipv6);
+    if ($bin === false || strlen($bin) !== 16) {
+        return null;
+    }
+    $hex = strtolower(bin2hex($bin));
+    $last16Nibbles = substr($hex, 16, 16);
+    $rev = array_reverse(str_split($last16Nibbles));
+    return implode('.', $rev);
+}
+
+/**
+ * Menghasilkan FQDN kanonikal record PTR IPv6 lengkap (32 nibble terbalik).
+ */
+function ipv6ToPtrFqdn(string $ipv6): ?string
+{
+    $bin = @inet_pton($ipv6);
+    if ($bin === false || strlen($bin) !== 16) {
+        return null;
+    }
+    $hex = strtolower(bin2hex($bin));
+    $rev = array_reverse(str_split($hex));
+    return implode('.', $rev) . '.ip6.arpa.';
 }

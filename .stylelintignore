@@ -1,0 +1,17 @@
+**/*.js
+**/*.mjs
+**/*.cjs
+**/*.ts
+**/*.json
+**/*.md
+**/*.php
+**/*.sh
+**/*.sql
+**/*.yaml
+**/*.yml
+**/*.xml
+**/*.neon
+LICENSE
+public/assets/vendor/**
+vendor/**
+node_modules/**

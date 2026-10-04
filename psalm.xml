@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="7"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config https://getpsalm.org/schema/config"
+    allFunctionsGlobal="true"
+    allConstantsGlobal="true"
+    findUnusedCode="false"
+>
+    <projectFiles>
+        <directory name="app" />
+        <file name="public/index.php" />
+    </projectFiles>
+    <extraFiles>
+        <file name="app/bootstrap.php" />
+        <file name="app/csrf.php" />
+        <file name="app/dns_name.php" />
+        <file name="app/PdnsClient.php" />
+        <file name="app/services.php" />
+        <file name="app/handlers.php" />
+    </extraFiles>
+    <issueHandlers>
+        <PossiblyUnusedReturnValue errorLevel="info" />
+        <PossiblyUnusedMethod errorLevel="info" />
+    </issueHandlers>
+</psalm>

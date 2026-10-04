@@ -1,34 +1,37 @@
 <?php
-declare(strict_types=1);
 
 /**
  * PowerDNS-Admin-PHP core.
  * Native PHP 8.1+. No framework, no Python, no Node.
  */
 
-function app_root(): string
+declare(strict_types=1);
+
+function appRoot(): string
 {
     return dirname(__DIR__);
 }
 
-function e(?string $value): string
+function e(string|int|float|null|Stringable $value): string
 {
-    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function config_path(): string
+function configPath(): string
 {
-    return app_root() . '/config.php';
+    return appRoot() . '/config.php';
 }
 
-function config(): array
+/**
+ * @return array<string, mixed>
+ */
+function config(bool $reload = false): array
 {
     static $cfg = null;
-    if ($cfg !== null) {
-        return $cfg;
+    if ($reload || $cfg === null) {
+        $cfg = is_file(configPath()) ? require_once configPath() : [];
     }
-    $cfg = is_file(config_path()) ? require config_path() : [];
-    return $cfg;
+    return is_array($cfg) ? $cfg : [];
 }
 
 function installed(): bool
@@ -40,22 +43,21 @@ function installed(): bool
 function db(): PDO
 {
     static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
+    if ($pdo === null) {
+        $c = config()['db'] ?? [];
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $c['host'] ?? '127.0.0.1',
+            (int) ($c['port'] ?? 3306),
+            $c['name'] ?? '',
+            $c['charset'] ?? 'utf8mb4'
+        );
+        $pdo = new PDO($dsn, (string) ($c['user'] ?? ''), (string) ($c['pass'] ?? ''), [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
     }
-    $c = config()['db'] ?? [];
-    $dsn = sprintf(
-        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-        $c['host'] ?? '127.0.0.1',
-        (int) ($c['port'] ?? 3306),
-        $c['name'] ?? '',
-        $c['charset'] ?? 'utf8mb4'
-    );
-    $pdo = new PDO($dsn, (string) ($c['user'] ?? ''), (string) ($c['pass'] ?? ''), [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
     return $pdo;
 }
 
@@ -67,37 +69,39 @@ function setting(string $name, ?string $default = null): ?string
     if (!$row) {
         return $default;
     }
-    return $row['value'];
+    return (string) $row['value'];
 }
 
-function setting_set(string $name, string $value): void
+function settingSet(string $name, string $value): void
 {
-    $st = db()->prepare('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)');
+    $st = db()->prepare(
+        'INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)'
+    );
     $st->execute([$name, $value]);
 }
 
-function app_key(): string
+function appKey(): string
 {
-    $key = (string) (config()['app_key'] ?? '');
+    $key = (string) (config()['appKey'] ?? '');
     $raw = base64_decode($key, true);
     if ($raw === false || strlen($raw) < 32) {
-        throw new RuntimeException('app_key tidak valid.');
+        throw new UnexpectedValueException('appKey tidak valid.');
     }
     return substr($raw, 0, 32);
 }
 
-function secret_encrypt(string $plain): string
+function secretEncrypt(string $plain): string
 {
     $iv = random_bytes(12);
     $tag = '';
-    $cipher = openssl_encrypt($plain, 'aes-256-gcm', app_key(), OPENSSL_RAW_DATA, $iv, $tag);
+    $cipher = openssl_encrypt($plain, 'aes-256-gcm', appKey(), OPENSSL_RAW_DATA, $iv, $tag);
     if ($cipher === false) {
-        throw new RuntimeException('Gagal mengenkripsi rahasia.');
+        throw new UnexpectedValueException('Gagal mengenkripsi rahasia.');
     }
     return base64_encode($iv . $tag . $cipher);
 }
 
-function secret_decrypt(string $encoded): string
+function secretDecrypt(string $encoded): string
 {
     $raw = base64_decode($encoded, true);
     if ($raw === false || strlen($raw) < 28) {
@@ -106,13 +110,26 @@ function secret_decrypt(string $encoded): string
     $iv = substr($raw, 0, 12);
     $tag = substr($raw, 12, 16);
     $cipher = substr($raw, 28);
-    $plain = openssl_decrypt($cipher, 'aes-256-gcm', app_key(), OPENSSL_RAW_DATA, $iv, $tag);
+    $plain = openssl_decrypt($cipher, 'aes-256-gcm', appKey(), OPENSSL_RAW_DATA, $iv, $tag);
     return $plain === false ? '' : $plain;
 }
 
-function client_ip(): string
+function clientIp(): string
 {
-    return substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 64);
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $candidate = trim((string) $_SERVER['HTTP_CF_CONNECTING_IP']);
+        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+            $ip = $candidate;
+        }
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $candidate = trim($parts[0]);
+        if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+            $ip = $candidate;
+        }
+    }
+    return substr($ip, 0, 64);
 }
 
 function redirect(string $path): never
@@ -126,14 +143,20 @@ function flash(string $type, string $message): void
     $_SESSION['flash'] = ['type' => $type, 'message' => $message];
 }
 
-function take_flash(): ?array
+/**
+ * @return array{type: string, message: string}|null
+ */
+function takeFlash(): ?array
 {
     $flash = $_SESSION['flash'] ?? null;
     unset($_SESSION['flash']);
     return is_array($flash) ? $flash : null;
 }
 
-function current_user(): ?array
+/**
+ * @return array<string, mixed>|null
+ */
+function currentUser(): ?array
 {
     $id = $_SESSION['uid'] ?? null;
     if (!$id) {
@@ -148,9 +171,12 @@ function current_user(): ?array
     return $user;
 }
 
-function require_login(): array
+/**
+ * @return array<string, mixed>
+ */
+function requireLogin(): array
 {
-    $user = current_user();
+    $user = currentUser();
     if (!$user) {
         flash('warning', 'Sesi berakhir. Silakan masuk lagi.');
         redirect('/login');
@@ -158,46 +184,69 @@ function require_login(): array
     return $user;
 }
 
-function require_role(array $user, array $roles): void
+/**
+ * @param array<string, mixed> $user
+ * @param array<int, string> $roles
+ */
+function requireRole(array $user, array $roles): void
 {
-    if (!in_array($user['role'], $roles, true)) {
+    if (!in_array($user['role'] ?? '', $roles, true)) {
         http_response_code(403);
-        view('error', ['title' => 'Akses ditolak', 'message' => 'Peran Anda tidak boleh melakukan aksi ini.', 'user' => $user]);
+        view('error', [
+            'title' => 'Akses ditolak',
+            'message' => 'Peran Anda tidak boleh melakukan aksi ini.',
+            'user' => $user,
+        ]);
         exit;
     }
 }
 
+/**
+ * @param array<string, mixed>|null $user
+ */
 function audit(?array $user, string $action, string $zone, string $detail): void
 {
-    $st = db()->prepare('INSERT INTO history (user_id, username, action, zone_name, detail, ip) VALUES (?, ?, ?, ?, ?, ?)');
+    $st = db()->prepare(
+        'INSERT INTO history (user_id, username, action, zone_name, detail, ip) VALUES (?, ?, ?, ?, ?, ?)'
+    );
     $st->execute([
         $user['id'] ?? null,
         $user['username'] ?? '',
         $action,
         $zone,
         $detail,
-        client_ip(),
+        clientIp(),
     ]);
 }
 
+/**
+ * @param array<string, mixed> $data
+ */
 function view(string $name, array $data = []): void
 {
-    $data['flash'] = $data['flash'] ?? take_flash();
+    $data['flash'] = $data['flash'] ?? takeFlash();
     extract($data, EXTR_SKIP);
-    $viewFile = app_root() . '/views/' . $name . '.php';
+    $viewFile = appRoot() . '/views/' . $name . '.php';
     if (!is_file($viewFile)) {
         http_response_code(500);
         echo 'View tidak ditemukan.';
         return;
     }
     ob_start();
-    include $viewFile;
-    $content = ob_get_clean();
+    include_once $viewFile;
+    $content = (string) ob_get_clean();
     $layout = ($name === 'login' || $name === 'install') ? 'layout_bare' : 'layout';
-    include app_root() . '/views/' . $layout . '.php';
+    $layoutFile = appRoot() . '/views/' . $layout . '.php';
+    (static function (string $file, string $content, array $viewData): void {
+        extract($viewData, EXTR_SKIP);
+        include_once $file;
+    })($layoutFile, $content, $data);
 }
 
-function json_out(int $code, array $payload): never
+/**
+ * @param array<string, mixed> $payload
+ */
+function jsonOut(int $code, array $payload): never
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');

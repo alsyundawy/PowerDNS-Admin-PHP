@@ -135,3 +135,16 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   KEY idx_login_user (username, created_at),
   KEY idx_login_ip (ip, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS zone_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  zone_name VARCHAR(255) NOT NULL,
+  serial BIGINT UNSIGNED NULL,
+  rrsets_json LONGTEXT NOT NULL,
+  user_id INT UNSIGNED NULL,
+  username VARCHAR(64) NOT NULL DEFAULT '',
+  comment VARCHAR(255) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_snapshots_zone (zone_name, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
