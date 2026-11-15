@@ -16,6 +16,8 @@ declare(strict_types=1);
  * @var string $phpVersion
  * @var string $memoryUsage
  * @var string $serverSoftware
+ * @var array<int, array<string, mixed>> $clusterNodes
+ * @var string $activeVersion
  */
 
 $statMetrics = [
@@ -90,6 +92,69 @@ $initials = strtoupper(substr((string) $profileUser['username'], 0, 2));
     <strong><?= (int) $accounts ?></strong>
   </article>
 </div>
+
+<!-- PowerDNS API Health & Cluster Nodes Widget -->
+<section class="panel mb-3">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h2 class="h6 mb-1"><i class="fa-solid fa-server text-info me-2"></i>PowerDNS Cluster Nodes &amp; API Health</h2>
+      <p class="text-secondary small mb-0">Live status, API response latency, and daemon version across authoritative nodes.</p>
+    </div>
+    <?php if (($user['role'] ?? '') === 'admin') : ?>
+      <a href="/servers" class="btn btn-sm btn-outline-info">
+        <i class="fa-solid fa-sliders me-1"></i> Manage Nodes
+      </a>
+    <?php endif; ?>
+  </div>
+
+  <div class="row g-3">
+    <?php foreach ($clusterNodes as $node) : ?>
+      <?php
+        $lat = $node['latency_ms'] !== null ? (int) $node['latency_ms'] : null;
+        $ver = !empty($node['version']) ? (string) $node['version'] : ($apiOk && !empty($node['is_default']) ? $activeVersion : 'Unknown');
+        $isOnline = $lat !== null || ($apiOk && !empty($node['is_default']));
+        $lastCheck = !empty($node['last_check_at']) ? (string) $node['last_check_at'] : ($isOnline ? 'Active' : 'Never');
+        ?>
+      <div class="col-md-6 col-lg-4">
+        <div class="p-3 rounded border <?= $isOnline ? 'border-secondary-subtle bg-dark-subtle' : 'border-danger-subtle bg-dark' ?> h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-truncate" style="max-width: 180px;" title="<?= e((string) $node['name']) ?>">
+              <?= e((string) $node['name']) ?>
+            </strong>
+            <?php if ($isOnline) : ?>
+              <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                <i class="fa-solid fa-circle-check me-1"></i>Online
+              </span>
+            <?php else : ?>
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                <i class="fa-solid fa-circle-xmark me-1"></i>Offline
+              </span>
+            <?php endif; ?>
+          </div>
+          <div class="font-monospace small text-secondary text-truncate mb-2" title="<?= e((string) $node['api_url']) ?>">
+            <?= e((string) $node['api_url']) ?>
+          </div>
+          <div class="d-flex justify-content-between align-items-center small text-secondary pt-2 border-top border-secondary-subtle">
+            <span>
+              <i class="fa-solid fa-gauge-high me-1 text-info"></i>
+              <?php if ($lat !== null) : ?>
+                <span class="<?= $lat < 50 ? 'text-success' : ($lat < 200 ? 'text-warning' : 'text-danger') ?> fw-semibold"><?= $lat ?> ms</span>
+              <?php else : ?>
+                <span class="text-muted">–</span>
+              <?php endif; ?>
+            </span>
+            <span class="badge bg-secondary-subtle text-light font-monospace small">
+              v<?= e($ver ?: '4.x') ?>
+            </span>
+          </div>
+          <div class="small text-secondary mt-2 text-truncate" style="font-size: 11px;">
+            <i class="fa-regular fa-clock me-1"></i>Last call: <?= e($lastCheck) ?>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+</section>
 
 <div class="row g-3">
   <div class="col-lg-7">

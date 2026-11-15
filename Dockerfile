@@ -9,7 +9,7 @@ FROM php:8.3-fpm-alpine
 LABEL maintainer="Harry Dertin Sutisna Alsyundawy <https://github.com/alsyundawy>"
 LABEL org.opencontainers.image.title="PowerDNS-Admin-PHP"
 LABEL org.opencontainers.image.description="Enterprise Authoritative PowerDNS Web Control Plane in Native PHP (Zero-Framework, Air-Gapped Zero-CDN, 2FA TOTP & Clustering)"
-LABEL org.opencontainers.image.version="0.3.0"
+LABEL org.opencontainers.image.version="0.4.0"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Set working directory

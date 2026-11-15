@@ -136,6 +136,73 @@ final class PdnsClient
         );
     }
 
+    /**
+     * Determine if connected PowerDNS server supports Catalog Zones (v4.7+).
+     */
+    public function isCatalogSupported(): bool
+    {
+        try {
+            $info = $this->ping();
+            $version = (string) ($info['version'] ?? '');
+            if (preg_match('/^(\d+)\.(\d+)/', $version, $m)) {
+                $major = (int) $m[1];
+                $minor = (int) $m[2];
+                return ($major > 4) || ($major === 4 && $minor >= 7);
+            }
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * List all catalog zones (PRODUCER or CONSUMER kind).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function catalogZones(): array
+    {
+        $all = $this->zones();
+        $catalogs = [];
+        foreach ($all as $z) {
+            $kind = strtoupper((string) ($z['kind'] ?? ''));
+            if ($kind === 'PRODUCER' || $kind === 'CONSUMER') {
+                $catalogs[] = $z;
+            }
+        }
+        return $catalogs;
+    }
+
+    /**
+     * Group member zones by their assigned catalog zone name.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function zonesGroupedByCatalog(): array
+    {
+        $all = $this->zones();
+        $grouped = [];
+        foreach ($all as $z) {
+            $cat = trim((string) ($z['catalog'] ?? ''));
+            if ($cat !== '') {
+                $catCanonical = dnsCanonical($cat);
+                $grouped[$catCanonical][] = $z;
+            }
+        }
+        return $grouped;
+    }
+
+    /**
+     * Assign a zone to a catalog zone in PowerDNS.
+     *
+     * @return array<string, mixed>
+     */
+    public function assignCatalog(string $zoneName, string $catalogZone): array
+    {
+        $canonicalCatalog = $catalogZone !== '' ? dnsCanonical($catalogZone) : '';
+        return $this->updateZone($zoneName, ['catalog' => $canonicalCatalog]);
+    }
+
     public function requestRaw(string $method, string $path, ?array $body = null, string $accept = '*/*'): string
     {
         $url = $this->baseUrl . $path;

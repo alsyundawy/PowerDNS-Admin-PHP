@@ -354,72 +354,96 @@ function soaOf(array $zone): string
 }
 
 /**
- * Auto-generate PTR record batch for /24 subnet (e.g., host 1 through 254).
+ * Auto-generate PTR record batch for IPv4 subnets (/16 through /24).
+ * Supports reverse zones larger than /24 (e.g. /16) and progressive offset ranges.
  *
  * @return array<int, array{name: string, type: string, ttl: int, content: string, disabled: bool, comment: string}>
  */
 function generateIpv4SubnetPtrBatch(
-    string $cidr24,
+    string $cidr,
     string $targetDomain,
     string $namingPattern = 'host-[ID].[DOMAIN]',
     int $ttl = 3600,
     int $start = 1,
-    int $end = 254
+    int $end = 254,
+    ?string $targetZone = null
 ): array {
-    $zone = ipv4ToReverseZone24($cidr24);
+    $zone = $targetZone !== null ? dnsCanonical($targetZone) : ipv4SubnetToReverseZone($cidr);
     if (!$zone) {
         return [];
     }
-    $baseIp = explode('/', $cidr24)[0];
-    $parts = explode('.', $baseIp);
-    $prefix = $parts[0] . '.' . $parts[1] . '.' . $parts[2] . '.';
-    $targetDomain = rtrim($targetDomain, '.');
 
+    $cidrParts = explode('/', trim($cidr));
+    $baseIp = $cidrParts[0];
+    $prefixLen = isset($cidrParts[1]) ? (int) $cidrParts[1] : 24;
+    $baseLong = ip2long($baseIp);
+    if ($baseLong === false) {
+        return [];
+    }
+
+    $targetDomain = rtrim($targetDomain, '.');
     $records = [];
-    $start = max(1, min(254, $start));
-    $end = max($start, min(254, $end));
+    $start = max(1, $start);
+    $end = max($start, min($start + 2000, $end));
+
+    $isSlash24 = ($prefixLen >= 24 && str_ends_with($zone, '.in-addr.arpa.') && substr_count($zone, '.') === 4);
 
     for ($i = $start; $i <= $end; $i++) {
-        $ip = $prefix . $i;
+        if ($isSlash24 && $prefixLen === 24) {
+            $parts = explode('.', $baseIp);
+            $ip = $parts[0] . '.' . $parts[1] . '.' . $parts[2] . '.' . min(255, $i);
+        } else {
+            $ip = (string) long2ip($baseLong + $i);
+        }
+
         $ipDash = str_replace('.', '-', $ip);
+        $octet4 = (string) (int) (explode('.', $ip)[3] ?? $i);
 
         $hostname = str_replace(
             ['[ID]', '[IP]', '[IP_DASH]', '[OCTET4]', '[DOMAIN]'],
-            [(string) $i, $ip, $ipDash, (string) $i, $targetDomain],
+            [(string) $i, $ip, $ipDash, $octet4, $targetDomain],
             $namingPattern
         );
         $hostname = dnsCanonical($hostname);
 
+        $relName = ipv4ToRelativePtr($ip, $zone);
+        if ($relName === null || $relName === '') {
+            $relName = (string) $i;
+        }
+
         $records[] = [
-            'name' => (string) $i,
+            'name' => $relName,
             'type' => 'PTR',
             'ttl' => $ttl,
             'content' => $hostname,
             'disabled' => false,
-            'comment' => 'Auto-generated /24 PTR',
+            'comment' => 'Auto-generated IPv4 PTR',
         ];
     }
     return $records;
 }
 
 /**
- * Auto-generate sequential PTR records for IPv6 /64 subnet.
+ * Auto-generate sequential PTR records for IPv6 subnets (/32 through /64).
  *
  * @return array<int, array{name: string, type: string, ttl: int, content: string, disabled: bool, comment: string}>
  */
 function generateIpv6SubnetPtrBatch(
-    string $prefix64,
+    string $prefixCidr,
     string $targetDomain,
     string $namingPattern = 'ipv6-[HEX].[DOMAIN]',
     int $ttl = 3600,
     int $start = 1,
-    int $end = 50
+    int $end = 50,
+    ?string $targetZone = null
 ): array {
-    $zone = ipv6ToReverseZone64($prefix64);
+    $zone = $targetZone !== null ? dnsCanonical($targetZone) : ipv6PrefixToReverseZone($prefixCidr);
     if (!$zone) {
         return [];
     }
-    $bin = @inet_pton(explode('/', $prefix64)[0]);
+
+    $baseIp = explode('/', trim($prefixCidr))[0];
+    $bin = @inet_pton($baseIp);
     if ($bin === false || strlen($bin) !== 16) {
         return [];
     }
@@ -427,11 +451,15 @@ function generateIpv6SubnetPtrBatch(
 
     $records = [];
     $start = max(1, $start);
-    $end = max($start, min(500, $end));
+    $end = max($start, min($start + 2000, $end));
 
     for ($i = $start; $i <= $end; $i++) {
         $hostHex = str_pad(dechex($i), 16, '0', STR_PAD_LEFT);
-        $relativeName = implode('.', array_reverse(str_split($hostHex)));
+        $prefixHex = substr(bin2hex($bin), 0, 16);
+        $fullHex = $prefixHex . $hostHex;
+        $ipBin = @hex2bin($fullHex);
+        $fullIp = ($ipBin !== false) ? (string) inet_ntop($ipBin) : $baseIp . dechex($i);
+
         $hostname = str_replace(
             ['[ID]', '[HEX]', '[HEX16]', '[DOMAIN]'],
             [(string) $i, dechex($i), $hostHex, $targetDomain],
@@ -439,16 +467,65 @@ function generateIpv6SubnetPtrBatch(
         );
         $hostname = dnsCanonical($hostname);
 
+        $relName = ipv6ToRelativePtr($fullIp, $zone);
+        if ($relName === null || $relName === '') {
+            $relName = implode('.', array_reverse(str_split($hostHex)));
+        }
+
         $records[] = [
-            'name' => $relativeName,
+            'name' => $relName,
             'type' => 'PTR',
             'ttl' => $ttl,
             'content' => $hostname,
             'disabled' => false,
-            'comment' => 'Auto-generated /64 PTR',
+            'comment' => 'Auto-generated IPv6 PTR',
         ];
     }
     return $records;
+}
+
+/**
+ * Generate preview of PTR batch with total count and first N records sample.
+ *
+ * @return array{
+ *     total: int,
+ *     preview: array<int, array{name: string, fqdn: string, type: string, ttl: int, content: string}>
+ * }
+ */
+function previewSubnetPtrBatch(
+    string $family,
+    string $cidr,
+    string $targetDomain,
+    string $targetZone,
+    string $namingPattern,
+    int $ttl,
+    int $start,
+    int $end,
+    int $previewLimit = 10
+): array {
+    $sliceEnd = min($end, $start + $previewLimit - 1);
+    $records = ($family === 'ipv6')
+        ? generateIpv6SubnetPtrBatch($cidr, $targetDomain, $namingPattern, $ttl, $start, $sliceEnd, $targetZone)
+        : generateIpv4SubnetPtrBatch($cidr, $targetDomain, $namingPattern, $ttl, $start, $sliceEnd, $targetZone);
+
+    $totalCount = max(0, $end - $start + 1);
+    $previewRows = [];
+    $zoneCanonical = dnsCanonical($targetZone);
+
+    foreach ($records as $r) {
+        $previewRows[] = [
+            'name' => $r['name'],
+            'fqdn' => $r['name'] . '.' . $zoneCanonical,
+            'type' => 'PTR',
+            'ttl' => $r['ttl'],
+            'content' => $r['content'],
+        ];
+    }
+
+    return [
+        'total' => $totalCount,
+        'preview' => $previewRows,
+    ];
 }
 
 /**

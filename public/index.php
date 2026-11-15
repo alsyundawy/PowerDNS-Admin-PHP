@@ -33,6 +33,7 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
     require_once dirname(__DIR__) . '/app/webhook_services.php';
     require_once dirname(__DIR__) . '/app/zone_linter.php';
     require_once dirname(__DIR__) . '/app/analytics.php';
+    require_once dirname(__DIR__) . '/app/auth_provider.php';
     require_once dirname(__DIR__) . '/app/services.php';
     require_once dirname(__DIR__) . '/app/backup_services.php';
     require_once dirname(__DIR__) . '/app/handlers.php';
@@ -53,10 +54,11 @@ header(
     "script-src 'self' 'unsafe-inline'; " .
     "img-src 'self' data: https:; font-src 'self'; " .
     "connect-src 'self'; " .
-    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self'" .
+    ($isHttps ? '; upgrade-insecure-requests' : '')
 );
 if ($isHttps) {
-    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
 }
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -96,6 +98,12 @@ if ($path === '/login/cancel-2fa') {
     handleCancel2Fa();
     exit;
 }
+if ($path === '/login/sso') {
+    handleLoginSso();
+}
+if ($path === '/login/callback') {
+    handleLoginCallback();
+}
 if ($path === '/logout' && $method === 'POST') {
     handleLogout();
 }
@@ -108,6 +116,8 @@ if ($path === '/') {
     handleZones($user);
 } elseif ($path === '/zones/sync' && $method === 'POST') {
     handleZoneSync($user);
+} elseif (str_starts_with($path, '/catalogs')) {
+    handleCatalogs($user, $path, $method);
 } elseif ($path === '/zones/new') {
     handleZoneCreate($user);
 } elseif ($path === '/search') {

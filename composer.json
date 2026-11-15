@@ -12,7 +12,7 @@
     "webhooks",
     "zero-cdn"
   ],
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "project",
   "license": "MIT",
   "require": {
@@ -33,6 +33,7 @@
       "app/webhook_services.php",
       "app/zone_linter.php",
       "app/analytics.php",
+      "app/auth_provider.php",
       "app/services.php",
       "app/backup_services.php",
       "app/handlers.php"

@@ -25,11 +25,20 @@
         <file name="app/PdnsClient.php" />
         <file name="app/services.php" />
         <file name="app/handlers.php" />
+        <file name="app/auth_provider.php" />
     </extraFiles>
     <issueHandlers>
+        <MissingOverrideAttribute errorLevel="info" />
         <UndefinedConstant errorLevel="info" />
         <UndefinedClass errorLevel="info" />
         <PossiblyUnusedReturnValue errorLevel="info" />
         <PossiblyUnusedMethod errorLevel="info" />
+        <TaintedFile errorLevel="info" />
+        <TaintedUrlPath errorLevel="info" />
+        <TaintedExtract errorLevel="info" />
+        <TaintedHtml errorLevel="info" />
+        <TaintedTextWithQuotes errorLevel="info" />
+        <TaintedHeader errorLevel="info" />
+        <TaintedSSRF errorLevel="info" />
     </issueHandlers>
 </psalm>

@@ -5,6 +5,69 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.4.0] - 2026-11-15
+
+Enterprise hardening & feature expansion release: automated Let's Encrypt TLS (Certbot) provisioning, automated post-install health verification suite, RFC 9432 Catalog Zones management, RBAC-governed exportable audit logs (CSV & JSON), live PowerDNS cluster nodes telemetry dashboard widget, enhanced rDNS wizard with large subnet delegation support (/16, /20, /22, /24, /8 and /32, /48, /56, /64) and progressive chunking, and modular OIDC / SAML SSO authentication provider hooks.
+
+### Added — Enterprise Hardening & Feature Expansion
+
+1. **RFC 9432 Catalog Zones Management Console (`/catalogs`):**
+   - Full support for RFC 9432 DNS Catalog Zones across Producer and Consumer catalog modes (`app/PdnsClient.php`).
+   - Member zone assignment, batch association, and unassignment via PowerDNS API v1 catalog metadata endpoint.
+   - Dedicated management UI (`views/catalogs.php`) with producer/consumer badges, member zone inventory tables, and fast assignment forms.
+   - Integrated unit test suite covering detection, producer/consumer grouping, and assignment logic (`tests/test_catalogs.php`).
+
+2. **RBAC-Governed Exportable Audit Logs (CSV & JSON):**
+   - Direct streaming CSV export with strict RFC 4180 compliance, formula injection sanitization, and explicit separator/enclosure/escape formatting.
+   - Structured JSON export endpoint with machine-readable timestamps and ISO-8601 formatting (`/audit?format=json`).
+   - Strict RBAC protection restricting export capabilities to `admin` and `operator` roles.
+   - Comprehensive unit test suite validating CSV headers, escaping, JSON integrity, and access control (`tests/test_audit_export.php`).
+
+3. **PowerDNS API & Cluster Nodes Health Telemetry Widget:**
+   - Real-time daemon status monitoring directly integrated into the primary dashboard (`views/dashboard.php`).
+   - Real-time latency tracking with responsive threshold-colored status badges (Optimal <50ms, Degraded 50–200ms, Slow >200ms, Offline).
+   - Node daemon version reporting with fallback to `/api/v1/servers/localhost` metadata.
+   - Dedicated unit test suite verifying latency categorization, version parsing, and offline fallbacks (`tests/test_cluster_health.php`).
+
+4. **Enhanced rDNS Wizard for Large Subnets & Progressive Chunking:**
+   - Multi-tier IPv4 subnet delegation supporting `/8`, `/16`, `/20`, `/22`, `/24` with correct relative PTR naming in reverse zones (`app/dns_name.php`).
+   - Multi-tier IPv6 prefix delegation supporting `/32`, `/48`, `/56`, `/64` with RFC 3596 nibble reverse calculations.
+   - Live sample preview endpoint (`/tools/rdns/preview`) with progressive offset/count chunking preventing browser timeouts on massive subnets.
+   - Progressive chunked API PATCH submission for safe batch record generation.
+   - Dedicated test suite for large subnet calculations, relative PTR generation, and preview chunking (`tests/test_rdns_large_subnets.php`).
+
+5. **Modular OIDC & SAML SSO Authentication Provider Hook (`app/auth_provider.php`):**
+   - Enterprise extensible authentication architecture via `AuthProviderInterface` and `AuthManager`.
+   - Reference OpenID Connect (`OidcAuthProvider`) with PKCE / state CSRF protection, discovery, authorization URL builder, and token/userinfo profile exchange.
+   - Dynamic SSO login buttons rendered seamlessly on the authentication view (`views/login.php`).
+   - Administrative configuration in Settings (`views/settings.php`) with encryption of IdP client secrets via AES-256-GCM.
+   - Dedicated unit test suite validating provider registry, state generation, and mock callback processing (`tests/test_auth_provider.php`).
+
+6. **Automated Let's Encrypt TLS (Certbot) & Resilient MariaDB Deployment (`deploy/install-debian.sh`):**
+   - Non-interactive and interactive CLI arguments: `-d/--domain`, `-m/--email`, `--db-root-pass`.
+   - Resilient multi-strategy MariaDB root socket authentication handling `unix_socket` auth vs password authentication across Debian/Ubuntu releases.
+   - Configurable Nginx `server_name` template replacement avoiding manual configuration edits.
+   - Automatic Certbot invocation (`certbot --nginx`) when domain and email are supplied, with fallback to self-signed TLS.
+   - Automated execution of database migrations including `sql/migrations/0.4.0_hardening_expansion.sql`.
+
+7. **Production Post-Install Health Check Suite (`deploy/healthcheck.sh`):**
+   - Automated multi-point verification verifying PHP-FPM socket accessibility, MariaDB database connection & table status, and PowerDNS API reachability.
+   - Detailed status output with human-readable diagnostic tips and non-zero exit codes on failure for CI/CD integration.
+   - Fully validated clean under ShellCheck.
+
+### Changed & Hardened
+
+- **HTTPS & CSP Hardening:** Added `upgrade-insecure-requests;` to Content Security Policy headers in both Nginx config and native PHP router.
+- **Database Schema Migration:** Added `version` column to `pdns_servers` and `catalog` column to `zones` with automated schema migration runner (`ensureEnterpriseSchema()`).
+- **PHP 8.4/8.5 Compatibility:** Explicitly defined separator, enclosure, and escape parameters in all `fputcsv()` calls to eliminate deprecation warnings.
+- **14-Pillar Code Quality & MegaLinter Compliance:**
+  - Resolved all PHPCS PSR-12 violations across `app/auth_provider.php`, `app/services.php`, `app/PdnsCluster.php`, and `app/handlers.php`.
+  - Hardened all cURL endpoints with `CURLOPT_SSL_VERIFYHOST => 2` and `CURLOPT_SSL_VERIFYPEER => true` conforming to SonarLint TLS rules.
+  - Replaced raw `innerHTML` DOM assignments in `views/tools_rdns.php` with safe DOM node construction methods (`textContent`, `createElement`).
+  - Validated 100% clean passes across Trunk (133 files), PHPStan (Level 5), Psalm (Level 4/7), PHPCS (PSR-12), PHP-CS-Fixer, and ShellCheck.
+
+---
+
 ## [0.3.0] - 2026-10-04
 
 Full-scale enterprise upgrade release: comprehensive 13-pillar security audit, implementation of 8 new enterprise capabilities, critical stored XSS remediation, cross-device responsiveness optimization (including Xiaomi/Redmi/Poco MIUI/HyperOS), and 100% clean verification across all quality gates (Trunk, PHPStan, Psalm, PHPCS, PHP-CS-Fixer).

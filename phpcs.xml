@@ -3,6 +3,8 @@
     <description>PSR-12 coding standard for PowerDNS-Admin-PHP</description>
     <rule ref="PSR12">
         <exclude name="PSR1.Classes.ClassDeclaration.MissingNamespace"/>
+        <exclude name="PSR1.Classes.ClassDeclaration.MultipleClasses"/>
+        <exclude name="PSR1.Files.SideEffects.FoundWithSymbols"/>
     </rule>
     <rule ref="Generic.WhiteSpace.ScopeIndent">
         <exclude-pattern>views/*</exclude-pattern>

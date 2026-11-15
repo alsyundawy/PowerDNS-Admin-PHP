@@ -317,9 +317,10 @@ function fetchRdapJson(string $url): array
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_TIMEOUT => RDAP_TIMEOUT_SECS,
         CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_USERAGENT => 'PowerDNS-Admin-PHP/0.3.0 RDAP-Client',
+        CURLOPT_USERAGENT => 'PowerDNS-Admin-PHP/' . APP_VERSION . ' RDAP-Client',
         CURLOPT_HTTPHEADER => ['Accept: application/rdap+json, application/json'],
         CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $res = curl_exec($ch);

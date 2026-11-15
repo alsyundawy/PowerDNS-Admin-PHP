@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * @var string|null $error
+ * @var bool|null $is2FaChallenge
  */
 
 $logoUrl = appLogoUrl();
@@ -67,9 +68,24 @@ $appName = appName();
     </div>
     <button class="btn btn-primary w-100 py-2 mt-2" type="submit">Sign In to Dashboard</button>
   </form>
+
+  <?php $ssoProviders = AuthManager::getEnabledProviders(); ?>
+  <?php if (!empty($ssoProviders)) : ?>
+    <div class="position-relative my-4 text-center">
+      <hr class="border-secondary-subtle">
+      <span class="position-absolute top-50 start-50 translate-middle px-3 bg-dark text-secondary small">or continue with</span>
+    </div>
+    <div class="d-grid gap-2">
+      <?php foreach ($ssoProviders as $prov) : ?>
+        <a href="/login/sso?provider=<?= e($prov->getId()) ?>" class="btn btn-outline-light py-2">
+          <i class="<?= e($prov->getIcon()) ?> me-2"></i><?= e($prov->getTitle()) ?>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
 <?php endif; ?>
 
 <div class="text-center mt-4 pt-3 border-top border-secondary-subtle">
   <small class="text-secondary d-block"><?= e(appFooterText()) ?></small>
-  <small class="text-secondary opacity-75">v0.3.0</small>
+  <small class="text-secondary opacity-75">v<?= e(APP_VERSION) ?></small>
 </div>

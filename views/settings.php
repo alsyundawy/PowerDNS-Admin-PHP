@@ -26,6 +26,11 @@ declare(strict_types=1);
  * @var int $auditRetentionDays
  * @var string $rdnsPattern
  * @var string $publicResolvers
+ * @var bool $oidcEnabled
+ * @var string $oidcTitle
+ * @var string $oidcIssuer
+ * @var string $oidcClientId
+ * @var string $oidcDefaultRole
  */
 ?>
 <form method="post" action="/settings" enctype="multipart/form-data" class="stack">
@@ -397,6 +402,55 @@ declare(strict_types=1);
           required
         >
         <div class="form-text">Comparison resolver IP list for DNS Lookup &amp; Propagation Inspector tools (comma separated).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Single Sign-On (OIDC) Federation Hook -->
+  <div class="panel stack">
+    <h2 class="h6 mb-2"><i class="fa-solid fa-id-badge me-2 text-info"></i>7. Single Sign-On (OIDC) Federation Hook</h2>
+    <p class="muted small mb-3">
+      Modular external authentication hook for OpenID Connect (OIDC / Keycloak / Authentik / Google / Okta).
+    </p>
+
+    <div class="form-check mb-3">
+      <input
+        class="form-check-input"
+        type="checkbox"
+        id="setting-oidc-enabled"
+        name="auth_oidc_enabled"
+        value="1"
+        <?= $oidcEnabled ? 'checked' : '' ?>
+      >
+      <label class="form-check-label" for="setting-oidc-enabled">
+        Enable External Single Sign-On (OIDC) on login page
+      </label>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="setting-oidc-title">SSO Button Label</label>
+        <input class="form-control" id="setting-oidc-title" name="auth_oidc_title" value="<?= e($oidcTitle) ?>" placeholder="Single Sign-On (OIDC)">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="setting-oidc-role">Default Provisioned Role</label>
+        <select class="form-select" id="setting-oidc-role" name="auth_oidc_default_role">
+          <option value="user" <?= $oidcDefaultRole === 'user' ? 'selected' : '' ?>>user (Standard User)</option>
+          <option value="operator" <?= $oidcDefaultRole === 'operator' ? 'selected' : '' ?>>operator (Zone Operator)</option>
+          <option value="admin" <?= $oidcDefaultRole === 'admin' ? 'selected' : '' ?>>admin (Full Administrator)</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="setting-oidc-issuer">OIDC Issuer URL</label>
+        <input class="form-control font-monospace" id="setting-oidc-issuer" name="auth_oidc_issuer" value="<?= e($oidcIssuer) ?>" placeholder="https://sso.example.com/realms/master">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="setting-oidc-client-id">Client ID</label>
+        <input class="form-control font-monospace" id="setting-oidc-client-id" name="auth_oidc_client_id" value="<?= e($oidcClientId) ?>">
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="setting-oidc-client-secret">Client Secret (Leave blank to keep existing)</label>
+        <input class="form-control font-monospace" type="password" id="setting-oidc-client-secret" name="auth_oidc_client_secret" placeholder="••••••••">
       </div>
     </div>
   </div>

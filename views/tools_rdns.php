@@ -203,16 +203,43 @@ declare(strict_types=1);
         </div>
         <div class="row g-2">
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-start">Start Host</label>
+            <label class="form-label small" for="gen-start">Start Host Offset</label>
             <input class="form-control" type="number" id="gen-start" name="start" value="1" min="1">
           </div>
           <div class="col-sm-6">
-            <label class="form-label small" for="gen-end">End Host</label>
+            <label class="form-label small" for="gen-end">End Host Offset</label>
             <input class="form-control" type="number" id="gen-end" name="end" value="254" min="1">
           </div>
         </div>
-        <div class="pt-2">
-          <button class="btn btn-outline-primary w-100" type="submit">Generate &amp; Apply Bulk PTR</button>
+        <div class="pt-2 d-flex gap-2">
+          <button class="btn btn-outline-info w-50" id="btn-preview-ptr" type="button">
+            <i class="fa-solid fa-eye me-1" id="preview-btn-icon"></i> <span id="preview-btn-text">Preview Records</span>
+          </button>
+          <button class="btn btn-primary w-50" id="btn-submit-ptr" type="submit">
+            <i class="fa-solid fa-bolt me-1"></i> Apply Bulk PTR
+          </button>
+        </div>
+
+        <!-- Live Preview Container -->
+        <div id="ptr-preview-container" class="mt-3 p-3 rounded bg-dark border border-secondary d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-bold text-info" id="preview-summary">Preview</span>
+            <span class="badge bg-secondary small" id="preview-count">0 Records</span>
+          </div>
+          <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+            <table class="table table-sm align-middle small mb-0 font-monospace">
+              <thead>
+                <tr>
+                  <th scope="col">Relative PTR</th>
+                  <th scope="col">Full PTR FQDN</th>
+                  <th scope="col">Target Domain</th>
+                  <th scope="col">TTL</th>
+                </tr>
+              </thead>
+              <tbody id="preview-tbody">
+              </tbody>
+            </table>
+          </div>
         </div>
       </form>
     </div>
@@ -309,5 +336,69 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   calculateRdns();
+
+  // Preview PTR generation
+  var btnPreview = document.getElementById('btn-preview-ptr');
+  var previewBox = document.getElementById('ptr-preview-container');
+  var previewSummary = document.getElementById('preview-summary');
+  var previewCount = document.getElementById('preview-count');
+  var previewTbody = document.getElementById('preview-tbody');
+
+  if (btnPreview) {
+    btnPreview.addEventListener('click', function () {
+      var genForm = btnPreview.closest('form');
+      if (!genForm) return;
+
+      var formData = new FormData(genForm);
+      var btnIcon = document.getElementById('preview-btn-icon');
+      var btnText = document.getElementById('preview-btn-text');
+      btnPreview.disabled = true;
+      if (btnIcon) btnIcon.className = 'fa-solid fa-spinner fa-spin me-1';
+      if (btnText) btnText.textContent = 'Calculating...';
+
+      fetch('/tools/rdns/preview', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        btnPreview.disabled = false;
+        if (btnIcon) btnIcon.className = 'fa-solid fa-eye me-1';
+        if (btnText) btnText.textContent = 'Preview Records';
+        if (!data || !data.preview) return;
+
+        previewSummary.textContent = 'Previewing first ' + data.preview.length + ' sample records:';
+        previewCount.textContent = 'Total: ' + data.total + ' Records';
+        previewTbody.textContent = '';
+
+        data.preview.forEach(function (row) {
+          var tr = document.createElement('tr');
+          var tdName = document.createElement('td');
+          tdName.textContent = row.name;
+          var tdFqdn = document.createElement('td');
+          tdFqdn.textContent = row.fqdn;
+          var tdContent = document.createElement('td');
+          tdContent.textContent = row.content;
+          var tdTtl = document.createElement('td');
+          tdTtl.textContent = String(row.ttl);
+          tr.appendChild(tdName);
+          tr.appendChild(tdFqdn);
+          tr.appendChild(tdContent);
+          tr.appendChild(tdTtl);
+          previewTbody.appendChild(tr);
+        });
+
+        previewBox.classList.remove('d-none');
+      })
+      .catch(function () {
+        btnPreview.disabled = false;
+        if (btnIcon) btnIcon.className = 'fa-solid fa-eye me-1';
+        if (btnText) btnText.textContent = 'Preview Records';
+      });
+    });
+  }
 });
 </script>

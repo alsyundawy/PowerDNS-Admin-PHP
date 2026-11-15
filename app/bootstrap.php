@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+const APP_VERSION = '0.4.0';
+
 function appRoot(): string
 {
     return dirname(__DIR__);
@@ -234,6 +236,14 @@ function ensureEnterpriseSchema(): void
           KEY idx_dyndns_host (hostname),
           KEY idx_dyndns_user (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $stVer = db()->query("SHOW COLUMNS FROM pdns_servers LIKE 'version'");
+        if ($stVer && $stVer->rowCount() === 0) {
+            db()->exec("ALTER TABLE pdns_servers ADD COLUMN version VARCHAR(64) NULL AFTER latency_ms");
+        }
+        $stCat = db()->query("SHOW COLUMNS FROM zones LIKE 'catalog'");
+        if ($stCat && $stCat->rowCount() === 0) {
+            db()->exec("ALTER TABLE zones ADD COLUMN catalog VARCHAR(255) NOT NULL DEFAULT '' AFTER serial");
+        }
     } catch (Throwable) {
         // Table might not exist yet or running in unit tests, safely ignore
     }

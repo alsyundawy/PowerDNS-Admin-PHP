@@ -62,7 +62,7 @@ declare(strict_types=1);
       <?php endif; ?>
       <span>
         <strong><?= e(appName()) ?></strong>
-        <small>PHP native &bull; v0.3.0</small>
+        <small>PHP native &bull; v<?= e(APP_VERSION) ?></small>
       </span>
     </a>
     <nav aria-label="Main navigation menu">
@@ -72,6 +72,11 @@ declare(strict_types=1);
       <a class="<?= ($title ?? '') === 'Zones' ? 'active' : '' ?>" href="/zones">
         <i class="fa-solid fa-globe fa-fw"></i> Zones
       </a>
+      <?php if (in_array($user['role'] ?? '', ['admin', 'operator'], true)) : ?>
+        <a class="<?= str_contains($title ?? '', 'Catalog') ? 'active' : '' ?>" href="/catalogs">
+          <i class="fa-solid fa-book-bookmark fa-fw"></i> Catalog Zones
+        </a>
+      <?php endif; ?>
       <a class="<?= ($title ?? '') === 'Search' ? 'active' : '' ?>" href="/search">
         <i class="fa-solid fa-magnifying-glass fa-fw"></i> Search
       </a>
@@ -219,7 +224,7 @@ declare(strict_types=1);
           <?= e(appFooterText()) ?>
         </div>
         <div class="d-flex gap-3">
-          <span>v0.3.0</span>
+          <span>v<?= e(APP_VERSION) ?></span>
           <?php if (($user['role'] ?? '') === 'admin') : ?>
             <a href="/backup" class="text-secondary text-decoration-none">Backup</a>
             <a href="/settings" class="text-secondary text-decoration-none">Settings</a>

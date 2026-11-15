@@ -3,13 +3,22 @@
 declare(strict_types=1);
 
 /**
+ * @var array<string, mixed> $user
  * @var array<int, array<string, mixed>> $rows
  */
 
 ?>
 <div class="panel">
-  <header>
-    <h2>System Audit Trail Log</h2>
+  <header class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h2 class="mb-0"><i class="fa-solid fa-clipboard-list me-2 text-info"></i>System Audit Trail Log</h2>
+    <div class="d-flex gap-2">
+      <a href="/audit?export=csv" class="btn btn-sm btn-outline-success" title="Download audit log in CSV format">
+        <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+      </a>
+      <a href="/audit?export=json" class="btn btn-sm btn-outline-info" title="Download audit log in JSON format">
+        <i class="fa-solid fa-file-code me-1"></i> Export JSON
+      </a>
+    </div>
   </header>
   <div class="table-responsive">
     <table class="table align-middle">

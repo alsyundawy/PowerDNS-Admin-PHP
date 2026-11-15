@@ -23,6 +23,7 @@ parameters:
         - app/webhook_services.php
         - app/zone_linter.php
         - app/analytics.php
+        - app/auth_provider.php
         - app/services.php
         - app/backup_services.php
         - app/handlers.php

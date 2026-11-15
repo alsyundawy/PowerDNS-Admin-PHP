@@ -1,8 +1,32 @@
-# TASK LIST — PowerDNS-Admin-PHP v0.3.0
+# TASK LIST — PowerDNS-Admin-PHP v0.4.0
 
-**Status:** Ready for Review
+**Status:** Completed & Verified (100% Pass)
 **Tracking Model:** Phased Execution Checklists (Strict TDD & Empirical Verification)
-**Safety Invariant:** All changes must maintain backward compatibility with v0.2.1 databases and configs.
+**Safety Invariant:** All changes maintain backward compatibility with v0.3.0 and prior databases and configs.
+
+---
+
+## Phase 0.4.0: Hardening, Infrastructure & Feature Expansion
+
+- [x] **Task 0.4.1: Deployment & Configuration Hardening**
+  - [x] Make Nginx `server_name` configurable via `__SERVER_NAME__` placeholder in `deploy/nginx.conf`.
+  - [x] Update CSP in `deploy/nginx.conf` and `public/index.php` with `upgrade-insecure-requests;` for HTTPS compliance.
+  - [x] Add automated Let's Encrypt (Certbot) TLS setup in `deploy/install-debian.sh` (`-d/--domain`, `-m/--email`).
+  - [x] Harden MariaDB root authentication detection (`unix_socket` vs password) in `deploy/install-debian.sh`.
+  - [x] Implement multi-point post-install health check suite in `deploy/healthcheck.sh` (PHP-FPM, MariaDB, PowerDNS API).
+- [x] **Task 0.4.2: High-Value Control Plane Features**
+  - [x] RFC 9432 Catalog Zones management console (`app/PdnsClient.php`, `app/handlers.php`, `views/catalogs.php`).
+  - [x] Exportable Audit Log in CSV and JSON formats with RBAC enforcement (`app/handlers.php`, `views/audit.php`).
+  - [x] PowerDNS API Health & Cluster Nodes live telemetry dashboard widget (`app/PdnsCluster.php`, `views/dashboard.php`).
+  - [x] Large Subnet rDNS delegation (/8, /16, /20, /22, /24 and /32, /48, /56, /64) with progressive preview & chunking (`app/dns_name.php`, `app/services.php`, `views/tools_rdns.php`).
+  - [x] Modular OIDC / SAML SSO Authentication Provider Hook (`app/auth_provider.php`, `views/login.php`, `views/settings.php`).
+- [x] **Task 0.4.3: Quality Gates & Comprehensive Testing**
+  - [x] 25 standalone unit test suites passing 100% (`tests/test_*.php`).
+  - [x] PHPStan Level 5: 0 errors.
+  - [x] Psalm Level 4/7: 0 errors.
+  - [x] PHP-CS-Fixer PSR-12: 0 violations.
+  - [x] ShellCheck: 0 warnings across all `deploy/*.sh` scripts.
+  - [x] Documentation & Release Notes updated (`CHANGELOG.md`, `README.md`, `DOCNOTE.md`).
 
 ---
 

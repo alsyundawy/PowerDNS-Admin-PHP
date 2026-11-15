@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ################################################################################
-# PowerDNS-Admin-PHP - Production Debian/Ubuntu Auto-Installer
+# PowerDNS-Admin-PHP - Production Debian/Ubuntu Auto-Installer (v0.4.0)
 # ==============================================================================
 # Stack       : Nginx + PHP-FPM (8.2+) + MariaDB (10.5+) + PowerDNS REST API
 # Support     : Ubuntu 20.04 (Focal), 22.04 (Jammy), 24.04 (Noble)
@@ -38,13 +38,49 @@ if [[ ${CURRENT_UID} -ne 0 ]]; then
 fi
 
 APP="/var/www/PowerDNS-Admin-PHP"
+DOMAIN="${DOMAIN:-}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-${EMAIL:-}}"
+DB_ROOT_PASS="${DB_ROOT_PASS:-${MARIADB_ROOT_PASSWORD:-}}"
+
+# Parse command line flags
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	-d | --domain)
+		DOMAIN="$2"
+		shift 2
+		;;
+	-m | --email)
+		CERTBOT_EMAIL="$2"
+		shift 2
+		;;
+	--db-root-pass)
+		DB_ROOT_PASS="$2"
+		shift 2
+		;;
+	-h | --help)
+		echo "Usage: $0 [OPTIONS]"
+		echo "Options:"
+		echo "  -d, --domain <domain>     Domain name for Nginx server_name & Let's Encrypt (e.g. domain.tld)"
+		echo "  -m, --email <email>       Email address for Let's Encrypt certificate alerts"
+		echo "      --db-root-pass <pass> MariaDB root password if required"
+		echo "  -h, --help                Show this help message"
+		exit 0
+		;;
+	*)
+		shift
+		;;
+	esac
+done
 
 echo -e "${CYAN}================================================================================${NC}"
-echo -e "${GREEN} PowerDNS-Admin-PHP - Nginx, PHP-FPM & MariaDB Auto Installer ${NC}"
+echo -e "${GREEN} PowerDNS-Admin-PHP v0.4.0 — Nginx, PHP-FPM & MariaDB Auto Installer ${NC}"
 echo -e "${CYAN}================================================================================${NC}"
+if [[ -n ${DOMAIN} ]]; then
+	echo -e "${CYAN}Target Domain : ${YELLOW}${DOMAIN}${NC}"
+fi
 
 # 1. Update packages & install core dependencies
-echo -e "\n${BLUE}[1/6] Updating package repositories and installing system packages...${NC}"
+echo -e "\n${BLUE}[1/7] Updating package repositories and installing system packages...${NC}"
 apt-get update -y
 apt-get install -y --no-install-recommends \
 	nginx-full \
@@ -80,7 +116,7 @@ fi
 echo -e "${GREEN}PHP detected: version ${PHP_VER}${NC}"
 
 # 2. Setup directory structure & file permissions
-echo -e "\n${BLUE}[2/6] Preparing application directory and www-data permissions...${NC}"
+echo -e "\n${BLUE}[2/7] Preparing application directory and www-data permissions...${NC}"
 install -d -o www-data -g www-data "${APP}"
 install -d -o www-data -g www-data /etc/pda
 chmod 750 /etc/pda
@@ -105,7 +141,7 @@ find "${APP}" -type f -exec chmod 640 {} +
 chmod 755 "${APP}/deploy/"*.sh 2>/dev/null || true
 
 # 3. Configure dedicated PHP-FPM pool [pda]
-echo -e "\n${BLUE}[3/6] Configuring isolated PHP-FPM pool (/etc/php/${PHP_VER}/fpm/pool.d/pda.conf)...${NC}"
+echo -e "\n${BLUE}[3/7] Configuring isolated PHP-FPM pool (/etc/php/${PHP_VER}/fpm/pool.d/pda.conf)...${NC}"
 cat >"/etc/php/${PHP_VER}/fpm/pool.d/pda.conf" <<EOF
 [pda]
 user = www-data
@@ -134,11 +170,14 @@ mkdir -p /run/php
 ln -sfn "/run/php/php${PHP_VER}-fpm-pda.sock" /run/php/php-fpm-pda.sock
 
 # 4. Configure Nginx Web Server
-echo -e "\n${BLUE}[4/6] Configuring Nginx Reverse Proxy...${NC}"
-# Adjust PHP-FPM socket version in deploy/nginx.conf if present
-sed -i -E "s#php[0-9.]+-fpm-pda\.sock#php${PHP_VER}-fpm-pda.sock#g" "${APP}/deploy/nginx.conf"
+echo -e "\n${BLUE}[4/7] Configuring Nginx Virtual Host...${NC}"
+TARGET_SERVER_NAME="${DOMAIN:-_}"
 
+# Copy template and customize PHP socket & server_name
 cp "${APP}/deploy/nginx.conf" /etc/nginx/sites-available/pda.conf
+sed -i -E "s#php[0-9.]+-fpm-pda\.sock#php${PHP_VER}-fpm-pda.sock#g" /etc/nginx/sites-available/pda.conf
+sed -i "s#__SERVER_NAME__#${TARGET_SERVER_NAME}#g" /etc/nginx/sites-available/pda.conf
+
 ln -sfn /etc/nginx/sites-available/pda.conf /etc/nginx/sites-enabled/pda.conf
 
 # Remove default site to prevent port 80 conflict
@@ -147,7 +186,7 @@ rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 nginx -t
 
 # 5. Setup & Hardening MariaDB Database
-echo -e "\n${BLUE}[5/6] Initializing MariaDB Database & Privileges...${NC}"
+echo -e "\n${BLUE}[5/7] Initializing MariaDB Database & Privileges...${NC}"
 systemctl enable --now mariadb
 
 DB_NAME="${DB_NAME:-pdns_admin}"
@@ -157,7 +196,23 @@ if [[ -z ${DB_PASS:-} ]]; then
 	DB_PASS="$(head -c 256 /dev/urandom | tr -dc '2-9a-hj-km-np-zA-HJ-NP-Z' | cut -c1-20)"
 fi
 
-mariadb -u root <<EOF || { echo -e "${YELLOW}[WARN] Unable to run automated root MariaDB initialization (root may require password). Please create database manually.${NC}"; }
+# Detect MariaDB root connectivity (unix socket or password)
+ROOT_AUTH_CMD=()
+if mariadb -u root -e "SELECT 1;" &>/dev/null; then
+	ROOT_AUTH_CMD=(mariadb -u root)
+elif [[ -n ${DB_ROOT_PASS} ]] && mariadb -u root -p"${DB_ROOT_PASS}" -e "SELECT 1;" &>/dev/null; then
+	ROOT_AUTH_CMD=(mariadb -u root "-p${DB_ROOT_PASS}")
+elif [[ -t 0 ]]; then
+	echo -e "${YELLOW}[!] MariaDB root requires a password.${NC}"
+	read -r -s -p "Enter MariaDB root password: " DB_ROOT_PASS
+	echo ""
+	if mariadb -u root -p"${DB_ROOT_PASS}" -e "SELECT 1;" &>/dev/null; then
+		ROOT_AUTH_CMD=(mariadb -u root "-p${DB_ROOT_PASS}")
+	fi
+fi
+
+if [[ ${#ROOT_AUTH_CMD[@]} -gt 0 ]]; then
+	"${ROOT_AUTH_CMD[@]}" <<EOF
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
@@ -171,26 +226,70 @@ DROP DATABASE IF EXISTS test;
 DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
 FLUSH PRIVILEGES;
 EOF
+	echo -e "${GREEN}MariaDB user '${DB_USER}' and database '${DB_NAME}' created successfully.${NC}"
+else
+	echo -e "${YELLOW}[WARN] Could not authenticate automatically as MariaDB root.${NC}"
+	echo -e "${YELLOW}Please create database and user manually using:${NC}"
+	echo -e "  mariadb -u root -p -e \"CREATE DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}'; GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost'; FLUSH PRIVILEGES;\""
+fi
 
 # Import metadata table schema if new database and schema does not exist
 if mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" -e "DESCRIBE users;" &>/dev/null; then
 	echo -e "${GREEN}PowerDNS-Admin-PHP metadata tables already exist in database ${DB_NAME}.${NC}"
-elif [[ -f "${APP}/sql/schema.sql" ]]; then
+elif [[ -f "${APP}/sql/schema.sql" ]] && mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" -e "SELECT 1;" &>/dev/null; then
 	echo -e "${GREEN}Importing PowerDNS-Admin-PHP metadata schema (${APP}/sql/schema.sql)...${NC}"
 	mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" <"${APP}/sql/schema.sql" || true
 fi
 
-# 6. Enable and restart all services
-echo -e "\n${BLUE}[6/6] Restarting Nginx and PHP-FPM services...${NC}"
+# Run v0.4.0 migration if migration file exists
+if [[ -f "${APP}/sql/migrations/0.4.0_hardening_expansion.sql" ]] && mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" -e "SELECT 1;" &>/dev/null; then
+	mariadb -u "${DB_USER}" -p"${DB_PASS}" -h 127.0.0.1 "${DB_NAME}" <"${APP}/sql/migrations/0.4.0_hardening_expansion.sql" 2>/dev/null || true
+fi
+
+# 6. Optional Automated Let's Encrypt (Certbot) TLS Certificate
+echo -e "\n${BLUE}[6/7] Automated HTTPS / SSL Setup (Let's Encrypt)...${NC}"
+CERTBOT_SUCCESS=false
+if [[ -n ${DOMAIN} && ${DOMAIN} != "_" && ${DOMAIN} != "localhost" && ! ${DOMAIN} =~ ^[0-9.]+$ ]]; then
+	echo -e "${GREEN}Domain '${DOMAIN}' supplied. Installing Certbot and configuring SSL...${NC}"
+	apt-get install -y --no-install-recommends certbot python3-certbot-nginx
+
+	CERTBOT_CMD=("certbot" "--nginx" "-d" "${DOMAIN}" "--non-interactive" "--agree-tos" "--redirect")
+	if [[ -n ${CERTBOT_EMAIL} ]]; then
+		CERTBOT_CMD+=("-m" "${CERTBOT_EMAIL}")
+	else
+		CERTBOT_CMD+=("--register-unsafely-without-email")
+	fi
+
+	if "${CERTBOT_CMD[@]}"; then
+		CERTBOT_SUCCESS=true
+		echo -e "${GREEN}Let's Encrypt TLS certificate installed successfully for ${DOMAIN}!${NC}"
+	else
+		echo -e "${YELLOW}[WARN] Certbot automated verification was unable to complete (DNS may not have propagated yet).${NC}"
+		echo -e "${YELLOW}You can obtain the certificate later once DNS resolves by running:${NC}"
+		echo -e "  certbot --nginx -d ${DOMAIN}"
+	fi
+else
+	echo -e "${CYAN}No external domain provided (or IP address used). Skipping automated Let's Encrypt.${NC}"
+	echo -e "To configure SSL later with a domain, run: ${YELLOW}certbot --nginx -d <your-domain>${NC}"
+fi
+
+# 7. Enable, restart and execute healthcheck
+echo -e "\n${BLUE}[7/7] Restarting services and performing post-installation health check...${NC}"
 systemctl daemon-reload
 systemctl enable --now "php${PHP_VER}-fpm" nginx mariadb
 systemctl restart "php${PHP_VER}-fpm" nginx
+
+# Execute health-check suite
+if [[ -x "${APP}/deploy/healthcheck.sh" ]]; then
+	echo -e "\n${CYAN}Running PowerDNS-Admin-PHP Health Check Suite...${NC}"
+	DB_USER="${DB_USER}" DB_PASS="${DB_PASS}" DB_NAME="${DB_NAME}" DB_HOST="127.0.0.1" "${APP}/deploy/healthcheck.sh" || true
+fi
 
 trap - EXIT
 
 echo ""
 echo -e "${GREEN}================================================================================${NC}"
-echo -e "${GREEN} POWERDNS-ADMIN-PHP INSTALLATION COMPLETED SUCCESSFULLY! ${NC}"
+echo -e "${GREEN} POWERDNS-ADMIN-PHP v0.4.0 INSTALLATION COMPLETED SUCCESSFULLY! ${NC}"
 echo -e "${GREEN}================================================================================${NC}"
 echo ""
 echo -e "${CYAN}Database Configuration Information:${NC}"
@@ -205,9 +304,17 @@ echo -e "  - Nginx Config: ${YELLOW}/etc/nginx/sites-available/pda.conf${NC}"
 echo -e "  - PHP-FPM Sock: ${YELLOW}/run/php/php${PHP_VER}-fpm-pda.sock${NC}"
 echo -e "  - Web Directory: ${YELLOW}${APP}/public${NC}"
 echo ""
+echo -e "${CYAN}Access URL:${NC}"
+if [[ ${CERTBOT_SUCCESS} == "true" ]]; then
+	echo -e "  - HTTPS URL   : ${GREEN}https://${DOMAIN}/install${NC}"
+elif [[ -n ${DOMAIN} && ${DOMAIN} != "_" ]]; then
+	echo -e "  - HTTP URL    : ${GREEN}http://${DOMAIN}/install${NC}"
+else
+	echo -e "  - HTTP URL    : ${GREEN}http://<YOUR_SERVER_IP>/install${NC}"
+fi
+echo ""
 echo -e "${CYAN}Next Steps:${NC}"
-echo -e "  1. Point your web browser to your server IP or Domain to complete setup:"
-echo -e "     ${GREEN}http://<YOUR_SERVER_IP>/install${NC}"
+echo -e "  1. Point your web browser to the URL above to complete the initial setup."
 echo -e "  2. Enter the database credentials above in the web installation wizard."
 echo -e "  3. Create your first Administrator account."
 echo ""

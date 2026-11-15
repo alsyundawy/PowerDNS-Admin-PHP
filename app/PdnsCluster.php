@@ -21,7 +21,7 @@ final class PdnsCluster
         try {
             ensureEnterpriseSchema();
             $sql = 'SELECT id, name, api_url, server_id, is_default, is_active, '
-                . 'latency_ms, last_check_at, created_at FROM pdns_servers ORDER BY is_default DESC, id ASC';
+                . 'latency_ms, version, last_check_at, created_at FROM pdns_servers ORDER BY is_default DESC, id ASC';
             $st = db()->query($sql);
             return $st ? $st->fetchAll() : [];
         } catch (Throwable) {
@@ -49,7 +49,7 @@ final class PdnsCluster
         try {
             ensureEnterpriseSchema();
             $sql = 'SELECT id, name, api_url, api_key_encrypted, server_id, is_default, '
-                . 'is_active, latency_ms, last_check_at, created_at FROM pdns_servers WHERE id = ?';
+                . 'is_active, latency_ms, version, last_check_at, created_at FROM pdns_servers WHERE id = ?';
             $st = db()->prepare($sql);
             $st->execute([$id]);
             $row = $st->fetch();
@@ -277,6 +277,14 @@ final class PdnsCluster
         curl_close($ch);
 
         $success = ($httpCode >= 200 && $httpCode < 300 && $response !== false);
+        $version = null;
+        if ($success && is_string($response)) {
+            $parsed = json_decode($response, true);
+            if (is_array($parsed) && !empty($parsed['version'])) {
+                $version = (string) $parsed['version'];
+            }
+        }
+
         if ($success) {
             $msg = 'Connected (HTTP ' . $httpCode . ')';
         } elseif ($curlError !== '') {
@@ -286,8 +294,10 @@ final class PdnsCluster
         }
 
         try {
-            $st = db()->prepare('UPDATE pdns_servers SET latency_ms = ?, last_check_at = NOW() WHERE id = ?');
-            $st->execute([$success ? $latencyMs : null, $id]);
+            $sql = 'UPDATE pdns_servers SET latency_ms = ?, ' .
+                'version = COALESCE(?, version), last_check_at = NOW() WHERE id = ?';
+            $st = db()->prepare($sql);
+            $st->execute([$success ? $latencyMs : null, $version, $id]);
         } catch (Throwable) {
             // safely ignore db update failure
         }
@@ -296,6 +306,7 @@ final class PdnsCluster
             'success' => $success,
             'latency_ms' => $latencyMs,
             'message' => $msg,
+            'version' => $version ?? '',
         ];
     }
 }

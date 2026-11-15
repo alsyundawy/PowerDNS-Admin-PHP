@@ -156,3 +156,92 @@ function ipv6ToPtrFqdn(string $ipv6): ?string
     $rev = array_reverse(str_split($hex));
     return implode('.', $rev) . '.ip6.arpa.';
 }
+
+/**
+ * Generate reverse zone name for IPv4 subnet of arbitrary size (/8 through /24).
+ * Returns canonical FQDN (e.g., /24 -> "2.0.192.in-addr.arpa.", /16 -> "0.10.in-addr.arpa.", /8 -> "10.in-addr.arpa.").
+ */
+function ipv4SubnetToReverseZone(string $ipOrCidr, ?int $prefix = null): ?string
+{
+    $parts = explode('/', trim($ipOrCidr));
+    $ip = $parts[0];
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return null;
+    }
+    if ($prefix === null) {
+        $prefix = isset($parts[1]) ? (int) $parts[1] : 24;
+    }
+    $octets = explode('.', $ip);
+    if ($prefix <= 8) {
+        return sprintf('%d.in-addr.arpa.', (int) $octets[0]);
+    }
+    if ($prefix <= 16) {
+        return sprintf('%d.%d.in-addr.arpa.', (int) $octets[1], (int) $octets[0]);
+    }
+    return sprintf('%d.%d.%d.in-addr.arpa.', (int) $octets[2], (int) $octets[1], (int) $octets[0]);
+}
+
+/**
+ * Generate relative PTR name for an IPv4 address given a target reverse zone.
+ */
+function ipv4ToRelativePtr(string $ipv4, string $zone): ?string
+{
+    if (!filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return null;
+    }
+    $full = ipv4ToPtrFqdn($ipv4);
+    if ($full === null) {
+        return null;
+    }
+    $zone = dnsCanonical($zone);
+    $suffix = '.' . $zone;
+    if (str_ends_with($full, $suffix)) {
+        return substr($full, 0, -strlen($suffix));
+    }
+    return (string) (int) explode('.', $ipv4)[3];
+}
+
+/**
+ * Generate reverse zone name for an IPv6 prefix of arbitrary size (/32 through /64).
+ */
+function ipv6PrefixToReverseZone(string $ipv6OrPrefix, ?int $prefix = null): ?string
+{
+    $parts = explode('/', trim($ipv6OrPrefix));
+    $ip = $parts[0];
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) {
+        return null;
+    }
+    if ($prefix === null) {
+        $prefix = isset($parts[1]) ? (int) $parts[1] : 64;
+    }
+    $prefix = max(16, min(128, $prefix));
+    $nibbles = (int) round($prefix / 4);
+    $nibbles = max(4, min(32, $nibbles));
+
+    $hex = strtolower(bin2hex($bin));
+    $firstNibbles = substr($hex, 0, $nibbles);
+    $rev = array_reverse(str_split($firstNibbles));
+    return implode('.', $rev) . '.ip6.arpa.';
+}
+
+/**
+ * Generate relative PTR name for an IPv6 address given a target reverse zone.
+ */
+function ipv6ToRelativePtr(string $ipv6, string $zone): ?string
+{
+    $bin = @inet_pton($ipv6);
+    if ($bin === false || strlen($bin) !== 16) {
+        return null;
+    }
+    $full = ipv6ToPtrFqdn($ipv6);
+    if ($full === null) {
+        return null;
+    }
+    $zone = dnsCanonical($zone);
+    $suffix = '.' . $zone;
+    if (str_ends_with($full, $suffix)) {
+        return substr($full, 0, -strlen($suffix));
+    }
+    return ipv6ToRelativePtr64($ipv6);
+}

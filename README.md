@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases"><img src="https://img.shields.io/badge/Release-v0.3.0-007ACC?style=for-the-badge&logo=github" alt="Release v0.3.0"></a>
+  <a href="https://github.com/alsyundawy/PowerDNS-Admin-PHP/releases"><img src="https://img.shields.io/badge/Release-v0.4.0-007ACC?style=for-the-badge&logo=github" alt="Release v0.4.0"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.1%20--%208.5+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.1 - 8.5+"></a>
   <a href="https://www.powerdns.com/"><img src="https://img.shields.io/badge/PowerDNS-API%20v1%20Ready-D9381E?style=for-the-badge&logo=internetcomputer&logoColor=white" alt="PowerDNS API v1"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-28A745?style=for-the-badge" alt="MIT License"></a>
@@ -74,24 +74,29 @@ Operating across Debian, Ubuntu, Rocky Linux, AlmaLinux, CentOS, or Docker conta
 
 ## ⚡ Enterprise Architecture at a Glance
 
-| Core Pillar                         | Architectural Implementation & Delivery                                                                                                        |
-| :---------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
-| **🚀 Sub-Millisecond Kernel**       | Native PHP 8.1–8.5+ with PDO; zero runtime framework overhead (boots in $<1\text{ ms}$ with memory allocation $<2\text{ MB}$).                 |
-| **🛡️ 100% Air-Gapped Zero-CDN**     | Bundled local offline Bootstrap 5.3, Font Awesome 6.7.2, and Vanilla JS. Enforces strict CSP (`'self'`) with zero external network leaks.      |
-| **⚡ Single Source of Truth**       | Pure authoritative integration via PowerDNS HTTP API v1. Zero DNS record duplication in the database; atomic mathematical RRSet diffs.         |
-| **🔐 Defense-in-Depth Security**    | Argon2id password hashing, AES-256-GCM encrypted cluster secrets, RFC 6238 TOTP 2FA, session-bound CSRF rotation, dual-axis rate limiting.     |
-| **🏢 Multi-Node Clustering**        | Centralized control plane for distributed PowerDNS Authoritative daemons with dynamic session routing and live latency telemetry.              |
-| **💾 High-Throughput Caching**      | Native in-memory APCu shared memory adapter with atomic prefix-based invalidation, serving repeated zone reads in $<0.2\text{ ms}$.            |
-| **🪝 Cryptographic Webhooks**       | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`).          |
-| **📋 Zone RFC Linting Engine**      | Automated real-time RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, and MX target checks).     |
-| **📊 Telemetry & Visual Analytics** | PowerDNS ring buffer decoders (`queries`, `remotes`), SVG packet cache hit ratio donut gauges, and client query distribution.                  |
-| **🎨 OLED Dark/Light Theming**      | Design system inspired by Visual Subnet Calculator with safe-area insets (`env(safe-area-inset-*)`) and horizontal overflow guards for mobile. |
+| Core Pillar                          | Architectural Implementation & Delivery                                                                                                        |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| **🚀 Sub-Millisecond Kernel**        | Native PHP 8.1–8.5+ with PDO; zero runtime framework overhead (boots in $<1\text{ ms}$ with memory allocation $<2\text{ MB}$).                 |
+| **🛡️ 100% Air-Gapped Zero-CDN**      | Bundled local offline Bootstrap 5.3, Font Awesome 6.7.2, and Vanilla JS. Enforces strict CSP (`'self'`) with zero external network leaks.      |
+| **⚡ Single Source of Truth**        | Pure authoritative integration via PowerDNS HTTP API v1. Zero DNS record duplication in the database; atomic mathematical RRSet diffs.         |
+| **🔐 Defense-in-Depth Security**     | Argon2id password hashing, AES-256-GCM encrypted cluster secrets, RFC 6238 TOTP 2FA, session-bound CSRF rotation, dual-axis rate limiting.     |
+| **🏢 Multi-Node Clustering**         | Centralized control plane for distributed PowerDNS Authoritative daemons with dynamic session routing and live latency telemetry.              |
+| **💾 High-Throughput Caching**       | Native in-memory APCu shared memory adapter with atomic prefix-based invalidation, serving repeated zone reads in $<0.2\text{ ms}$.            |
+| **🪝 Cryptographic Webhooks**        | Event-driven HTTP POST notifications (`zone.created`, `zone.deleted`, `record.updated`) signed with HMAC-SHA256 (`X-PDNS-Signature`).          |
+| **📋 Zone RFC Linting Engine**       | Automated real-time RFC 1035, RFC 1912, and RFC 2181 compliance audits (Apex CNAME conflicts, missing glue records, and MX target checks).     |
+| **📊 Telemetry & Visual Analytics**  | PowerDNS ring buffer decoders (`queries`, `remotes`), SVG packet cache hit ratio donut gauges, and client query distribution.                  |
+| **📁 RFC 9432 Catalog Zones**        | Full producer and consumer catalog zone management with member zone auto-assignment (`/catalogs`).                                             |
+| **📤 Exportable Audit Logs**         | Streaming RFC 4180 CSV & structured JSON audit trails protected by role-based access control (`admin`, `operator`).                            |
+| **🩺 Cluster Node Health Telemetry** | Real-time daemon status monitoring, latency benchmarking, and version discovery dashboard widget.                                              |
+| **🌐 Large Subnet rDNS Delegation**  | Multi-tier IPv4 (/8, /16, /20, /22, /24) and IPv6 (/32, /48, /56, /64) with progressive live preview & chunking.                               |
+| **🔑 Modular OIDC / SAML SSO**       | Extensible authentication provider interface (`AuthProviderInterface`) supporting OpenID Connect and SAML.                                     |
+| **🎨 OLED Dark/Light Theming**       | Design system inspired by Visual Subnet Calculator with safe-area insets (`env(safe-area-inset-*)`) and horizontal overflow guards for mobile. |
 
 ---
 
 ## 🚀 Why This Modernized Edition?
 
-This edition (**v0.3.0**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
+This edition (**v0.4.0**) represents a clean-slate architectural, security, accessibility, and visual overhaul of
 PowerDNS administration:
 
 ### 🛡️ 1. Zero-CDN Offline Architecture & Content Security
@@ -487,19 +492,35 @@ Ensure your host environment satisfies the minimum requirements:
 
 ### 2. Method 1: Automated Shell Installation (Debian / Ubuntu)
 
-This repository includes an unattended, production-ready installation script:
+This repository includes an unattended, production-ready installation script with automated Let's Encrypt TLS (Certbot) provisioning and multi-point health verification:
 
 ```bash
 # 1. Clone repository to web server root
 git clone https://github.com/alsyundawy/PowerDNS-Admin-PHP.git /var/www/PowerDNS-Admin-PHP
 cd /var/www/PowerDNS-Admin-PHP
 
-# 2. Run automated installer with root/sudo privileges
+# 2. Run automated installer with root/sudo privileges (Interactive or Unattended)
+# Basic interactive mode:
 sudo bash deploy/install-debian.sh
+
+# Or unattended mode with automated Let's Encrypt TLS and database password:
+sudo bash deploy/install-debian.sh \
+  --domain dns.example.com \
+  --email admin@example.com \
+  --db-root-pass "SecureRootPassword123!"
+
+# 3. Verify deployment health at any time
+bash deploy/healthcheck.sh
 ```
 
-This script automatically installs all required system packages, provisions a dedicated PHP-FPM pool,
-configures the Nginx virtual host, and sets up strict file permissions.
+This script automatically:
+
+- Installs and provisions PHP 8.2–8.5, PHP-FPM, MariaDB, Nginx, and Certbot.
+- Configures MariaDB root authentication resilience (`unix_socket` or native password).
+- Automatically provisions database tables and runs non-destructive enterprise schema migrations.
+- Substitutes configured `server_name` into Nginx virtual host with production-grade security headers & CSP (`upgrade-insecure-requests;`).
+- Automatically requests and deploys Let's Encrypt TLS certificates when domain and email are provided.
+- Executes automated post-installation multi-point health check suite verifying PHP-FPM socket, MariaDB, and PowerDNS API.
 
 ---
 
@@ -548,6 +569,8 @@ Copy the production virtual host template from [`deploy/nginx.conf`](deploy/ngin
 
 ```bash
 sudo cp /var/www/PowerDNS-Admin-PHP/deploy/nginx.conf /etc/nginx/sites-available/powerdns-admin.conf
+# Replace __SERVER_NAME__ with your domain (e.g. domain.tld) or '_' for catch-all:
+sudo sed -i 's/__SERVER_NAME__/domain.tld _/' /etc/nginx/sites-available/powerdns-admin.conf
 sudo ln -s /etc/nginx/sites-available/powerdns-admin.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -581,7 +604,7 @@ running under a non-root `www-data` account:
 
 ```bash
 # 1. Build Docker image
-docker build -t powerdns-admin-php:0.3.0 .
+docker build -t powerdns-admin-php:0.4.0 .
 
 # 2. Run container
 docker run -d \
@@ -590,7 +613,7 @@ docker run -d \
   -p 9000:9000 \
   -v /etc/pda/config.php:/var/www/html/config.php:ro \
   -v pda-uploads:/var/www/html/public/assets/uploads \
-  powerdns-admin-php:0.3.0
+  powerdns-admin-php:0.4.0
 ```
 
 ---
@@ -866,6 +889,7 @@ PowerDNS-Admin-PHP/
 │   ├── PdnsDnssecTrait.php      # DNSSEC cryptographic keys & delegation signing trait
 │   ├── PdnsMetadataTrait.php    # PowerDNS zone metadata (SOA-EDIT-API, NSEC3) trait
 │   ├── analytics.php            # DNS telemetry parser & pure vector SVG graphics engine
+│   ├── auth_provider.php        # Modular OIDC / SAML SSO authentication provider hook
 │   ├── backup_services.php      # Metadata SQL backup/restore & zone snapshot engine
 │   ├── bootstrap.php            # Sub-millisecond bootstrapper, PDO, crypto & rate limiting
 │   ├── cache.php                # High-speed in-memory cache adapter (APCu / Request Memory)
@@ -879,6 +903,7 @@ PowerDNS-Admin-PHP/
 │   └── zone_linter.php          # RFC compliance & diagnostic linting engine
 ├── deploy/                      # Production deployment templates & automation scripts
 │   ├── detect-php-fpm.sh        # FastCGI socket detection script for Linux distributions
+│   ├── healthcheck.sh           # Multi-point production health check & diagnostic suite
 │   ├── install-debian.sh        # Automated unattended installer for Debian & Ubuntu
 │   ├── nginx.conf               # Hardened production Nginx vhost with strict CSP & HSTS
 │   └── pdns.snippet.conf        # Production PowerDNS daemon API configuration snippet
@@ -895,21 +920,27 @@ PowerDNS-Admin-PHP/
 ├── sql/                         # Database schema & migrations
 │   ├── schema.sql               # Base relational schema (MySQL 8.0+ / MariaDB 10.5+)
 │   └── migrations/              # Automated non-destructive schema migrations
-│       └── 0.3.0_enterprise_upgrade.sql # Schema migration for clusters, 2FA & webhooks
+│       ├── 0.3.0_enterprise_upgrade.sql # Schema migration for clusters, 2FA & webhooks
+│       └── 0.4.0_hardening_expansion.sql # Schema migration for server versioning & catalog zones
 ├── tests/                       # Automated test suites (Zero-framework PHP & Playwright E2E)
 │   ├── helper.php               # Test environment bootstrap & mock assertions
 │   ├── test_analytics.php       # DNS telemetry parser & SVG chart test suite
+│   ├── test_audit_export.php    # CSV & JSON audit log export and RBAC test suite
+│   ├── test_auth_provider.php   # OIDC / SAML SSO authentication provider test suite
 │   ├── test_backup.php          # SQL dump/restore parser & sanitation test suite
 │   ├── test_bind_parser.php     # RFC 1035 BIND zone file parser test suite
 │   ├── test_bulk_records.php    # Cross-zone bulk search & replace test suite
 │   ├── test_cache.php           # APCu and request memory cache adapter test suite
+│   ├── test_catalogs.php        # RFC 9432 Catalog Zones management test suite
 │   ├── test_cluster.php         # Multi-server cluster & node routing test suite
+│   ├── test_cluster_health.php  # Cluster health & API status widget test suite
 │   ├── test_dyndns.php          # DynDNS 2 HTTP endpoint & credential test suite
 │   ├── test_linter.php          # Zone RFC compliance & linting engine test suite
 │   ├── test_logger.php          # Structured logging & credential redaction test suite
 │   ├── test_network_tools.php   # IPCalc, IPv6 splitter & WHOIS test suite
 │   ├── test_playwright_responsive.js # Cross-device responsive layout test suite (10 viewports)
 │   ├── test_profile.php         # User profile, password hashing & avatar test suite
+│   ├── test_rdns_large_subnets.php # Large subnet reverse DNS delegation & preview test suite
 │   ├── test_rdns_math.php       # IPv4 & IPv6 reverse DNS PTR math test suite
 │   ├── test_rdns_services.php   # Reverse DNS batch generation & RFC type test suite
 │   ├── test_snapshots.php       # Zone history & atomic diff engine test suite
@@ -919,16 +950,17 @@ PowerDNS-Admin-PHP/
     ├── accounts.php             # Multi-tenant account management & permissions
     ├── analytics.php            # Real-time DNS telemetry, donut gauges & traffic analytics
     ├── apikeys.php              # REST API token generation & revocation management
-    ├── audit.php                # Tamper-evident audit trail viewer
+    ├── audit.php                # Tamper-evident audit trail viewer & CSV/JSON export
     ├── backup.php               # Database & zone backup/restore interface
     ├── bulk_records.php         # Cross-zone bulk search, replace & snapshot rollback
-    ├── dashboard.php            # Executive dashboard, quick metrics & health status
+    ├── catalogs.php             # RFC 9432 Catalog Zones management & member assignment
+    ├── dashboard.php            # Executive dashboard, cluster node health & API metrics
     ├── dnssec.php               # DNSSEC key management & CDS/CDNSKEY delegation
     ├── error.php                # Human-friendly HTTP error page (403, 404, 500)
     ├── install.php              # Initial installation wizard & database setup
     ├── layout.php               # Main application layout, sidebar & header
     ├── layout_bare.php          # Minimalist layout for login & setup
-    ├── login.php                # Authentication page with Argon2id & 2FA TOTP verification
+    ├── login.php                # Authentication page with Argon2id, 2FA TOTP & SSO buttons
     ├── profile.php              # User self-service profile, password & 2FA enrollment
     ├── search.php               # Global fuzzy search across all zones and records
     ├── servers.php              # Multi-server PowerDNS cluster manager & node latency

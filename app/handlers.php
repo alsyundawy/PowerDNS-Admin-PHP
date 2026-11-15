@@ -150,13 +150,13 @@ function isLoginThrottled(string $ip, string $username): bool
 /**
  * @param array<string, mixed> $user
  */
-function loginUserSession(array $user, string $password): void
+function loginUserSession(array $user, string $password): never
 {
     session_regenerate_id(true);
     csrfRotate();
     $_SESSION['uid'] = (int) $user['id'];
     db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([(int) $user['id']]);
-    if (password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
+    if ($password !== '' && password_needs_rehash((string) $user['password_hash'], PASSWORD_ARGON2ID)) {
         $newHash = password_hash($password, PASSWORD_ARGON2ID);
         db()->prepare(SQL_UPDATE_USER_AUTH_HASH)
             ->execute([$newHash, (int) $user['id']]);
@@ -192,7 +192,6 @@ function executeLoginAttempt(string $username, string $password, string $ip): st
 
     logAuth('User logged in successfully', ['username' => $username, 'role' => (string) ($user['role'] ?? '')]);
     loginUserSession($user, $password);
-    return '';
 }
 
 function handleLogin(): void
@@ -248,7 +247,6 @@ function handleLogin2Fa(): void
             $password = (string) ($_SESSION['pending_2fa_pw'] ?? '');
             unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_pw']);
             loginUserSession($user, $password);
-            return;
         }
         $error = 'Invalid 2FA verification code or backup code.';
     }
@@ -264,6 +262,73 @@ function handleCancel2Fa(): void
 {
     unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_pw']);
     redirect(PATH_LOGIN);
+}
+
+function handleLoginSso(): never
+{
+    $providerId = trim((string) ($_GET['provider'] ?? 'oidc'));
+    $provider = AuthManager::getProvider($providerId);
+    if (!$provider || !$provider->isEnabled()) {
+        flash('danger', 'Selected authentication provider is not configured or enabled.');
+        redirect(PATH_LOGIN);
+    }
+
+    $state = bin2hex(random_bytes(16));
+    $_SESSION['sso_state'] = $state;
+    $_SESSION['sso_provider'] = $providerId;
+
+    $isProtoHttps = isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+        && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || $isProtoHttps
+        || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+
+    $scheme = $isHttps ? 'https://' : 'http://';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $redirectUri = $scheme . $host . '/login/callback';
+
+    $url = $provider->getAuthorizationUrl($redirectUri, $state);
+    redirect($url);
+}
+
+function handleLoginCallback(): never
+{
+    $storedState = (string) ($_SESSION['sso_state'] ?? '');
+    $providerId = (string) ($_SESSION['sso_provider'] ?? '');
+    $incomingState = (string) ($_GET['state'] ?? '');
+
+    unset($_SESSION['sso_state'], $_SESSION['sso_provider']);
+
+    if ($storedState === '' || !hash_equals($storedState, $incomingState)) {
+        flash('danger', 'Invalid or expired SSO state parameter.');
+        redirect(PATH_LOGIN);
+    }
+
+    $provider = AuthManager::getProvider($providerId);
+    if (!$provider || !$provider->isEnabled()) {
+        flash('danger', 'Authentication provider unavailable.');
+        redirect(PATH_LOGIN);
+    }
+
+    $isProtoHttps = isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+        && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || $isProtoHttps
+        || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+
+    $scheme = $isHttps ? 'https://' : 'http://';
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $redirectUri = $scheme . $host . '/login/callback';
+
+    $profile = $provider->handleCallback($_GET, $redirectUri);
+    if (!$profile || empty($profile['username'])) {
+        flash('danger', 'SSO authentication failed or missing user profile from Identity Provider.');
+        redirect(PATH_LOGIN);
+    }
+
+    $user = AuthManager::provisionExternalUser($profile);
+    logAuth('User logged in via SSO (' . $provider->getTitle() . ')', ['username' => (string) $user['username']]);
+    loginUserSession($user, '');
 }
 
 function handleLogout(): void
@@ -292,9 +357,16 @@ function handleDashboard(array $user): void
     $stats = [];
     $apiOk = false;
     $apiError = '';
+    $activeVersion = '';
+    $activeLatency = 0;
+    $clusterNodes = PdnsCluster::listServers();
+
     try {
-        $pdns = PdnsClient::fromSettings();
-        $pdns->ping();
+        $pdns = PdnsCluster::getActiveClient();
+        $startPing = microtime(true);
+        $serverInfo = $pdns->ping();
+        $activeLatency = (int) round((microtime(true) - $startPing) * 1000);
+        $activeVersion = (string) ($serverInfo['version'] ?? '');
         $apiOk = true;
         $raw = $pdns->statistics(false);
         $want = [
@@ -309,6 +381,22 @@ function handleDashboard(array $user): void
         }
     } catch (Throwable $ex) {
         $apiError = $ex->getMessage();
+    }
+
+    if (empty($clusterNodes)) {
+        $clusterNodes = [
+            [
+                'id' => 0,
+                'name' => 'Primary Node (Default)',
+                'api_url' => (string) setting('pdns_api_url', 'http://127.0.0.1:8081'),
+                'server_id' => (string) setting('pdns_server_id', 'localhost'),
+                'is_default' => 1,
+                'is_active' => 1,
+                'latency_ms' => $apiOk ? $activeLatency : null,
+                'version' => $apiOk ? $activeVersion : null,
+                'last_check_at' => $apiOk ? gmdate('Y-m-d H:i:s') : null,
+            ],
+        ];
     }
     $stHist = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 8');
     $recent = $stHist ? $stHist->fetchAll() : [];
@@ -338,7 +426,9 @@ function handleDashboard(array $user): void
             'recent',
             'phpVersion',
             'memoryUsage',
-            'serverSoftware'
+            'serverSoftware',
+            'clusterNodes',
+            'activeVersion'
         ) + ['title' => 'Dashboard']
     );
 }
@@ -388,6 +478,123 @@ function handleZoneSync(array $user): void
         flash('danger', $ex->getMessage());
     }
     redirect('/zones');
+}
+
+/**
+ * @param array<string, mixed> $user
+ */
+function handleCatalogs(array $user, string $path, string $method): void
+{
+    requireRole($user, ['admin', 'operator']);
+
+    if ($path === '/catalogs/create' && $method === 'POST') {
+        csrfCheck();
+        $name = dnsCanonical(trim((string) ($_POST['name'] ?? '')));
+        $kind = trim((string) ($_POST['kind'] ?? 'Producer'));
+        $rawNs = trim((string) ($_POST['nameservers'] ?? ''));
+        $rawMasters = trim((string) ($_POST['masters'] ?? ''));
+
+        $nsList = array_values(array_filter(array_map('trim', explode(',', $rawNs))));
+        $mastersList = array_values(array_filter(array_map('trim', explode(',', $rawMasters))));
+
+        if ($name === '' || !str_ends_with($name, '.')) {
+            flash('danger', 'Invalid catalog zone name.');
+            redirect('/catalogs');
+        }
+
+        try {
+            $pdns = PdnsCluster::getActiveClient();
+            $payload = [
+                'name' => $name,
+                'kind' => strtoupper($kind) === 'CONSUMER' ? 'CONSUMER' : 'PRODUCER',
+                'masters' => $mastersList,
+                'nameservers' => array_map('dnsCanonical', $nsList),
+                'soa_edit_api' => 'DEFAULT',
+                'api_rectify' => true,
+            ];
+            $pdns->createZone($payload);
+            syncZonesFromPdns($pdns);
+            audit($user, 'create-catalog-zone', $name, $kind);
+            flash('success', "Catalog zone {$name} successfully created.");
+        } catch (Throwable $e) {
+            flash('danger', 'Failed to create catalog zone: ' . $e->getMessage());
+        }
+        redirect('/catalogs');
+    }
+
+    if ($path === '/catalogs/assign' && $method === 'POST') {
+        csrfCheck();
+        $zoneName = dnsCanonical(trim((string) ($_POST['zone'] ?? '')));
+        $catalog = dnsCanonical(trim((string) ($_POST['catalog'] ?? '')));
+
+        if ($zoneName === '' || $catalog === '') {
+            flash('danger', 'Both target member zone and catalog zone must be selected.');
+            redirect('/catalogs');
+        }
+
+        try {
+            $pdns = PdnsCluster::getActiveClient();
+            $pdns->assignCatalog($zoneName, $catalog);
+            db()->prepare('UPDATE zones SET catalog = ? WHERE name = ?')->execute([$catalog, $zoneName]);
+            audit($user, 'assign-catalog', $zoneName, "Assigned to catalog {$catalog}");
+            flash('success', "Zone {$zoneName} successfully assigned to catalog {$catalog}.");
+        } catch (Throwable $e) {
+            flash('danger', 'Failed to assign catalog: ' . $e->getMessage());
+        }
+        redirect('/catalogs');
+    }
+
+    if ($path === '/catalogs/remove' && $method === 'POST') {
+        csrfCheck();
+        $zoneName = dnsCanonical(trim((string) ($_POST['zone'] ?? '')));
+
+        if ($zoneName === '') {
+            flash('danger', 'Target member zone not specified.');
+            redirect('/catalogs');
+        }
+
+        try {
+            $pdns = PdnsCluster::getActiveClient();
+            $pdns->assignCatalog($zoneName, '');
+            db()->prepare('UPDATE zones SET catalog = \'\' WHERE name = ?')->execute([$zoneName]);
+            audit($user, 'unassign-catalog', $zoneName, 'Removed catalog association');
+            flash('success', "Zone {$zoneName} removed from catalog.");
+        } catch (Throwable $e) {
+            flash('danger', 'Failed to remove from catalog: ' . $e->getMessage());
+        }
+        redirect('/catalogs');
+    }
+
+    // Default GET: list catalog zones and member associations
+    $catalogZones = [];
+    $groupedMembers = [];
+    $allZones = [];
+    $isSupported = false;
+    $serverVersion = '';
+
+    try {
+        $pdns = PdnsCluster::getActiveClient();
+        $isSupported = $pdns->isCatalogSupported();
+        $info = $pdns->ping();
+        $serverVersion = (string) ($info['version'] ?? '');
+        $catalogZones = $pdns->catalogZones();
+        $groupedMembers = $pdns->zonesGroupedByCatalog();
+
+        $st = db()->query('SELECT id, name, kind, catalog FROM zones ORDER BY name ASC');
+        $allZones = $st ? $st->fetchAll() : [];
+    } catch (Throwable $e) {
+        flash('danger', 'PowerDNS API connection error: ' . $e->getMessage());
+    }
+
+    view('catalogs', [
+        'title' => 'Catalog Zones',
+        'user' => $user,
+        'isSupported' => $isSupported,
+        'serverVersion' => $serverVersion,
+        'catalogZones' => $catalogZones,
+        'groupedMembers' => $groupedMembers,
+        'allZones' => $allZones,
+    ]);
 }
 
 /**
@@ -1249,7 +1456,45 @@ function handleApikeyCreate(array $user): void
  */
 function handleAudit(array $user): void
 {
-    requireRole($user, ['admin']);
+    requireRole($user, ['admin', 'operator']);
+
+    $format = strtolower(trim((string) ($_GET['export'] ?? '')));
+    if ($format === 'csv') {
+        $st = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 5000');
+        $rows = $st ? $st->fetchAll() : [];
+        audit($user, 'export-audit', '', 'Exported ' . count($rows) . ' audit records as CSV');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="audit-log-' . gmdate('Y-m-d') . '.csv"');
+        $out = fopen('php://output', 'wb');
+        if ($out !== false) {
+            fputcsv($out, ['ID', 'Timestamp', 'User', 'Action', 'Zone', 'Detail', 'IP Address'], ',', '"', '\\');
+            foreach ($rows as $r) {
+                fputcsv($out, [
+                    (string) ($r['id'] ?? ''),
+                    (string) ($r['created_at'] ?? ''),
+                    (string) ($r['username'] ?: 'system'),
+                    (string) ($r['action'] ?? ''),
+                    (string) ($r['zone_name'] ?? ''),
+                    (string) ($r['detail'] ?? ''),
+                    (string) ($r['ip'] ?? ''),
+                ], ',', '"', '\\');
+            }
+            fclose($out);
+        }
+        exit;
+    }
+
+    if ($format === 'json') {
+        $st = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 5000');
+        $rows = $st ? $st->fetchAll() : [];
+        audit($user, 'export-audit', '', 'Exported ' . count($rows) . ' audit records as JSON');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="audit-log-' . gmdate('Y-m-d') . '.json"');
+        $jsonFlags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
+        echo json_encode($rows, $jsonFlags);
+        exit;
+    }
+
     $st = db()->query('SELECT * FROM history ORDER BY id DESC LIMIT 200');
     $rows = $st ? $st->fetchAll() : [];
     view('audit', ['title' => 'Audit Log', 'user' => $user, 'rows' => $rows]);
@@ -1329,6 +1574,23 @@ function saveSecurityAndOperationalSettings(): void
     $publicResolvers = trim((string) ($_POST['dns_public_resolvers'] ?? DEFAULT_DNS_PUBLIC_RESOLVERS));
     settingSet('rdns_default_naming_pattern', $rdnsPattern !== '' ? $rdnsPattern : DEFAULT_RDNS_NAMING_PATTERN);
     settingSet('dns_public_resolvers', $publicResolvers);
+
+    $oidcEnabled = isset($_POST['auth_oidc_enabled']) ? '1' : '0';
+    $oidcTitle = trim((string) ($_POST['auth_oidc_title'] ?? 'Single Sign-On (OIDC)'));
+    $oidcIssuer = trim((string) ($_POST['auth_oidc_issuer'] ?? ''));
+    $oidcClientId = trim((string) ($_POST['auth_oidc_client_id'] ?? ''));
+    $rawOidcRole = (string) ($_POST['auth_oidc_default_role'] ?? 'user');
+    $oidcRole = in_array($rawOidcRole, ['admin', 'operator', 'user'], true) ? $rawOidcRole : 'user';
+    $oidcSecret = trim((string) ($_POST['auth_oidc_client_secret'] ?? ''));
+
+    settingSet('auth_oidc_enabled', $oidcEnabled);
+    settingSet('auth_oidc_title', $oidcTitle !== '' ? $oidcTitle : 'Single Sign-On (OIDC)');
+    settingSet('auth_oidc_issuer', $oidcIssuer);
+    settingSet('auth_oidc_client_id', $oidcClientId);
+    settingSet('auth_oidc_default_role', $oidcRole);
+    if ($oidcSecret !== '') {
+        settingSet('auth_oidc_client_secret', secretEncrypt($oidcSecret));
+    }
 }
 
 function updateApplicationSettings(array $user): void
@@ -1402,6 +1664,11 @@ function handleSettings(array $user): void
         'auditRetentionDays' => (int) setting('audit_retention_days', '90'),
         'rdnsPattern' => (string) setting('rdns_default_naming_pattern', DEFAULT_RDNS_NAMING_PATTERN),
         'publicResolvers' => (string) setting('dns_public_resolvers', DEFAULT_DNS_PUBLIC_RESOLVERS),
+        'oidcEnabled' => setting('auth_oidc_enabled', '0') === '1',
+        'oidcTitle' => (string) setting('auth_oidc_title', 'Single Sign-On (OIDC)'),
+        'oidcIssuer' => (string) setting('auth_oidc_issuer', ''),
+        'oidcClientId' => (string) setting('auth_oidc_client_id', ''),
+        'oidcDefaultRole' => (string) setting('auth_oidc_default_role', 'user'),
     ]);
 }
 
@@ -1483,35 +1750,42 @@ function handleRdnsGeneratePtr(array $user): never
     $ttl = max(30, (int) ($_POST['ttl'] ?? 3600));
 
     $batch = ($family === 'ipv6')
-        ? generateIpv6SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end)
-        : generateIpv4SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end);
+        ? generateIpv6SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end, $zone)
+        : generateIpv4SubnetPtrBatch($subnet, $domain, $pattern, $ttl, $start, $end, $zone);
 
     if (!$batch) {
-        flash('danger', 'Failed to generate PTR records. Verify subnet and target domain.');
+        flash('danger', 'Failed to generate PTR records. Verify subnet, target domain, and reverse zone.');
         redirect(PATH_TOOLS_RDNS);
     }
 
     try {
-        $pdns = PdnsClient::fromSettings();
-        $rrsets = [];
-        foreach ($batch as $row) {
-            $fqdn = $row['name'] . '.' . $zone;
-            $rrsets[] = [
-                'name' => $fqdn,
-                'type' => 'PTR',
-                'ttl' => $row['ttl'],
-                'changetype' => 'REPLACE',
-                'records' => [
-                    ['content' => $row['content'], 'disabled' => false],
-                ],
-                'comments' => [
-                    ['content' => $row['comment'], 'account' => ''],
-                ],
-            ];
+        $pdns = PdnsCluster::getActiveClient();
+        $chunks = array_chunk($batch, 200);
+        $totalApplied = 0;
+
+        foreach ($chunks as $chunk) {
+            $rrsets = [];
+            foreach ($chunk as $row) {
+                $fqdn = $row['name'] . '.' . $zone;
+                $rrsets[] = [
+                    'name' => $fqdn,
+                    'type' => 'PTR',
+                    'ttl' => $row['ttl'],
+                    'changetype' => 'REPLACE',
+                    'records' => [
+                        ['content' => $row['content'], 'disabled' => false],
+                    ],
+                    'comments' => [
+                        ['content' => $row['comment'], 'account' => ''],
+                    ],
+                ];
+            }
+            $pdns->patchRrsets($zone, $rrsets);
+            $totalApplied += count($rrsets);
         }
-        $pdns->patchRrsets($zone, $rrsets);
-        audit($user, 'batch-ptr-generate', $zone, count($rrsets) . " PTR records generated for $subnet");
-        flash('success', count($rrsets) . " PTR records successfully applied to zone $zone.");
+
+        audit($user, 'batch-ptr-generate', $zone, "{$totalApplied} PTR records generated for {$subnet}");
+        flash('success', "{$totalApplied} PTR records successfully applied in progressive chunks to zone {$zone}.");
         redirectZone($zone);
     } catch (Throwable $ex) {
         flash('danger', 'Failed to apply PTR records: ' . $ex->getMessage());
@@ -1631,6 +1905,19 @@ function handleRdnsTool(array $user, string $path, string $method): void
 
     if ($method === 'POST') {
         csrfCheck();
+        if ($path === '/tools/rdns/preview') {
+            $family = (string) ($_POST['family'] ?? 'ipv4');
+            $subnet = trim((string) ($_POST['subnet'] ?? ''));
+            $domain = trim((string) ($_POST['domain'] ?? ''));
+            $pattern = trim((string) ($_POST['pattern'] ?? DEFAULT_RDNS_NAMING_PATTERN));
+            $zone = dnsCanonical((string) ($_POST['zone'] ?? ''));
+            $start = (int) ($_POST['start'] ?? 1);
+            $end = (int) ($_POST['end'] ?? 254);
+            $ttl = max(30, (int) ($_POST['ttl'] ?? 3600));
+
+            $res = previewSubnetPtrBatch($family, $subnet, $domain, $zone, $pattern, $ttl, $start, $end);
+            jsonOut(200, $res);
+        }
         match ($path) {
             '/tools/rdns/create-zone' => handleRdnsCreateZone($user),
             '/tools/rdns/generate-ptr' => handleRdnsGeneratePtr($user),
